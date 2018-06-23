@@ -12,6 +12,8 @@ Plug 'vim-airline/vim-airline-themes'
 Plug 'scrooloose/nerdtree', { 'on': ['NERDTreeToggle', 'NERDTreeFind'] }
 Plug 'chriskempson/base16-vim'
 Plug 'kristijanhusak/vim-hybrid-material'
+Plug 'mhartington/oceanic-next'
+Plug 'hzchirs/vim-material'
 
 " Git
 Plug 'airblade/vim-gitgutter'
@@ -35,6 +37,9 @@ Plug 'tpope/vim-repeat'
 Plug 'scrooloose/syntastic'
 Plug 'tmux-plugins/vim-tmux'
 Plug 'tmux-plugins/vim-tmux-focus-events'
+Plug 'jparise/vim-graphql'
+Plug 'martinda/Jenkinsfile-vim-syntax'
+Plug 'prettier/vim-prettier', { 'do': 'npm install', 'for': ['javascript', 'graphql'] }
 
 " JS
 Plug 'moll/vim-node', { 'for': 'javascript' }
@@ -43,11 +48,23 @@ Plug 'jelera/vim-javascript-syntax', { 'for': 'javascript' }
 Plug 'tbrisbout/vim-babeljs', { 'for': 'javascript' }
 Plug 'mxw/vim-jsx', { 'for': 'javascript' }
 Plug 'elzr/vim-json', { 'for': 'json' }
+Plug 'Galooshi/vim-import-js', { 'do': 'npm i -g import-js' }
+
+" Typescript
+Plug 'Quramy/tsuquyomi'
+Plug 'leafgarland/typescript-vim'
+Plug 'Quramy/vim-js-pretty-template'
+Plug 'jason0x43/vim-js-indent'
+Plug 'Quramy/vim-dtsm'
+Plug 'mhartington/vim-typings'
+Plug 'Shougo/unite.vim'
+Plug 'ianks/vim-tsx'
 
 " Languages Utils
 Plug 'elmcast/elm-vim', { 'for': 'elm' }
 Plug 'cohama/lexima.vim'
 Plug 'alvan/vim-closetag'
+Plug 'kylef/apiblueprint.vim'
 
 " Writing
 Plug 'reedes/vim-wordy', { 'for': 'markdown' }
@@ -59,10 +76,10 @@ filetype plugin indent on       " load file type plugins + indentation
 
 syntax enable
 
-set background=dark
-colorscheme hybrid_material
+set termguicolors
+colorscheme quantum
 let base16colorspace=256
-let g:airline_theme='hybrid'
+let g:airline_theme='quantum'
 let g:airline_powerline_fonts = 1
 
 "" Whitespace
@@ -101,6 +118,7 @@ let g:syntastic_javascript_eslint_exec = './node_modules/.bin/eslint'
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
+let g:syntastic_quiet_messages = { "!level": "errors" }
 
 " Elm stuff
 let g:elm_format_autosave = 1
@@ -116,6 +134,14 @@ set autoread
 set hidden
 
 let g:closetag_filenames = '*.html,*.xml,*.js'
+
+let g:prettier#autoformat = 0
+let g:prettier#config#parser = 'babylon'
+let g:prettier#config#semi = 'false'
+let g:prettier#config#print_width = 120
+let g:prettier#config#single_quote = 'true'
+let g:prettier#config#bracket_spacing = 'false'
+
 
 " Keyboards Shortcuts
 set mouse=a
@@ -192,6 +218,7 @@ silent! map <F3> :NERDTreeFind<CR>
 let g:NERDTreeMapActivateNode="<F3>"
 let g:NERDTreeMapPreview="<F4>"
 let NERDTreeQuitOnOpen=1
+let NERDTreeShowHidden=1
 
 " Move to prev / next change
 silent! nnoremap <Leader>gn :GitGutterNextHunk<CR>
@@ -220,6 +247,7 @@ autocmd! User GoyoLeave Limelight!
 
 augroup vimrc_autocmds
   autocmd!
+  autocmd BufWritePre *.js Prettier
   autocmd BufNewFile,BufRead *.md set filetype=markdown
   autocmd BufNewFile,BufRead .{babel,eslint}rc set filetype=json
 
