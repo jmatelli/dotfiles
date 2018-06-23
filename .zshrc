@@ -8,6 +8,7 @@ antigen use oh-my-zsh
 antigen theme "robbyrussell"
 
 antigen bundle git
+antigen bundle heroku
 antigen bundle tmuxinator
 antigen bundle zsh-users/zsh-autosuggestions
 antigen bundle zsh-users/zsh-syntax-highlighting
@@ -21,9 +22,9 @@ antigen apply
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias vim="vim -u ~/.nvimrc"
-alias mugiwara="ssh tellijo@163.172.211.59 -p 54321"
-alias mw=mugiwara
-alias nas="ssh tellijo@192.168.1.96 -p 6969"
+
+# extended git aliases
+alias grp="git remote prune"
 
 # Use Ctrl-z to switch between vim and cli
 fancy-ctrl-z () {
@@ -51,6 +52,7 @@ fi
 export ANDROID_HOME=$HOME/Android/Sdk
 export PATH=$PATH:$ANDROID_HOME/tools
 export PATH=$PATH:$ANDROID_HOME/platform-tools
+export PATH=$PATH:/usr/lib/postgresql/9.5/bin
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
