@@ -8,7 +8,6 @@ antigen use oh-my-zsh
 antigen theme "robbyrussell"
 
 antigen bundle git
-antigen bundle heroku
 antigen bundle tmuxinator
 antigen bundle zsh-users/zsh-autosuggestions
 antigen bundle zsh-users/zsh-syntax-highlighting
@@ -25,6 +24,7 @@ alias vim="vim -u ~/.nvimrc"
 
 # extended git aliases
 alias grp="git remote prune"
+alias yeapa="ssh yeapa@104.248.128.243"
 
 # Use Ctrl-z to switch between vim and cli
 fancy-ctrl-z () {
