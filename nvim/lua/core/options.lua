@@ -3,9 +3,7 @@ local g = vim.g
 local opt = vim.opt
 
 -- Remap leader and local leader to <Space>
-api.nvim_set_keymap("", "<Space>", "<Nop>", { noremap = true, silent = true })
 g.mapleader = " "
-g.maplocalleader = " "
 
 opt.termguicolors = true -- Enable colors in terminal
 opt.hlsearch = true -- Set highlight on search
@@ -13,6 +11,7 @@ opt.hlsearch = true -- Set highlight on search
 -- Visual settings
 opt.number = true -- Make line numbers default
 opt.relativenumber = true -- Make relative number default
+opt.ruler = false
 
 -- More natural split
 opt.splitbelow = true
@@ -28,17 +27,18 @@ opt.timeoutlen = 300 -- Time in ms to wait for a mappaed sequence to complete
 opt.updatetime = 250 -- Decrease update time
 opt.signcolumn = "yes" -- Always show sign column
 opt.clipboard = "unnamedplus" -- Access system clipboard
+opt.cul = true
 opt.showtabline = 0
 
 -- Tabs
-opt.tabstop = 4
-opt.softtabstop = 0
-opt.shiftwidth = 4
+opt.tabstop = 2
+opt.softtabstop = 2
+opt.shiftwidth = 2
+opt.smartindent = true
 opt.expandtab = true
 
 -- Enable hidden buffers
 opt.hidden = true
-
 
 -- Misc
 opt.mouse = "a" -- Enable mouse mode
@@ -48,11 +48,22 @@ opt.swapfile = false
 opt.filetype = "on"
 opt.syntax = "on"
 opt.scrolloff = 8
-opt.laststatus = 2
 opt.background = "dark"
 opt.list = true
 opt.listchars = { tab = "· ", trail = "·", nbsp = "·" }
-opt.completeopt = { "menu", "menuone", "noselect" }
+opt.completeopt = "menu,menuone,noselect"
+
+opt.laststatus = 3
+opt.showmode = false
+
+-- disable nvim intro
+opt.shortmess:append "sI"
+
+-- go to previous/next line with h,l,left arrow and right arrow
+-- when cursor reaches end/beginning of line
+opt.whichwrap:append "<>[]hl"
+
+vim.g.transparency = true
 
 -- Highlight on yank
 vim.cmd [[
@@ -61,3 +72,10 @@ vim.cmd [[
     autocmd TextYankPost * silent! lua vim.highlight.on_yank()
   augroup end
 ]]
+
+-- Write and Quit
+vim.cmd [[
+  command! -bang -range=% -complete=file -nargs=* W <line1>,<line2>write<bang> <args>
+  command! -bang Q quit<bang>
+]]
+
