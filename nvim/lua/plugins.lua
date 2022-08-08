@@ -7,8 +7,8 @@ function M.setup()
   -- packer.nvim configuration
   local conf = {
     profile = {
-        enable = true,
-        threshold = 1, -- The amount in ms that a plugins load time must be over for it to be included in the profile
+      enable = true,
+      threshold = 1, -- The amount in ms that a plugins load time must be over for it to be included in the profile
     },
 
     display = {
@@ -70,14 +70,14 @@ function M.setup()
       end,
     }
     use {
-        "lewis6991/gitsigns.nvim",
-        config = function()
-            require("gitsigns").setup {
-                current_line_blame = true,
-            }
-        end,
+      "lewis6991/gitsigns.nvim",
+      config = function()
+        require("gitsigns").setup {
+          current_line_blame = true,
+        }
+      end,
     }
-    
+
     -- WhichKey
     use {
       "folke/which-key.nvim",
@@ -86,140 +86,166 @@ function M.setup()
         require("config.whichkey").setup()
       end,
     }
-    
+
     -- IndentLine
     use {
-        "lukas-reineke/indent-blankline.nvim",
-        event = "BufReadPre",
-        config = function()
-            require("config.indentblankline").setup()
-        end,
+      "lukas-reineke/indent-blankline.nvim",
+      setup = function()
+        require("core.lazy_load").on_file_open "indent-blankline.nvim"
+      end,
+      config = function()
+        require("config.indentblankline").setup()
+      end,
     }
 
     -- Better icons
     use {
-        "kyazdani42/nvim-web-devicons",
-        module = "nvim-web-devicons",
-        config = function()
-            require("nvim-web-devicons").setup { default = true }
-        end,
+      "kyazdani42/nvim-web-devicons",
+      module = "nvim-web-devicons",
+      config = function()
+        require("nvim-web-devicons").setup { default = true }
+      end,
     }
 
     use "tpope/vim-commentary"
 
-    -- Easy hopping
-    use {
-        "phaazon/hop.nvim",
-        cmd = { "HopWord", "HopChar1" },
-        config = function()
-            require("hop").setup {}
-        end,
-    }
-
-    -- Easy motion
-    use {
-        "ggandor/lightspeed.nvim",
-        keys = { "s", "S", "f", "F", "t", "T" },
-        config = function()
-            require("lightspeed").setup {}
-        end,
-    }
-
-    -- Markdown
-    use {
-        "iamcco/markdown-preview.nvim",
-        run = function()
-            vim.fn["mkdp#util#install"]()
-        end,
-        ft = "markdown",
-        cmd = { "MarkdownPreview" },
-    }
-
     -- Status line
     use {
-        "nvim-lualine/lualine.nvim",
-        event = "VimEnter",
-        config = function()
-            require("config.lualine").setup()
-        end,
-        requires = { "nvim-web-devicons" },
+      "nvim-lualine/lualine.nvim",
+      event = "VimEnter",
+      config = function()
+        require("config.lualine").setup()
+      end,
+      requires = { "nvim-web-devicons" },
     }
 
     -- LSP
     use {
-        "neovim/nvim-lspconfig",
-        config = function()
-            require("config.lspconfig").setup()
-        end,
+      "williamboman/mason.nvim",
+      module = "mason",
+      cmd = { "Mason", "MasonInstall", "MasonUninstall", "MasonUninstallAll", "MasonLog" },
+      config = function()
+        require("config.mason").setup()
+      end,
     }
     use {
-        "williamboman/nvim-lsp-installer",
-        config = function()
-            require("nvim-lsp-installer").setup({
-                automatic_installation = true, -- automatically detect which servers to install (based on which servers are set up via lspconfig)
-                ui = {
-                    icons = {
-                        server_installed = "✓",
-                        server_pending = "➜",
-                        server_uninstalled = "✗"
-                    }
-                }
-            })
-        end,
+      "neovim/nvim-lspconfig",
+      opt = true,
+      setup = function()
+        require("core.lazy_load").on_file_open "nvim-lspconfig"
+      end,
+      config = function()
+        require("config.lspconfig").setup()
+      end,
     }
-
-    -- Utils
-    use "rstacruz/vim-closer"
 
     -- Treesitter
     use {
-        "nvim-treesitter/nvim-treesitter",
-        run = ":TSUpdate",
-        config = function()
-            require("config.treesitter").setup()
-        end,
-    }
-    use {
-        "SmiteshP/nvim-navic",
-        requires = { { "neovim/nvim-lspconfig" }, { "nvim-treesitter/nvim-treesitter" } },
-        module = "nvim-navic",
-        config = function()
-            require("nvim-navic").setup()
-        end,
+      "nvim-treesitter/nvim-treesitter",
+      module = "nvim-treesitter",
+      setup = function()
+        require("core.lazy_load").on_file_open "nvim-treesitter"
+      end,
+      cmd = { "TSInstall", "TSBufEnable", "TSBufDisable", "TSEnable", "TSDisable", "TSModuleInfo" },
+      config = function()
+        require("config.treesitter").setup()
+      end,
+      run = ":TSUpdate",
     }
 
     -- Telescope
     use {
-        "nvim-telescope/telescope.nvim",
-        branch = "0.1.x",
-        requires = { { "nvim-lua/plenary.nvim" } },
-        config = function()
-            require("config.telescope").setup()
-        end,
+      "nvim-telescope/telescope.nvim",
+      branch = "0.1.x",
+      requires = { { "nvim-lua/plenary.nvim" } },
+      config = function()
+        require("config.telescope").setup()
+      end,
     }
 
     -- Completion
-    use { "L3MON4D3/LuaSnip" }
-    use { "saadparwaiz1/cmp_luasnip" }
-    use { "hrsh7th/cmp-nvim-lsp" }
     use {
-        "hrsh7th/nvim-cmp",
-        require = { { "saadparwaiz1/cmp_luasnip" }, { "hrsh7th/cmp-nvim-lsp" } },
-        config = function()
-            require("config.cmp").setup()
-        end,
+      "rafamadriz/friendly-snippets",
+      module = "cmp_nvim_lsp",
+      event = "InsertEnter",
     }
-    
+    use {
+      "onsails/lspkind.nvim",
+      after = "friendly-snippets",
+    }
+    use {
+      "hrsh7th/nvim-cmp",
+      after = "lspkind.nvim",
+      config = function()
+        require("config.cmp").setup()
+      end,
+    }
+    use {
+      "L3MON4D3/LuaSnip",
+      wants = "friendly-snippets",
+      after = "nvim-cmp",
+      config = function()
+        require("config.luasnip").setup()
+      end,
+    }
+    use {
+      "saadparwaiz1/cmp_luasnip",
+      after = "LuaSnip",
+    }
+    use {
+      "hrsh7th/cmp-nvim-lua",
+      after = "cmp_luasnip",
+    }
+    use {
+      "hrsh7th/cmp-nvim-lsp",
+      after = "cmp-nvim-lua",
+    }
+    use {
+      "hrsh7th/cmp-buffer",
+      after = "cmp-nvim-lsp",
+    }
+    use {
+      "hrsh7th/cmp-path",
+      after = "cmp-buffer",
+    }
+
+    use {
+      "windwp/nvim-autopairs",
+      after = "nvim-cmp",
+      config = function()
+        require("config.autopairs").setup()
+      end,
+    }
+
 
     -- Tree
     use {
-        'kyazdani42/nvim-tree.lua',
-        requires = {
-            'kyazdani42/nvim-web-devicons', -- optional, for file icons
-        },
-        config = function()
-            require("nvim-tree").setup()
-        end,
+      "kyazdani42/nvim-tree.lua",
+      requires = {
+        "kyazdani42/nvim-web-devicons", -- optional, for file icons
+      },
+      config = function()
+        require("config.nvimtree").setup()
+      end,
+    }
+
+    -- Diagnostic
+    use {
+      "folke/trouble.nvim",
+      requires = "kyazdani42/nvim-web-devicons",
+      config = function()
+        require("trouble").setup()
+      end,
+    }
+
+    use {
+      "norcalli/nvim-colorizer.lua",
+      setup = function()
+        require("core.lazy_load").on_file_open "nvim-colorizer.lua"
+      end,
+      config = function()
+        require("config.colorizer").setup()
+      end
     }
 
     if packer_bootstrap then
