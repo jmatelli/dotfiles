@@ -4,113 +4,71 @@ local utils = require("core.utils")
 local colors = require("core.colors").dracula
 
 local on_attach = function(client, bufnr)
-  client.resolved_capabilities.document_formatting = false
-  client.resolved_capabilities.document_range_formatting = false
+
+  if client.server_capabilities.documentFormattingProvider then
+    vim.api.nvim_command [[augroup Format]]
+    vim.api.nvim_command [[autocmd! * <buffer> ]]
+    vim.api.nvim_command [[autocmd BufWritePre <buffer> lua vim.lsp.buf.formatting_seq_sync()]]
+    vim.api.nvim_command [[augroup END]]
+  end
 
   -- Mappings
   -- See `:h vim.lsp.*` for documentation on any of the below functions
-  local whichkey_exists, wk = pcall(require, "which-key")
   local bufopts = { noremap = true, silent = true, buffer = bufnr }
-  local setMap
-  if whichkey_exists then
-    setMap = function(keys, mapping)
-      wk.register({ [keys] = mapping}, bufopts)
-    end
-  else
-    setMap = function(keys, mapping)
-      utils.nnoremap(keys, mapping[1], bufopts)
-    end
+  local setMap = function(keys, mapping)
+    utils.nnoremap(keys, mapping, bufopts)
   end
-  setMap("gD", {
-    function()
-      vim.lsp.buf.declaration()
-    end,
-    "LSP declaration",
-  })
-  setMap("gd", {
-      function()
-        if vim.fn.exists(":Telescope") then
-          vim.cmd "Telescope lsp_definitions"
-        else
-          vim.lsp.buf.definition()
-        end
-      end,
-      "LSP definition",
-  })
-  setMap("gr", {
-      function()
-          if vim.fn.exists(":Telescope") then
-              vim.cmd "Telescope lsp_references"
-          else
-              vim.lsp.buf.references()
-          end
-      end,
-      "LSP references",
-  })
-  setMap("gi", {
-    function()
-        if vim.fn.exists(":Telescope") then
-            vim.cmd "Telescope lsp_implementations"
-        else
-            vim.lsp.buf.implementation()
-        end
-    end,
-    "LSP implementation",
-  })
-  setMap("K", {
-    function()
-      vim.lsp.buf.hover()
-    end,
-    "LSP hover",
-  })
-  setMap("<leader>sh", {
-    function()
-      vim.lsp.buf.signature_help()
-    end,
-    "LSP signature help",
-  })
-  setMap("<leader>wa", {
-    function()
-      vim.lsp.buf.add_workspace_folder()
-    end,
-    "Add workspace folder",
-  })
-  setMap("<leader>wr", {
-    function()
-      vim.lsp.buf.remove_workspace_folder()
-    end,
-    "Remove workspace folder",
-  })
-  setMap("<leader>fm", {
-    function()
-      vim.lsp.buf.formatting()
-    end,
-    "LSP formatting",
-  })
-  setMap("<leader>wl", {
-    function()
-      print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-    end,
-    "List workspace folder",
-  })
-  setMap("<leader>D", {
-    function()
-      vim.lsp.buf.type_definition()
-    end,
-    "LSP type definition",
-  })
-  setMap("<leader>rn", {
-    function()
-      vim.lsp.buf.rename()
-    end,
-    "LSP rename",
-  })
-  setMap("<leader>ca", {
-    function()
-      vim.lsp.buf.code_action()
-    end,
-    "LSP code action",
-  })
+  setMap("gD", function()
+    vim.lsp.buf.declaration()
+  end)
+  setMap("gd", function()
+    -- if vim.fn.exists(":Telescope") then
+    --   vim.cmd "Telescope lsp_definitions"
+    -- else
+      vim.lsp.buf.definition()
+    -- end
+  end)
+  setMap("gr", function()
+    -- if vim.fn.exists(":Telescope") then
+    --     vim.cmd "Telescope lsp_references"
+    -- else
+        vim.lsp.buf.references()
+    -- end
+  end)
+  setMap("gi", function()
+    -- if vim.fn.exists(":Telescope") then
+    --     vim.cmd "Telescope lsp_implementations"
+    -- else
+        vim.lsp.buf.implementation()
+    -- end
+  end)
+  setMap("K", function()
+    vim.lsp.buf.hover()
+  end)
+  setMap("<leader>sh", function()
+    vim.lsp.buf.signature_help()
+  end)
+  setMap("<leader>wa", function()
+    vim.lsp.buf.add_workspace_folder()
+  end)
+  setMap("<leader>wr", function()
+    vim.lsp.buf.remove_workspace_folder()
+  end)
+  setMap("<leader>fm", function()
+    vim.lsp.buf.formatting()
+  end)
+  setMap("<leader>wl", function()
+    print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
+  end)
+  setMap("<leader>D", function()
+    vim.lsp.buf.type_definition()
+  end)
+  setMap("<leader>rn", function()
+    vim.lsp.buf.rename()
+  end)
+  setMap("<leader>ca", function()
+    vim.lsp.buf.code_action()
+  end)
 end
 
 M.cmds = {
@@ -175,10 +133,7 @@ M.setup = function()
           globals = { "vim" },
         },
         workspace = {
-          library = {
-            [vim.fn.expand "$VIMRUNTIME/lua"] = true,
-            [vim.fn.expand "$VIMRUNTIME/lua/vim/lsp"] = true,
-          },
+          library = vim.api.nvim_get_runtime_file("", true),
           maxPreload = 100000,
           preloadFileSize = 10000,
         },
@@ -189,6 +144,7 @@ M.setup = function()
   require("lspconfig")["tsserver"].setup {
     on_attach = on_attach,
     capabilities = capabilities,
+    filetypes = { "typescript", "typescriptreact", "typescript.tsx" },
     javascript = {
       format = {
         semicolons = "insert",
@@ -203,6 +159,7 @@ M.setup = function()
   require("lspconfig")["tailwindcss"].setup {
     on_attach = on_attach,
     capabilities = capabilities,
+    filetypes = { "css", "html", "typescriptreact", "javascriptreact" },
   }
 
   -- vim.api.nvim_create_autocmd("BufWritePre", {
