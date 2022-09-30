@@ -4,7 +4,7 @@ NVIM_PATH=~/.config/nvim-lua
 export NVIM_PATH
 
 # dependencies
-# brew install golangci-lint cmake luarocks luajit wget ripgrep fd stown
+# brew install go golangci-lint cmake luarocks luajit lua-language-server wget ripgrep fd stow tree-sitter
 
 # if [[ "$OSTYPE" == "darwin"* ]] then
 #   if ! command -v curl &> /dev/null then
@@ -15,7 +15,7 @@ export NVIM_PATH
 #   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 #   echo "Installing macOS dependencies with brew"
-#   brew install neovim golangci-lint cmake luarocks luajit wget ripgrep fd stown
+#   brew install go golangci-lint cmake luarocks luajit lua-language-server wget ripgrep fd stow tree-sitter
 # fi
 
 rm -rf $NVIM_PATH
