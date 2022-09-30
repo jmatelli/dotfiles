@@ -121,14 +121,6 @@ function M.setup()
 
     -- LSP
     use {
-      "williamboman/mason.nvim",
-      module = "mason",
-      cmd = { "Mason", "MasonInstall", "MasonUninstall", "MasonUninstallAll", "MasonLog" },
-      config = function()
-        require("config.mason").setup()
-      end,
-    }
-    use {
       "neovim/nvim-lspconfig",
       opt = true,
       setup = function()
@@ -138,6 +130,15 @@ function M.setup()
         require("config.lspconfig").setup()
       end,
     }
+    use {
+      "williamboman/mason.nvim",
+      module = "mason",
+      cmd = { "Mason", "MasonInstall", "MasonUninstall", "MasonUninstallAll", "MasonLog" },
+      config = function()
+        require("config.mason").setup()
+      end,
+    }
+    use 'williamboman/mason-lspconfig.nvim'
 
     -- Treesitter
     use {
@@ -217,6 +218,7 @@ function M.setup()
       end,
     }
 
+    use 'windwp/nvim-ts-autotag'
 
     -- Tree
     use {

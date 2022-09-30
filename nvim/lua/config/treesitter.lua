@@ -1,9 +1,12 @@
 local M = {}
 
 function M.setup()
-  require("nvim-treesitter.configs").setup {
+  local exists, ts = pcall(require, "nvim-treesitter.configs")
+  if not exists then return end
+
+  ts.setup {
     -- One of "all", "maintained" (parsers with maintainers), or a list of languages
-    ensure_installed = { "bash", "css", "dockerfile", "go", "gomod", "gowork", "html", "javascript", "json", "lua", "make", "markdown", "markdown_inline", "scss", "sql", "tsx", "typescript", "vim" },
+    ensure_installed = { "css", "html", "javascript", "tsx", "typescript", "json", "lua", "go" },
 
     -- Install languages synchronously (only applied to `ensure_installed`)
     sync_install = false,
@@ -14,10 +17,12 @@ function M.setup()
     highlight = {
       -- `false` will disable the whole extension
       enable = true,
+      disable = {},
       use_languagetree = true,
     },
-    context_commentstring = {
+    indent = {
       enable = true,
+      disable = {},
     },
     autotag = {
       enable = true,
