@@ -27,6 +27,7 @@
   cm = commit -m
   cma = commit -a -m
   ca = commit --amend
+  can = commit --amend --no-edit
   amend = commit --amend
 
   # Show the diff between the latest commit and the current state
@@ -41,27 +42,58 @@
   lc  = "!f() { git ll "$1"^.."$1"; }; f"
   lnc = log --pretty=format:"%h\\ %s\\ [%cn]"
 
+# INCLUDES
+# --------
+# Local/Private config goes in the include
+[include]
+  path = ~/.gitconfig.local
+# URL ALIASES
+# -----------
+# Alias for Dracula Org repositories
+[url "https://github.com/dracula/"]
+  insteadOf = dracula://
+# COLORS
+# ------
+# Dracula Dark Theme
 [color]
-  branch = auto
-  diff = auto
-  status = auto
-
+  ui = auto
 [color "branch"]
-  current = red reverse
-  local = blue
-  remote = green
-
+  current = cyan bold reverse
+  local = white
+  plain =
+  remote = cyan
 [color "diff"]
-  meta = yellow
-  frag = magenta
-  old = red bold
+  commit =
+  func = cyan
+  plain =
+  whitespace = magenta reverse
+  meta = white
+  frag = cyan bold reverse
+  old = red
   new = green
-  plain = white
-
+[color "grep"]
+  context =
+  filename =
+  function =
+  linenumber = white
+  match =
+  selected =
+  separator =
+[color "interactive"]
+  error =
+  header =
+  help =
+  prompt =
 [color "status"]
-  added = yellow
-  changed = green
-  untracked = cyan
+  added = green
+  changed = yellow
+  header =
+  localBranch =
+  nobranch =
+  remoteBranch = cyan bold
+  unmerged = magenta bold reverse
+  untracked = red
+  updated = green bold
 
 [core]
   excludesfile = ~/.gitignore
@@ -76,6 +108,43 @@
 
 [pull]
   default = current
+
 [user]
-	email = joel.matelli@tellijo.fr
+	email = joel.matelli@codikos.io
 	name = Joël Matelli
+
+[core]
+  pager = delta
+
+[interactive]
+  diffFilter = delta --color-only
+
+[delta]
+  features = side-by-side line-numbers decorations
+  syntax-theme = Dracula
+  plus-style = syntax "#003800"
+  minus-style = syntax "#3f0001"
+
+[delta "decorations"]
+  commit-decoration-style = bold yellow box ul
+  file-style = bold yellow ul
+  file-decoration-style = none
+  hunk-header-decoration-style = cyan box ul
+
+[delta "line-numbers"]
+  line-numbers-left-style = cyan
+  line-numbers-right-style = cyan
+  line-numbers-minus-style = 124
+  line-numbers-plus-style = 28
+
+[merge]
+  conflictstyle = diff3
+
+[diff]
+  colorMoved = default
+[credential]
+	helper = 
+	helper = /usr/local/share/gcm-core/git-credential-manager-core
+[credential "https://dev.azure.com"]
+	useHttpPath = true
+
