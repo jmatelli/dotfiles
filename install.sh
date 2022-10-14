@@ -209,6 +209,7 @@ setupIterm() {
 
 setupMisc() {
   [[ ! -f "$HOME/.gitconfig" ]] && echo "- Link git configuration to ~/.gitconfig" && ln -sf $DOTFILES_PATH/.gitconfig $HOME/.gitconfig && printDone
+  [[ ! -f "$HOME/.tmux.conf" ]] && echo "- Link tmux configuration to ~/.tmux.conf" && ln -sf $DOTFILES_PATH/.tmux.conf $HOME/.tmux.conf && printDone
 }
 
 #######
