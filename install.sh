@@ -52,6 +52,7 @@ printHelp() {
 setupBrew() {
   BREW_PACKAGES=(
     cmake
+    curl
     docker
     exa
     fd
@@ -60,6 +61,7 @@ setupBrew() {
     git-delta
     go
     golangci-lint
+    gzip
     jq
     lua-language-server
     luajit
@@ -73,6 +75,7 @@ setupBrew() {
     the_silver_searcher
     tmux
     tree-sitter
+    unzip
     wget
   )
 

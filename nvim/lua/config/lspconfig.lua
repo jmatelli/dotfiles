@@ -123,7 +123,7 @@ M.setup = function()
     },
   }
 
-  require("lspconfig")["sumneko_lua"].setup {
+  require("lspconfig")["lua"].setup {
     on_attach = on_attach,
     capabilities = capabilities,
 
