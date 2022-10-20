@@ -1,3 +1,5 @@
+--luacheck: globals vim
+
 local M = {}
 
 local actions = require("telescope.actions")

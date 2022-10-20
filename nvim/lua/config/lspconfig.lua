@@ -1,17 +1,11 @@
+--luacheck: globals vim
+
 local M = {}
 
 local utils = require("core.utils")
 local colors = require("core.colors").dracula
 
-local on_attach = function(client, bufnr)
-
-  if client.server_capabilities.documentFormattingProvider then
-    vim.api.nvim_command [[augroup Format]]
-    vim.api.nvim_command [[autocmd! * <buffer> ]]
-    vim.api.nvim_command [[autocmd BufWritePre <buffer> lua vim.lsp.buf.formatting_seq_sync()]]
-    vim.api.nvim_command [[augroup END]]
-  end
-
+local on_attach = function(_, bufnr)
   -- Mappings
   -- See `:h vim.lsp.*` for documentation on any of the below functions
   local bufopts = { noremap = true, silent = true, buffer = bufnr }
@@ -123,7 +117,7 @@ M.setup = function()
     },
   }
 
-  require("lspconfig")["lua"].setup {
+  require("lspconfig")["sumneko_lua"].setup {
     on_attach = on_attach,
     capabilities = capabilities,
 

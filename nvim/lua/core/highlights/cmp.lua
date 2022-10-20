@@ -1,3 +1,5 @@
+--luacheck: globals vim
+
 local M = {}
 local colors = require("core.colors").dracula
 
@@ -28,7 +30,7 @@ M.highlights = {
   CmpItemKindSnippet = { fg = colors.red },
 
   CmpItemAbbrDeprecated = { fg = colors.foreground },
-  
+
   CmpItemAbbrMatch = { fg = colors.red },
   CmpItemAbbrMatchFuzzy = { fg = colors.red },
   -- TODO: complete the colors accordingly
