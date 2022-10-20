@@ -1,3 +1,5 @@
+--luacheck: globals vim
+
 local M = {}
 
 M.dracula = {

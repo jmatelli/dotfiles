@@ -1,6 +1,6 @@
-local M = {}
+--luacheck: globals vim
 
-local setHl = require("core.utils").setHl
+local M = {}
 
 M.setup = function()
   require("core.utils").load_highlights "nvimtree"
