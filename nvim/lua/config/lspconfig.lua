@@ -25,21 +25,21 @@ local on_attach = function(client, bufnr)
     -- if vim.fn.exists(":Telescope") then
     --   vim.cmd "Telescope lsp_definitions"
     -- else
-      vim.lsp.buf.definition()
+    vim.lsp.buf.definition()
     -- end
   end)
   setMap("gr", function()
     -- if vim.fn.exists(":Telescope") then
     --     vim.cmd "Telescope lsp_references"
     -- else
-        vim.lsp.buf.references()
+    vim.lsp.buf.references()
     -- end
   end)
   setMap("gi", function()
     -- if vim.fn.exists(":Telescope") then
     --     vim.cmd "Telescope lsp_implementations"
     -- else
-        vim.lsp.buf.implementation()
+    vim.lsp.buf.implementation()
     -- end
   end)
   setMap("K", function()
@@ -98,10 +98,10 @@ M.setup = function()
   utils.setHl("DiagnosticInfo", { fg = colors.blue })
   utils.setHl("DiagnosticHint", { fg = colors.purple })
 
-  vim.fn.sign_define("DiagnosticSignError",  {text = "✘", texthl = "DiagnosticSignError"})
-  vim.fn.sign_define("DiagnosticSignWarn",   {text = "", texthl = "DiagnosticSignWarn"})
-  vim.fn.sign_define("DiagnosticSignInfo",   {text = "", texthl = "DiagnosticSignInfo"})
-  vim.fn.sign_define("DiagnosticSignHint",   {text = "", texthl = "DiagnosticSignHint"})
+  vim.fn.sign_define("DiagnosticSignError", { text = "✘", texthl = "DiagnosticSignError" })
+  vim.fn.sign_define("DiagnosticSignWarn", { text = "", texthl = "DiagnosticSignWarn" })
+  vim.fn.sign_define("DiagnosticSignInfo", { text = "", texthl = "DiagnosticSignInfo" })
+  vim.fn.sign_define("DiagnosticSignHint", { text = "", texthl = "DiagnosticSignHint" })
 
   local capabilities = vim.lsp.protocol.make_client_capabilities()
 
@@ -144,7 +144,7 @@ M.setup = function()
   require("lspconfig")["tsserver"].setup {
     on_attach = on_attach,
     capabilities = capabilities,
-    filetypes = { "typescript", "typescriptreact", "typescript.tsx" },
+    filetypes = { "typescript", "typescriptreact", "typescript.tsx", "javascript", 'javascriptreact' },
     javascript = {
       format = {
         semicolons = "insert",
@@ -159,7 +159,7 @@ M.setup = function()
   require("lspconfig")["tailwindcss"].setup {
     on_attach = on_attach,
     capabilities = capabilities,
-    filetypes = { "css", "html", "typescriptreact", "javascriptreact" },
+    filetypes = { "css", "html", "typescript", "typescriptreact", "javascript", "javascriptreact" },
   }
 
   -- vim.api.nvim_create_autocmd("BufWritePre", {
