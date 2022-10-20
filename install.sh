@@ -185,8 +185,23 @@ setupZsh() {
   echo "- Installing antigen"
   curl -L git.io/antigen > antigen.zsh
   printDone
+}
 
-  zsh
+setupNode() {
+  NVM_PATH=$HOME/.nvm
+  [[ ! -d "$NVM_PATH" ]] && echo "- Downloading NVM" && git clone https://github.com/nvm-sh/nvm.git $NVM_PATH && printDone
+
+  lts="$(. $NVM_PATH/nvm.sh &&  nvm ls-remote --lts | grep -i latest | sed -e 's/.*v//g' | sed -e 's/\..*//g'| tail -n 2)"
+  
+  echo "- Installing node"
+  echo ""
+  for version in $lts
+  do
+    echo "Installing node version $version"
+    # sh -e ". $NVM_PATH/nvm.sh && nvm ls-remote --lts=$lts"
+    . $NVM_PATH/nvm.sh && nvm install $version
+  done
+  printDone
 }
 
 #########
@@ -282,30 +297,37 @@ partialRun() {
   select step in "${steps[@]}"; do
     case $step in
       "Brew")
+        echo ""
         setupBrew
         exit
         ;;
       "ZSH")
+        echo ""
         setupZsh
         exit
         ;;
       "Node")
+        echo ""
         setupNode
         exit
         ;;
       "Iterm")
+        echo ""
         setupIterm
         exit
         ;;
       "Misc")
+        echo ""
         setupMisc
         exit
         ;;
       "NeoVim")
+        echo ""
         setupNeovim
         exit
         ;;
       "All")
+        echo ""
         setupAll
         exit
         ;;
