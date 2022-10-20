@@ -1,3 +1,5 @@
+--luacheck: globals vim
+
 local autocmd = vim.api.nvim_create_autocmd
 
 -- Disable statusline in dashboard

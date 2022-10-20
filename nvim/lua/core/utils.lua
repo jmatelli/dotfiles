@@ -1,3 +1,5 @@
+--luacheck: globals vim
+
 local M = {}
 
 local keymap = vim.keymap.set
