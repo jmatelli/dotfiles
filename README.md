@@ -10,10 +10,12 @@
   Script usage: ./install.sh [-d] [-c] [-h]
 
   Options:
-    -d    Debug mode
-    -c    Install casks
-    -y    Answer yes to all prompt
+    -a          Run all steps
+    -d          Debug mode
+    -c          Install casks
+    -i [step]   Run specific [step]
+    -y          Answer yes to all prompt
 
   Help:
-    Show help
+    -h          Show help
 ```

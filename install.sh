@@ -12,6 +12,7 @@ DOTFILES_PATH=$HOME/.dotfiles
 DOTFILES_DEBUG=""
 INSTALL_CASKS=""
 ACCEPT_ALL=""
+INSTALL_STEP=""
 
 printError() {
   echo ""
@@ -34,12 +35,14 @@ printHelp() {
   echo "Script usage: ./install.sh [-d] [-c] [-h]"
   echo ""
   echo "Options:"
-  echo -e "\t-d\tDebug mode"
-  echo -e "\t-c\tInstall casks"
-  echo -e "\t-y\tAnswer yes to all prompt"
+  echo -e "\t-a\t\tRun all steps"
+  echo -e "\t-c\t\tInstall casks"
+  echo -e "\t-d\t\tDebug mode"
+  echo -e "\t-i [step]\tRun specific step"
+  echo -e "\t-y\t\tAnswer yes to all prompt"
   echo ""
   echo "Help:"
-  echo -e "\t-h\tShow help"
+  echo -e "\t-h\t\tShow help"
 }
 
 ################
@@ -250,12 +253,63 @@ setupNeovim() {
 }
 
 conditionalRun() {
-  while true; do
-    read -p "$1, proceed? (y/n)" yn
-    case $yn in
-      [Yy]* ) $2; break;;
-      [Nn]* ) break;;
-      * ) echo "Please answer yes or no.";;
+  if [[ "${ACCEPT_ALL:-0}" != "1" ]]; then
+    while true; do
+      read -p "$1, proceed? (y/n)" yn
+      case $yn in
+        [Yy]* ) $2; break;;
+        [Nn]* ) break;;
+        * ) echo "Please answer yes or no.";;
+      esac
+    done
+  else
+    $2
+  fi
+}
+
+setupAll() {
+  conditionalRun "You are about to setup brew and install all neede formulae" setupBrew
+  conditionalRun "You are about to setup ZSH" setupZsh
+  conditionalRun "You are about to setup Node" setupNode
+  conditionalRun "You are about to setup iTerm" setupIterm
+  conditionalRun "You are about to setup Git..." setupMisc
+  conditionalRun "You are about to setup NeoVim" setupNeovim
+}
+
+partialRun() {
+  PS3="Choose which step to run: "
+  steps=("Brew" "ZSH" "Node" "Iterm" "Misc" "NeoVim" "All")
+  select step in "${steps[@]}"; do
+    case $step in
+      "Brew")
+        setupBrew
+        exit
+        ;;
+      "ZSH")
+        setupZsh
+        exit
+        ;;
+      "Node")
+        setupNode
+        exit
+        ;;
+      "Iterm")
+        setupIterm
+        exit
+        ;;
+      "Misc")
+        setupMisc
+        exit
+        ;;
+      "NeoVim")
+        setupNeovim
+        exit
+        ;;
+      "All")
+        setupAll
+        exit
+        ;;
+      *) echo "Invalid option $REPLY" ;;
     esac
   done
 }
@@ -272,32 +326,30 @@ main() {
     exit 1
   fi
 
-  if [[ "${ACCEPT_ALL:-0}" != "1" ]]; then
-    conditionalRun "You are about to setup brew and install all neede formulae" setupBrew
-    conditionalRun "You are about to setup ZSH" setupZsh
-    conditionalRun "You are about to setup iTerm" setupIterm
-    conditionalRun "You are about to setup Git..." setupMisc
-    conditionalRun "You are about to setup NeoVim" setupNeovim
+  if [[ "${INSTALL_STEP:-0}" != "7" ]] && [[ "${INSTALL_STEP:-0}" != "0" ]]; then
+    [[ "${INSTALL_STEP:-0}" = "1" ]] && conditionalRun "You are about to setup brew and install all neede formulae" setupBrew
+    [[ "${INSTALL_STEP:-0}" = "2" ]] && conditionalRun "You are about to setup ZSH" setupZsh
+    [[ "${INSTALL_STEP:-0}" = "3" ]] && conditionalRun "You are about to setup Node" setupNode
+    [[ "${INSTALL_STEP:-0}" = "4" ]] && conditionalRun "You are about to setup iTerm" setupIterm
+    [[ "${INSTALL_STEP:-0}" = "5" ]] && conditionalRun "You are about to setup Git..." setupMisc
+    [[ "${INSTALL_STEP:-0}" = "6" ]] && conditionalRun "You are about to setup NeoVim" setupNeovim
+    exit
+  fi
+
+  if [[ "${INSTALL_STEP:-0}" = "7" ]]; then
+    setupAll
   else
-    setupBrew
-    setupZsh
-    setupIterm
-    setupMisc
-    setupNeovim
+    partialRun
   fi
 }
 
-while getopts "dcyh" OPTION; do
+while getopts "dcyhai:" OPTION; do
   case "$OPTION" in
-    d)
-      DOTFILES_DEBUG=1
-      ;;
-    c)
-      INSTALL_CASKS=1
-      ;;
-    y)
-      ACCEPT_ALL=1
-      ;;
+    d) DOTFILES_DEBUG=1 ;;
+    c) INSTALL_CASKS=1 ;;
+    y) ACCEPT_ALL=1 ;;
+    a) INSTALL_STEP=7 ;;
+    i) INSTALL_STEP="${OPTARG}" ;;
     h)
       printHelp
       exit 1
