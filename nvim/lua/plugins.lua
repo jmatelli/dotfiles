@@ -151,14 +151,14 @@ function M.setup()
       config = function()
         require("config.treesitter").setup()
       end,
-      run = ":TSUpdate",
+      run = function() require('nvim-treesitter.install').update({ with_sync = true }) end,
     }
 
     -- Telescope
     use {
       "nvim-telescope/telescope.nvim",
       branch = "0.1.x",
-      requires = { { "nvim-lua/plenary.nvim" } },
+      requires = { "nvim-lua/plenary.nvim" },
       config = function()
         require("config.telescope").setup()
       end,
@@ -212,13 +212,16 @@ function M.setup()
 
     use {
       "windwp/nvim-autopairs",
-      after = "nvim-cmp",
+      after = { "nvim-cmp", "nvim-treesitter" },
       config = function()
         require("config.autopairs").setup()
       end,
     }
 
-    use 'windwp/nvim-ts-autotag'
+    use {
+      'windwp/nvim-ts-autotag',
+      after = { "nvim-treesitter" },
+    }
 
     -- Tree
     use {
@@ -237,6 +240,14 @@ function M.setup()
       requires = "kyazdani42/nvim-web-devicons",
       config = function()
         require("trouble").setup()
+      end,
+    }
+
+    use {
+      "jose-elias-alvarez/null-ls.nvim",
+      requires = { "nvim-lua/plenary.nvim" },
+      config = function()
+        require("config.null-ls").setup()
       end,
     }
 
