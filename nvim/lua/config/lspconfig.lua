@@ -1,5 +1,3 @@
---luacheck: globals vim
-
 local M = {}
 
 local utils = require("core.utils")
@@ -155,13 +153,6 @@ M.setup = function()
     capabilities = capabilities,
     filetypes = { "css", "html", "typescript", "typescriptreact", "javascript", "javascriptreact" },
   }
-
-  -- vim.api.nvim_create_autocmd("BufWritePre", {
-  --     pattern = "<buffer>",
-  --     callback = function()
-  --         vim.lsp.buf.formatting_sync()
-  --     end
-  -- })
 end
 
 return M
