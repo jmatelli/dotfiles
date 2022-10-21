@@ -4,6 +4,7 @@ set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 BOLD='\033[1m'
 
@@ -32,17 +33,22 @@ printSuccess() {
 
 printHelp() {
   echo ""
-  echo "Script usage: ./install.sh [-d] [-c] [-h]"
+  echo -e "Dotfiles install script of ${BOLD}Joël Matelli${NC}"
+  echo -e "This script will install and configure ${BOLD}ZSH${NC}, ${BOLD}iTerm2${NC}, ${BOLD}Git${NC}, ${BOLD}NeoVim${NC}..."
+  echo "It will also install all necessary packages for a full-stack software engineer"
+  echo -e "like ${BOLD}Golang${NC}, ${BOLD}Node.js${NC}, ${BOLD}Typescript${NC}, ${BOLD}Eslint${NC}, ${BOLD}prettier${NC}..."
   echo ""
-  echo "Options:"
-  echo -e "\t-a\t\tRun all steps"
-  echo -e "\t-c\t\tInstall casks"
-  echo -e "\t-d\t\tDebug mode"
-  echo -e "\t-i [step]\tRun specific step"
-  echo -e "\t-y\t\tAnswer yes to all prompt"
+  echo "Script usage: ./install.sh [-a] [-d] [-c] [-i 1] [-y] [-h]"
   echo ""
-  echo "Help:"
-  echo -e "\t-h\t\tShow help"
+  echo -e "${GREEN}${BOLD}Options:${NC}"
+  echo -e "\t${BOLD}-a${NC}\t\tRun all steps"
+  echo -e "\t${BOLD}-c${NC}\t\tInstall casks"
+  echo -e "\t${BOLD}-d${NC}\t\tDebug mode"
+  echo -e "\t${BOLD}-i [step]${NC}\tRun specific step"
+  echo -e "\t${BOLD}-y${NC}\t\tAnswer yes to all prompt"
+  echo ""
+  echo -e "${BLUE}${BOLD}Help:${NC}"
+  echo -e "\t${BOLD}-h${NC}\t\tShow help"
 }
 
 ################
