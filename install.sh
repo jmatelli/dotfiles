@@ -71,6 +71,7 @@ setupBrew() {
     python3
     ripgrep
     ruby
+    rustup
     stow
     the_silver_searcher
     tmux
