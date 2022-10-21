@@ -1,5 +1,3 @@
---luacheck: globals vim
-
 local M = {}
 
 local lsp_formatting = function(bufnr)
@@ -51,7 +49,7 @@ function M.setup()
       null_ls.builtins.diagnostics.golangci_lint,
       null_ls.builtins.diagnostics.jsonlint,
       null_ls.builtins.diagnostics.luacheck.with({
-        ectra_args = { "--globals", "vim" }
+        extra_args = { "--globals", "vim" }
       }),
       null_ls.builtins.diagnostics.markdownlint,
       null_ls.builtins.diagnostics.shellcheck,

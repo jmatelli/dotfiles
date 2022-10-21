@@ -1,5 +1,3 @@
---luacheck: globals vim
-
 local g = vim.g
 local opt = vim.opt
 
