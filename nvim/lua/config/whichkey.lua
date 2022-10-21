@@ -1,7 +1,14 @@
 local M = {}
 
+local file = "config/whichkey.lua"
+
 function M.setup()
-  local whichkey = require "which-key"
+  local status_ok, whichkey = pcall(require, "which-key")
+
+  if not status_ok then
+    vim.notify("Could not load which-key in " .. file)
+    return
+  end
 
   local conf = {
     window = {

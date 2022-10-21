@@ -1,8 +1,14 @@
 local M = {}
 
+local file = "config/treesitter.lua"
+
 function M.setup()
-  local exists, ts = pcall(require, "nvim-treesitter.configs")
-  if not exists then return end
+  local status_ok, ts = pcall(require, "nvim-treesitter.configs")
+
+  if not status_ok then
+    vim.notify("Could not load nvim-treesitter.configs in " .. file)
+    return
+  end
 
   ts.setup {
     -- One of "all", "maintained" (parsers with maintainers), or a list of languages

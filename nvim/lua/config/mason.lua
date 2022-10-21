@@ -1,5 +1,7 @@
 local M = {}
 
+local file = "config/mason.lua"
+
 local ensure_installed = {
   -- formatters
   "prettierd",
@@ -32,13 +34,21 @@ M.init = function()
 end
 
 M.setup = function()
-  local present, mason = pcall(require, "mason")
-  if not present then return end
+  local status_ok_mason, mason = pcall(require, "mason")
+  local status_ok_mason_lspconfig, lspconfig = pcall(require, "mason-lspconfig")
 
-  local present2, lspconfig = pcall(require, "mason-lspconfig")
-  if not present2 then return end
+  if not status_ok_mason then
+    vim.notify("Could not load mason in " .. file)
+    return
+  end
+
+  if not status_ok_mason_lspconfig then
+    vim.notify("Could not load mason-lspconfig in " .. file)
+    return
+  end
 
   require("core.utils").load_highlights "mason"
+
   mason.setup({
     ui = {
       icons = {
@@ -58,9 +68,11 @@ M.setup = function()
     },
     max_concurrent_installers = 10,
   })
+
   lspconfig.setup {
     ensure_installed = ensure_installed_lspconfig,
   }
+
   M.init()
 end
 

@@ -1,5 +1,7 @@
 local M = {}
 
+local file = "config/telescope.lua"
+
 local actions = require("telescope.actions")
 local previewers = require("telescope.previewers")
 local Job = require("plenary.job")
@@ -33,14 +35,22 @@ M.project_files = function()
 end
 
 M.setup = function()
-  local tree_exists, tree = pcall(require, "nvim-tree.api")
+  local status_ok_telescope, telescope = pcall(require, "telescope")
+  local status_ok_tree, tree = pcall(require, "nvim-tree.api")
 
-  if not tree_exists then
+  if not status_ok_telescope then
+    vim.notify("Could not load telescope in " .. file)
+    return
+  end
+
+  if not status_ok_tree then
+    vim.notify("Could not load nvim-tree.api in " .. file)
     return
   end
 
   require("core.utils").load_highlights "telescope"
-  require("telescope").setup {
+
+  telescope.setup {
     defaults = {
       buffer_previewer_maker = new_maker,
       mappings = {

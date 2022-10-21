@@ -1,11 +1,25 @@
 local M = {}
 
-M.setup = function()
-  local present1, autopairs = pcall(require, "nvim-autopairs")
-  local present2, cmp = pcall(require, "cmp")
+local file = "config/autopairs.lua"
 
-  if not (present1 and present2) then
-      return
+M.setup = function()
+  local status_ok_autopairs, autopairs = pcall(require, "nvim-autopairs")
+  local status_ok_cmp, cmp = pcall(require, "cmp")
+  local status_ok_cmp_autopairs, cmp_autopairs = pcall(require, 'nvim-autopairs.completion.cmp')
+
+  if not status_ok_autopairs then
+    vim.notify("Could not load nvim-autopairs in " .. file)
+    return
+  end
+
+  if not status_ok_cmp then
+    vim.notify("Could not load cmp in " .. file)
+    return
+  end
+
+  if not status_ok_cmp_autopairs then
+    vim.notify("Could not load nvim-autopairs.completion.cmp in " .. file)
+    return
   end
 
   local options = {
@@ -16,7 +30,6 @@ M.setup = function()
 
   autopairs.setup(options)
 
-  local cmp_autopairs = require('nvim-autopairs.completion.cmp')
   cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
 end
 

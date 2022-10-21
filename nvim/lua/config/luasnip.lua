@@ -1,9 +1,18 @@
 local M = {}
 
-M.setup = function()
-  local present, luasnip = pcall(require, "luasnip")
+local file = "config/luasnip.lua"
 
-  if not present then
+M.setup = function()
+  local status_ok, luasnip = pcall(require, "luasnip")
+  local status_ok_loaders, loaders = pcall(require, "luasnip.loaders.from_vscode")
+
+  if not status_ok then
+    vim.notify("Could not load luasnip in " .. file)
+    return
+  end
+
+  if not status_ok_loaders then
+    vim.notify("Could not load luasnip.loaders.from_vscode in " .. file)
     return
   end
 
@@ -13,8 +22,7 @@ M.setup = function()
   }
 
   luasnip.config.set_config(options)
-  require("luasnip.loaders.from_vscode").lazy_load()
-  require("luasnip.loaders.from_vscode").lazy_load { paths = vim.g.luasnippets_path or "" }
+  loaders.lazy_load()
 
   vim.api.nvim_create_autocmd("InsertLeave", {
     callback = function()

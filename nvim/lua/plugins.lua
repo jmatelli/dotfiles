@@ -1,5 +1,7 @@
 local M = {}
 
+local file = "plugins.lua"
+
 function M.setup()
   -- Indicate first time installation
   local packer_bootstrap = false
@@ -172,44 +174,32 @@ function M.setup()
     }
     use {
       "onsails/lspkind.nvim",
-      after = "friendly-snippets",
-    }
-    use {
-      "hrsh7th/nvim-cmp",
-      after = "lspkind.nvim",
-      config = function()
-        require("config.cmp").setup()
-      end,
+      requires = "rafamadriz/friendly-snippets",
     }
     use {
       "L3MON4D3/LuaSnip",
-      wants = "friendly-snippets",
-      after = "nvim-cmp",
+      requires = "rafamadriz/friendly-snippets",
       config = function()
         require("config.luasnip").setup()
       end,
     }
     use {
+      "hrsh7th/nvim-cmp",
+      requires = { "L3MON4D3/LuaSnip", "onsails/lspkind.nvim"},
+      config = function()
+        require("config.cmp").setup()
+      end,
+    }
+    use {
       "saadparwaiz1/cmp_luasnip",
-      after = "LuaSnip",
+      requires = "L3MON4D3/LuaSnip",
     }
-    use {
-      "hrsh7th/cmp-nvim-lua",
-      after = "cmp_luasnip",
-    }
-    use {
-      "hrsh7th/cmp-nvim-lsp",
-      after = "cmp-nvim-lua",
-    }
-    use {
-      "hrsh7th/cmp-buffer",
-      after = "cmp-nvim-lsp",
-    }
-    use {
-      "hrsh7th/cmp-path",
-      after = "cmp-buffer",
-    }
+    use "hrsh7th/cmp-nvim-lua"
+    use "hrsh7th/cmp-nvim-lsp"
+    use "hrsh7th/cmp-buffer"
+    use "hrsh7th/cmp-path"
 
+    -- Formatting
     use {
       "windwp/nvim-autopairs",
       after = { "nvim-cmp", "nvim-treesitter" },
@@ -269,7 +259,13 @@ function M.setup()
 
   packer_init()
 
-  local packer = require "packer"
+  local status_ok, packer = pcall(require, "packer")
+
+  if not status_ok then
+    vim.notify("Could not load packer in " .. file)
+    return
+  end
+
   packer.init(conf)
   packer.startup(plugins)
 end

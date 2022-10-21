@@ -1,10 +1,14 @@
 local M = {}
 
+local file = "config/alpha.lua"
 
 function M.setup()
   require("core.utils").load_highlights "alpha"
+
   local status_ok, alpha = pcall(require, "alpha")
+
   if not status_ok then
+    vim.notify("Could not load alpha in " .. file)
     return
   end
 
