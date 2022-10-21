@@ -1,13 +1,28 @@
 local M = {}
 
+local file = "config/cmp.lua"
+
 function M.setup()
   require("core.utils").load_highlights "cmp"
 
-  local exists, cmp = pcall(require, "cmp")
-  if not exists then return end
+  local status_ok_cmp, cmp = pcall(require, "cmp")
+  local status_ok_luasnip, luasnip = pcall(require, "luasnip")
+  local status_ok_lspkind, lspkind = pcall(require, "lspkind")
 
-  local exists2, luasnip = pcall(require, "luasnip")
-  if not exists2 then return end
+  if not status_ok_cmp then
+    vim.notify("Could not load CMP in " .. file)
+    return
+  end
+
+  if not status_ok_luasnip then
+    vim.notify("Could not load luasnip in " .. file)
+    return
+  end
+
+  if not status_ok_lspkind then
+    vim.notify("Could not load lspkind in " .. file)
+    return
+  end
 
   vim.opt.completeopt = "menuone,noselect"
 
@@ -40,7 +55,7 @@ function M.setup()
       end,
     },
     formatting = {
-      format = require("lspkind").cmp_format({
+      format = lspkind.cmp_format({
         mode = "symbol_text",
       })
     },

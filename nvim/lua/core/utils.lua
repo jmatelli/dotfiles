@@ -20,9 +20,9 @@ M.setHl = function(hl, val)
 end
 
 M.load_highlights = function(name)
-  local has_highlights, group = pcall(require, "core.highlights." .. name)
+  local status_ok, group = pcall(require, "core.highlights." .. name)
 
-  if not has_highlights then
+  if not status_ok then
     print("There are no highlight files for " .. name)
     return
   end

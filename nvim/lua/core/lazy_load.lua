@@ -1,8 +1,18 @@
 -- taken from NvChad
 local M = {}
+
+local file = "lazy_load.lua"
+
 local autocmd = vim.api.nvim_create_autocmd
 
 M.lazy_load = function(tb)
+  local status_ok, packer = pcall(require, "packer")
+
+  if not status_ok then
+    vim.notify("Could not load packer in " .. file)
+    return
+  end
+
   autocmd(tb.events, {
     group = vim.api.nvim_create_augroup(tb.augroup_name, {}),
     callback = function()
@@ -11,13 +21,13 @@ M.lazy_load = function(tb)
 
         if tb.plugin ~= "nvim-treesitter" then
           vim.defer_fn(function()
-            require("packer").loader(tb.plugin)
+            packer.loader(tb.plugin)
             if tb.plugin == "nvim-lspconfig" then
               vim.cmd "silent! e %"
             end
           end, 0)
         else
-          require("packer").loader(tb.plugin)
+          packer.loader(tb.plugin)
         end
       end
     end
