@@ -1,5 +1,3 @@
---luacheck: globals vim
-
 local M = {}
 
 function M.setup()
