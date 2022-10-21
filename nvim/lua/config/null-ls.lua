@@ -1,5 +1,7 @@
 local M = {}
 
+local file = "config/null-ls.lua"
+
 local lsp_formatting = function(bufnr)
   vim.lsp.buf.format({
     filter = function(client)
@@ -28,8 +30,12 @@ local on_attach = function(client, bufnr)
 end
 
 function M.setup()
-  local present, null_ls = pcall(require, "null-ls")
-  if not present then return end
+  local status_ok, null_ls = pcall(require, "null-ls")
+
+  if not status_ok then
+    vim.notify("Could not load null-ls in " .. file)
+    return
+  end
 
   null_ls.setup {
     debug = false,

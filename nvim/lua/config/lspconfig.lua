@@ -1,5 +1,7 @@
 local M = {}
 
+local file = "config/lspconfig.lua"
+
 local utils = require("core.utils")
 local colors = require("core.colors").dracula
 
@@ -79,6 +81,13 @@ M.cmds = {
 }
 
 M.setup = function()
+  local status_ok, lspconfig = pcall(require, "lspconfig")
+
+  if not status_ok then
+    vim.notify("Could not load lspconfig in " .. file)
+    return
+  end
+
   local opts = { noremap = true, silent = true }
   utils.nleader("e", vim.diagnostic.open_float, opts)
   utils.nnoremap("[d", vim.diagnostic.goto_prev, opts)
@@ -115,7 +124,7 @@ M.setup = function()
     },
   }
 
-  require("lspconfig")["sumneko_lua"].setup {
+  lspconfig["sumneko_lua"].setup {
     on_attach = on_attach,
     capabilities = capabilities,
 
@@ -133,7 +142,7 @@ M.setup = function()
     },
   }
 
-  require("lspconfig")["tsserver"].setup {
+  lspconfig["tsserver"].setup {
     on_attach = on_attach,
     capabilities = capabilities,
     filetypes = { "typescript", "typescriptreact", "typescript.tsx", "javascript", 'javascriptreact' },
@@ -148,7 +157,8 @@ M.setup = function()
       },
     },
   }
-  require("lspconfig")["tailwindcss"].setup {
+
+  lspconfig["tailwindcss"].setup {
     on_attach = on_attach,
     capabilities = capabilities,
     filetypes = { "css", "html", "typescript", "typescriptreact", "javascript", "javascriptreact" },
