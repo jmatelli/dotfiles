@@ -192,18 +192,36 @@ setupZsh() {
 
 setupNode() {
   NVM_PATH=$HOME/.nvm
+
+  NODE_PACKAGES=(
+    @fsouza/prettierd
+    eslint
+    eslint_d
+    prettier
+    tldr
+    typescript
+    yarn
+  )
+
   [[ ! -d "$NVM_PATH" ]] && echo "- Downloading NVM" && git clone https://github.com/nvm-sh/nvm.git $NVM_PATH && printDone
 
   lts="$(. $NVM_PATH/nvm.sh &&  nvm ls-remote --lts | grep -i latest | sed -e 's/.*v//g' | sed -e 's/\..*//g'| tail -n 2)"
   
-  echo "- Installing node"
-  echo ""
+  echo "- Installing node latest 2 LTS versions"
   for version in $lts
   do
     echo "Installing node version $version"
     # sh -e ". $NVM_PATH/nvm.sh && nvm ls-remote --lts=$lts"
     . $NVM_PATH/nvm.sh && nvm install $version
   done
+  printDone
+
+  echo "- Select latest LTS version of node to use"
+  . $NVM_PATH/nvm.sh && nvm use --lts
+  printDone
+
+  echo "- Installing node global packages ${NODE_PACKAGES[@]}"
+  npm install -g ${NODE_PACKAGES[@]}
   printDone
 }
 
