@@ -7,7 +7,7 @@
 ```bash
   $ ./install.sh -h
 
-  Script usage: ./install.sh [-d] [-c] [-h]
+  Script usage: ./install.sh [-a] [-d] [-c] [-i 1] [-y] [-h]
 
   Options:
     -a          Run all steps
