@@ -243,8 +243,9 @@ setupIterm() {
   [[ ! -d "$HOME/fonts" ]] && mkdir -p $HOME/fonts
   [[ ! -d "$HOME/fonts/nerd-fonts" ]] && echo "- Downloading Nerd Fonts" && git clone https://github.com/ryanoasis/nerd-fonts.git $HOME/fonts/nerd-fonts && printDone
 
-  echo "- Moving nerd fonts to ~/Library/Fonts folder"
-  $HOME/fonts/nerd-fonts/install.sh meslo
+  echo "- Installing required Nerd Fonts"
+  # $HOME/fonts/nerd-fonts/install.sh meslo
+  $HOME/fonts/nerd-fonts/install.sh hack
   printDone
 
   echo "- Linking iTerm2 profile"
