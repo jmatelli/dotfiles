@@ -33,8 +33,7 @@ function M.setup()
   local status_ok, null_ls = pcall(require, "null-ls")
 
   if not status_ok then
-    vim.notify("Could not load null-ls in " .. file)
-    return
+    return vim.notify("Could not load null-ls in " .. file)
   end
 
   null_ls.setup {

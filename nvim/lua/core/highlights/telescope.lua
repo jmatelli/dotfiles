@@ -1,9 +1,8 @@
-local M = {}
 local colors = require("core.colors").dracula
 
 -- colors are taken from Dracula theme page: https://draculatheme.com/contribute
 -- the following highlight settings are heavily inspired by NvChad: https://github.com/NvChad/base46/blob/master/lua/base46/integrations/telescope.lua
-M.highlights = {
+return {
   TelescopeBorder = { bg = colors.black, fg = colors.black },
   TelescopePromptBorder = { bg = colors.currentLine, fg = colors.currentLine },
   TelescopePromptNormal = { bg = colors.currentLine, fg = colors.foreground },
@@ -20,5 +19,3 @@ M.highlights = {
   TelescopeResultsDiffDelete = { fg = colors.red },
   TelescopeMatching = { fg = colors.red },
 }
-
-return M

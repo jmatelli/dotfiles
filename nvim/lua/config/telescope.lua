@@ -35,20 +35,24 @@ M.project_files = function()
 end
 
 M.setup = function()
+  local status_ok_utils, utils = pcall(require, "core.utils")
+
+  if not status_ok_utils then
+    return vim.notify("Could not load core.utils in " .. file)
+  end
+
+  utils.load_highlights "telescope"
+
   local status_ok_telescope, telescope = pcall(require, "telescope")
   local status_ok_tree, tree = pcall(require, "nvim-tree.api")
 
   if not status_ok_telescope then
-    vim.notify("Could not load telescope in " .. file)
-    return
+    return vim.notify("Could not load telescope in " .. file)
   end
 
   if not status_ok_tree then
-    vim.notify("Could not load nvim-tree.api in " .. file)
-    return
+    return vim.notify("Could not load nvim-tree.api in " .. file)
   end
-
-  require("core.utils").load_highlights "telescope"
 
   telescope.setup {
     defaults = {

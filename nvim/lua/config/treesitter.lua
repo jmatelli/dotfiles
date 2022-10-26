@@ -6,9 +6,10 @@ function M.setup()
   local status_ok, ts = pcall(require, "nvim-treesitter.configs")
 
   if not status_ok then
-    vim.notify("Could not load nvim-treesitter.configs in " .. file)
-    return
+    return vim.notify("Could not load nvim-treesitter.configs in " .. file)
   end
+
+  require("nvim-treesitter.install").prefer_git = true
 
   ts.setup {
     -- One of "all", "maintained" (parsers with maintainers), or a list of languages

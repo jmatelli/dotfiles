@@ -8,18 +8,15 @@ M.setup = function()
   local status_ok_cmp_autopairs, cmp_autopairs = pcall(require, 'nvim-autopairs.completion.cmp')
 
   if not status_ok_autopairs then
-    vim.notify("Could not load nvim-autopairs in " .. file)
-    return
+    return vim.notify("Could not load nvim-autopairs in " .. file)
   end
 
   if not status_ok_cmp then
-    vim.notify("Could not load cmp in " .. file)
-    return
+    return vim.notify("Could not load cmp in " .. file)
   end
 
   if not status_ok_cmp_autopairs then
-    vim.notify("Could not load nvim-autopairs.completion.cmp in " .. file)
-    return
+    return vim.notify("Could not load nvim-autopairs.completion.cmp in " .. file)
   end
 
   local options = {

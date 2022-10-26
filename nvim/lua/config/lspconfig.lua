@@ -2,167 +2,116 @@ local M = {}
 
 local file = "config/lspconfig.lua"
 
-local utils = require("core.utils")
-local colors = require("core.colors").dracula
-
 local on_attach = function(_, bufnr)
-  -- Mappings
-  -- See `:h vim.lsp.*` for documentation on any of the below functions
-  local bufopts = { noremap = true, silent = true, buffer = bufnr }
-  local setMap = function(keys, mapping)
-    utils.nnoremap(keys, mapping, bufopts)
-  end
-  setMap("gD", function()
-    vim.lsp.buf.declaration()
-  end)
-  setMap("gd", function()
-    -- if vim.fn.exists(":Telescope") then
-    --   vim.cmd "Telescope lsp_definitions"
-    -- else
-    vim.lsp.buf.definition()
-    -- end
-  end)
-  setMap("gr", function()
-    -- if vim.fn.exists(":Telescope") then
-    --     vim.cmd "Telescope lsp_references"
-    -- else
-    vim.lsp.buf.references()
-    -- end
-  end)
-  setMap("gi", function()
-    -- if vim.fn.exists(":Telescope") then
-    --     vim.cmd "Telescope lsp_implementations"
-    -- else
-    vim.lsp.buf.implementation()
-    -- end
-  end)
-  setMap("K", function()
-    vim.lsp.buf.hover()
-  end)
-  setMap("<leader>sh", function()
-    vim.lsp.buf.signature_help()
-  end)
-  setMap("<leader>wa", function()
-    vim.lsp.buf.add_workspace_folder()
-  end)
-  setMap("<leader>wr", function()
-    vim.lsp.buf.remove_workspace_folder()
-  end)
-  setMap("<leader>fm", function()
-    vim.lsp.buf.formatting()
-  end)
-  setMap("<leader>wl", function()
-    print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
-  end)
-  setMap("<leader>D", function()
-    vim.lsp.buf.type_definition()
-  end)
-  setMap("<leader>rn", function()
-    vim.lsp.buf.rename()
-  end)
-  setMap("<leader>ca", function()
-    vim.lsp.buf.code_action()
-  end)
+  -- client.server_capabilities.documentFormattingProvider = false
+  -- client.server_capabilities.documentRangeFormattingProvider = false
+
+  require("core.mappings").lspconfig(bufnr)
 end
 
-M.cmds = {
-  "LspInfo",
-  "LspStart",
-  "LspRestart",
-  "LspStop",
-  "LspInstall",
-  "LspUnInstall",
-  "LspUnInstallAll",
-  "LspInstall",
-  "LspInstallInfo",
-  "LspInstallLog",
-  "LspLog",
-  "LspPrintInstalled",
-}
-
 M.setup = function()
-  local status_ok, lspconfig = pcall(require, "lspconfig")
+  -- local status_ok, lspconfig = pcall(require, "lspconfig")
+  local status_ok_lsp_zero, lsp = pcall(require,'lsp-zero')
+  -- local status_ok_utils, utils = pcall(require, "core.utils")
 
-  if not status_ok then
-    vim.notify("Could not load lspconfig in " .. file)
+  -- if not status_ok then
+  --   vim.notify("Could not load lspconfig in " .. file)
+  --   return
+  -- end
+
+  if not status_ok_lsp_zero then
+    vim.notify("Could not load lsp-zero in " .. file)
     return
   end
 
-  local opts = { noremap = true, silent = true }
-  utils.nleader("e", vim.diagnostic.open_float, opts)
-  utils.nnoremap("[d", vim.diagnostic.goto_prev, opts)
-  utils.nnoremap("]d", vim.diagnostic.goto_next, opts)
-  utils.nleader("q", vim.diagnostic.setloclist, opts)
+  -- if not status_ok_utils then
+  --   vim.notify("Could not load core.utils in " .. file)
+  --   return
+  -- end
 
-  utils.setHl("DiagnosticError", { fg = colors.red })
-  utils.setHl("DiagnosticWarn", { fg = colors.orange })
-  utils.setHl("DiagnosticInfo", { fg = colors.blue })
-  utils.setHl("DiagnosticHint", { fg = colors.purple })
+  -- require("core.mappings").diagnostic()
 
-  vim.fn.sign_define("DiagnosticSignError", { text = "✘", texthl = "DiagnosticSignError" })
-  vim.fn.sign_define("DiagnosticSignWarn", { text = "", texthl = "DiagnosticSignWarn" })
-  vim.fn.sign_define("DiagnosticSignInfo", { text = "", texthl = "DiagnosticSignInfo" })
-  vim.fn.sign_define("DiagnosticSignHint", { text = "", texthl = "DiagnosticSignHint" })
+  -- utils.load_highlights "diagnostic"
 
-  local capabilities = vim.lsp.protocol.make_client_capabilities()
+  require('mason.settings').set({
+    ui = {
+      border = 'rounded'
+    }
+  })
 
-  capabilities.textDocument.completion.completionItem = {
-    documentationFormat = { "markdown", "plaintext" },
-    snippetSupport = true,
-    preselectSupport = true,
-    insertReplaceSupport = true,
-    labelDetailsSupport = true,
-    deprecatedSupport = true,
-    commitCharacterSupport = true,
-    tagSupport = { valueSet = { 1 } },
-    resolveSupport = {
-      properties = {
-        "documentation",
-        "detail",
-        "additionalTextEdits",
-      },
-    },
-  }
+  lsp.preset('recommended')
+  lsp.set_preferences({
+    set_lsp_keymaps = false,
+    sign_icons = {
+      error = '✘',
+      warn = '',
+      hint = '',
+      info = ''
+    }
+  })
+  lsp.nvim_workspace()
+  lsp.on_attach(on_attach)
+  lsp.setup()
 
-  lspconfig["sumneko_lua"].setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
+  -- local capabilities = vim.lsp.protocol.make_client_capabilities()
+  -- capabilities.textDocument.completion.completionItem = {
+  --   documentationFormat = { "markdown", "plaintext" },
+  --   snippetSupport = true,
+  --   preselectSupport = true,
+  --   insertReplaceSupport = true,
+  --   labelDetailsSupport = true,
+  --   deprecatedSupport = true,
+  --   commitCharactersSupport = true,
+  --   tagSupport = { valueSet = { 1 } },
+  --   resolveSupport = {
+  --     properties = {
+  --       "documentation",
+  --       "detail",
+  --       "additionalTextEdits",
+  --     },
+  --   },
+  -- }
 
-    settings = {
-      Lua = {
-        diagnostics = {
-          globals = { "vim" },
-        },
-        workspace = {
-          library = vim.api.nvim_get_runtime_file("", true),
-          maxPreload = 100000,
-          preloadFileSize = 10000,
-        },
-      },
-    },
-  }
+  -- lspconfig.sumneko_lua.setup {
+  --   on_attach = on_attach,
+  --   capabilities = capabilities,
 
-  lspconfig["tsserver"].setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-    filetypes = { "typescript", "typescriptreact", "typescript.tsx", "javascript", 'javascriptreact' },
-    javascript = {
-      format = {
-        semicolons = "insert",
-      },
-    },
-    typescript = {
-      format = {
-        semicolons = "insert",
-      },
-    },
-  }
+  --   settings = {
+  --     Lua = {
+  --       diagnostics = {
+  --         globals = { "vim" },
+  --       },
+  --       workspace = {
+  --         library = {
+  --           [vim.fn.expand "$VIMRUNTIME/lua"] = true,
+  --           [vim.fn.expand "$VIMRUNTIME/lua/vim/lsp"] = true,
+  --         },
+  --         maxPreload = 100000,
+  --         preloadFileSize = 10000,
+  --       },
+  --     },
+  --   },
+  -- }
 
-  lspconfig["tailwindcss"].setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-    filetypes = { "css", "html", "typescript", "typescriptreact", "javascript", "javascriptreact" },
-  }
+  -- lspconfig.tsserver.setup {
+  --   on_attach = on_attach,
+  --   capabilities = capabilities,
+  -- }
+
+  -- lspconfig.tailwindcss.setup {
+  --   on_attach = on_attach,
+  --   capabilities = capabilities,
+  -- }
+
+  -- lspconfig.golangci_lint_ls.setup {
+  --   on_attach = on_attach,
+  --   capabilities = capabilities,
+  -- }
+
+  -- lspconfig.gopls.setup {
+  --   on_attach = on_attach,
+  --   capabilities = capabilities,
+  -- }
 end
 
 return M

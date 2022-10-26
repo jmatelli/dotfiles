@@ -1,7 +1,6 @@
-local M = {}
 local colors = require("core.colors").dracula
 
-M.highlights = {
+return {
   NvimTreeWindowPicker = { bg = colors.dark },
   NvimTreeWinSeparator = { bg = colors.dark, fg = colors.dark },
   NvimTreeCursorLine = { bg = colors.black },
@@ -22,5 +21,3 @@ M.highlights = {
   NvimTreeLspDiagnosticsInformation = { fg = colors.cyan },
   NvimTreeLspDiagnosticsHint = { fg = colors.purple },
 }
-
-return M

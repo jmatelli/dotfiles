@@ -6,8 +6,7 @@ M.setup = function()
   local status_ok, colorizer = pcall(require, "colorizer")
 
   if not status_ok then
-    vim.notify("Could not load colorizer in " .. file)
-    return
+    return vim.notify("Could not load colorizer in " .. file)
   end
 
   colorizer.setup({

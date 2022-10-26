@@ -6,8 +6,7 @@ function M.setup()
   local status_ok, lualine = pcall(require, "lualine")
 
   if not status_ok then
-    vim.notify("Could not load lualine in " .. file)
-    return
+    return vim.notify("Could not load lualine in " .. file)
   end
 
   lualine.setup {
