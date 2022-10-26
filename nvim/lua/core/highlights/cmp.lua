@@ -1,11 +1,6 @@
-local M = {}
 local colors = require("core.colors").dracula
 
-M.options = {
-  namespace = "cmp"
-}
-
-M.highlights = {
+return {
   CmpBorder = { fg = colors.currentLine },
   CmpDocBorder = { fg = colors.currentLine },
   CmpDocNormal = { bg = colors.currentLine },
@@ -33,5 +28,3 @@ M.highlights = {
   CmpItemAbbrMatchFuzzy = { fg = colors.red },
   -- TODO: complete the colors accordingly
 }
-
-return M

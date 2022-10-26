@@ -1,7 +1,6 @@
-local M  = {}
 local colors = require("core.colors").dracula
 
-M.highlights = {
+return {
   MasonHeader = { fg = colors.black, bg = colors.pink },
   MasonHeaderSecondary = { link = "MasonHighlightBlock" },
 
@@ -11,5 +10,3 @@ M.highlights = {
   MasonMuted = { fg = colors.currentLine },
   MasonMutedBlock = { fg = colors.currentLine, bg = colors.black },
 }
-
-return M

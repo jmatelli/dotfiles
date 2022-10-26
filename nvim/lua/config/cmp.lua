@@ -3,25 +3,28 @@ local M = {}
 local file = "config/cmp.lua"
 
 function M.setup()
-  require("core.utils").load_highlights "cmp"
+  local status_ok_utils, utils = pcall(require, "core.utils")
+
+  if not status_ok_utils then
+    return vim.notify("Could not load core.utils in " .. file)
+  end
+
+  utils.load_highlights "cmp"
 
   local status_ok_cmp, cmp = pcall(require, "cmp")
   local status_ok_luasnip, luasnip = pcall(require, "luasnip")
   local status_ok_lspkind, lspkind = pcall(require, "lspkind")
 
   if not status_ok_cmp then
-    vim.notify("Could not load CMP in " .. file)
-    return
+    return vim.notify("Could not load CMP in " .. file)
   end
 
   if not status_ok_luasnip then
-    vim.notify("Could not load luasnip in " .. file)
-    return
+    return vim.notify("Could not load luasnip in " .. file)
   end
 
   if not status_ok_lspkind then
-    vim.notify("Could not load lspkind in " .. file)
-    return
+    return vim.notify("Could not load lspkind in " .. file)
   end
 
   vim.opt.completeopt = "menuone,noselect"
@@ -74,35 +77,49 @@ function M.setup()
         if cmp.visible() then
           cmp.select_next_item()
         elseif luasnip.expand_or_jumpable() then
-          vim.fn.feedkeys(vim.api.nvim_replace_termcodes("<Plug>luasnip-expand-or-jump", true, true, true), "")
+          luasnip.expand_or_jump()
         else
           fallback()
         end
-      end, {
-        "i",
-        "s",
-      }),
+      end, { "i", "s", }),
       ["<S-Tab>"] = cmp.mapping(function(fallback)
         if cmp.visible() then
           cmp.select_prev_item()
         elseif luasnip.jumpable(-1) then
-          vim.fn.feedkeys(vim.api.nvim_replace_termcodes("<Plug>luasnip-jump-prev", true, true, true), "")
+          luasnip.jump(-1)
         else
           fallback()
         end
-      end, {
-        "i",
-        "s",
-      }),
+      end, { "i", "s", }),
     }),
     sources = {
       { name = "luasnip" },
       { name = "nvim_lsp" },
-      { name = "buffer" },
+      {
+        name = "buffer",
+        option = {
+          get_bufnrs = function()
+            return vim.api.nvim_list_bufs()
+          end
+        }
+      },
       { name = "nvim_lua" },
       { name = "path" },
+      { name = 'nvim_lsp_signature_help' },
     },
   }
+
+  cmp.setup.cmdline(':', {
+    sources = {
+      { name = 'cmdline' }
+    }
+  })
+
+  cmp.setup.cmdline('/', {
+    sources = {
+      { name = 'buffer' }
+    }
+  })
 end
 
 return M

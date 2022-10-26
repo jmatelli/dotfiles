@@ -8,8 +8,7 @@ function M.setup()
   local status_ok, alpha = pcall(require, "alpha")
 
   if not status_ok then
-    vim.notify("Could not load alpha in " .. file)
-    return
+    return vim.notify("Could not load alpha in " .. file)
   end
 
   local dashboard = require "alpha.themes.dashboard"

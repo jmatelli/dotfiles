@@ -13,13 +13,19 @@ local ensure_installed = {
 }
 local ensure_installed_lspconfig = {
   -- language servers
-  "html",
   "cssls",
-  "tsserver",
-  "tailwindcss",
-  "sumneko_lua",
-  "gopls",
+  "cssmodules_ls",
+  "diagnosticls",
+  "dockerls",
+  "eslint",
   "golangci_lint_ls",
+  "gopls",
+  "html",
+  "jsonls",
+  "stylelint_lsp",
+  "sumneko_lua",
+  "tailwindcss",
+  "tsserver",
 }
 
 M.init = function()
@@ -34,20 +40,24 @@ M.init = function()
 end
 
 M.setup = function()
+  local status_ok_utils, utils = pcall(require, "core.utils")
+
+  if not status_ok_utils then
+    return vim.notify("Could not load core.utils in " .. file)
+  end
+
+  utils.load_highlights "mason"
+
   local status_ok_mason, mason = pcall(require, "mason")
   local status_ok_mason_lspconfig, lspconfig = pcall(require, "mason-lspconfig")
 
   if not status_ok_mason then
-    vim.notify("Could not load mason in " .. file)
-    return
+    return vim.notify("Could not load mason in " .. file)
   end
 
   if not status_ok_mason_lspconfig then
-    vim.notify("Could not load mason-lspconfig in " .. file)
-    return
+    return vim.notify("Could not load mason-lspconfig in " .. file)
   end
-
-  require("core.utils").load_highlights "mason"
 
   mason.setup({
     ui = {

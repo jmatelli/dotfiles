@@ -3,14 +3,19 @@ local M = {}
 local file = "config/nvimtree.lua"
 
 M.setup = function()
+  local status_ok_utils, utils = pcall(require, "core.utils")
+
+  if not status_ok_utils then
+    return vim.notify("Could not load core.utils in " .. file)
+  end
+
+  utils.load_highlights "nvimtree"
+
   local status_ok, tree = pcall(require, "nvim-tree")
 
   if not status_ok then
-    vim.notify("Could not load nvim-tree in " .. file)
-    return
+    return vim.notify("Could not load nvim-tree in " .. file)
   end
-
-  require("core.utils").load_highlights "nvimtree"
 
   tree.setup {
     diagnostics = {
