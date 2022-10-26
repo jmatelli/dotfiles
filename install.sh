@@ -87,20 +87,21 @@ setupBrew() {
   )
 
   BREW_CASKS=(
-    # alfred
+    alfred
     alt-tab
     discord
-    # firefox
-    # google-chrome
-    # google-drive
-    # iterm2
+    firefox
+    google-chrome
+    google-drive
+    iterm2
     keycastr
     messenger
     notion
+    obsidian
     rectangle
-    # slack
-    # spotify
-    # whatsapp
+    slack
+    spotify
+    whatsapp
   )
 
   if ! command -v brew &>/dev/null; then
@@ -137,7 +138,7 @@ setupBrew() {
 
   if [[ "${INSTALL_CASKS:-0}" == "1" ]] || [[ "${ACCEPT_ALL:-0}" == "1" ]]; then
     echo "- Installing brew casks"
-    brew install -q --cask ${BREW_CASKS[@]}
+    brew install -q --cask ${BREW_CASKS[@]} --force
     printDone
   fi
 }
@@ -192,9 +193,11 @@ setupZsh() {
   git clone https://github.com/romkatv/powerlevel10k.git $ZSH_CUSTOM/themes/powerlevel10k
   printDone
 
-  echo "- Installing antigen"
-  curl -L git.io/antigen > antigen.zsh
-  printDone
+  if [[ ! -f "$HOME/antigen.zsh" ]]; then
+    echo "- Installing antigen"
+    curl -L git.io/antigen > $HOME/antigen.zsh
+    printDone
+  fi
 }
 
 setupNode() {
@@ -381,7 +384,7 @@ main() {
     [[ "${INSTALL_STEP:-0}" = "2" ]] && conditionalRun "You are about to setup ZSH" setupZsh
     [[ "${INSTALL_STEP:-0}" = "3" ]] && conditionalRun "You are about to setup Node" setupNode
     [[ "${INSTALL_STEP:-0}" = "4" ]] && conditionalRun "You are about to setup iTerm" setupIterm
-    [[ "${INSTALL_STEP:-0}" = "5" ]] && conditionalRun "You are about to setup Git..." setupMisc
+    [[ "${INSTALL_STEP:-0}" = "5" ]] && conditionalRun "You are about to setup Git, tmux..." setupMisc
     [[ "${INSTALL_STEP:-0}" = "6" ]] && conditionalRun "You are about to setup NeoVim" setupNeovim
     exit
   fi
