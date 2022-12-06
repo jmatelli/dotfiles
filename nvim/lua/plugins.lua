@@ -47,10 +47,16 @@ function M.setup()
     use { "nvim-lua/plenary.nvim", module = "plenary" }
 
     -- Colorscheme
+    -- use {
+    --   "dracula/vim",
+    --   config = function()
+    --     vim.cmd "colorscheme dracula"
+    --   end,
+    -- }
     use {
-      "dracula/vim",
+      "folke/tokyonight.nvim",
       config = function()
-        vim.cmd "colorscheme dracula"
+        require("config.tokyonight").setup()
       end,
     }
 
