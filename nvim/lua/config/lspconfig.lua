@@ -2,17 +2,17 @@ local M = {}
 
 local file = "config/lspconfig.lua"
 
-local on_attach = function(_, bufnr)
-  -- client.server_capabilities.documentFormattingProvider = false
-  -- client.server_capabilities.documentRangeFormattingProvider = false
+local on_attach = function(client, bufnr)
+  client.server_capabilities.documentFormattingProvider = false
+  client.server_capabilities.documentRangeFormattingProvider = false
 
   require("core.mappings").lspconfig(bufnr)
 end
 
 M.setup = function()
   -- local status_ok, lspconfig = pcall(require, "lspconfig")
-  local status_ok_lsp_zero, lsp = pcall(require,'lsp-zero')
-  -- local status_ok_utils, utils = pcall(require, "core.utils")
+  local status_ok_lsp_zero, lsp = pcall(require,"lsp-zero")
+  local status_ok_utils, utils = pcall(require, "core.utils")
 
   -- if not status_ok then
   --   vim.notify("Could not load lspconfig in " .. file)
@@ -24,30 +24,37 @@ M.setup = function()
     return
   end
 
-  -- if not status_ok_utils then
-  --   vim.notify("Could not load core.utils in " .. file)
-  --   return
-  -- end
+  if not status_ok_utils then
+    vim.notify("Could not load core.utils in " .. file)
+    return
+  end
 
-  -- require("core.mappings").diagnostic()
+  require("core.mappings").diagnostic()
 
-  -- utils.load_highlights "diagnostic"
+  utils.load_highlights "diagnostic"
 
-  require('mason.settings').set({
+  require("mason.settings").set({
     ui = {
-      border = 'rounded'
+      border = "rounded",
     }
   })
 
-  lsp.preset('recommended')
+  lsp.preset("recommended")
   lsp.set_preferences({
     set_lsp_keymaps = false,
+    configure_diagnostics = false,
     sign_icons = {
-      error = '✘',
-      warn = '',
-      hint = '',
-      info = ''
+      error = "✘",
+      warn = "",
+      hint = "",
+      info = ""
     }
+  })
+  lsp.ensure_installed({
+    "tsserver",
+    "eslint",
+    "sumneko_lua",
+    "gopls",
   })
   lsp.nvim_workspace()
   lsp.on_attach(on_attach)

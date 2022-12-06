@@ -59,6 +59,13 @@ function M.setup()
       c = { "<cmd>Telescope git_commits<cr>", "Git commits" },
       b = { "<cmd>Telescope buffers<cr>", "Buffers" },
       o = { "<cmd>Telescope oldfiles<cr>", "Old files" },
+      e = { "<cmd>Telescope emoji<cr>", "Emoji" },
+      r = { "<cmd>Telescope glyph<cr>", "Glyph" },
+      l = {
+        r = { "<cmd>Telescope lsp_references<cr>", "LSP references" },
+        s = { "<cmd>Telescope lsp_document_symbols<cr>", "LSP document symbols" },
+        d = { "<cmd>Telescope lsp_definitions<cr>", "LSP document symbols" },
+      }
     },
 
     g = {

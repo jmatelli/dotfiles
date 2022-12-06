@@ -13,7 +13,7 @@ function M.setup()
 
   ts.setup {
     -- One of "all", "maintained" (parsers with maintainers), or a list of languages
-    ensure_installed = { "css", "html", "javascript", "tsx", "typescript", "json", "lua", "go" },
+    ensure_installed = { "css", "html", "javascript", "tsx", "typescript", "json", "lua", "go", "bash" },
 
     -- Install languages synchronously (only applied to `ensure_installed`)
     sync_install = false,

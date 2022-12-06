@@ -54,6 +54,9 @@ M.setup = function()
     return vim.notify("Could not load nvim-tree.api in " .. file)
   end
 
+  telescope.load_extension("emoji")
+  telescope.load_extension("glyph")
+
   telescope.setup {
     defaults = {
       buffer_previewer_maker = new_maker,
