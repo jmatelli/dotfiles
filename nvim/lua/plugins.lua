@@ -165,6 +165,8 @@ function M.setup()
         require("config.telescope").setup()
       end,
     }
+    use { 'xiyaowong/telescope-emoji.nvim' }
+    use { 'ghassan0/telescope-glyph.nvim' }
 
     -- Completion
     use {

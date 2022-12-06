@@ -17,7 +17,7 @@ local ensure_installed_lspconfig = {
   "cssmodules_ls",
   "diagnosticls",
   "dockerls",
-  "eslint",
+  -- "eslint",
   "golangci_lint_ls",
   "gopls",
   "html",

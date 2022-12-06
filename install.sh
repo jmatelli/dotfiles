@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/usr//bin/env bash
 
-set -euo pipefail
+set -o errexit
+set -o nounset
+set -o pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -372,7 +374,7 @@ main() {
   if [[ "${DOTFILES_DEBUG:-0}" == "1" ]]; then
     echo "[Running on debug mode]"
     echo ""
-    set -x
+    set -o xtrace
   fi
 
   if [[ "$OSTYPE" != "darwin"* ]]; then
