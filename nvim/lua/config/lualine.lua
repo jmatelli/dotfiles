@@ -11,7 +11,7 @@ function M.setup()
 
   lualine.setup {
     options = {
-      theme = "dracula",
+      theme = "tokyonight",
       component_separators = { left = "", right = "" },
       section_separators = { left = "", right = "" },
 
