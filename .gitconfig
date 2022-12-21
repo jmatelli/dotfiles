@@ -108,6 +108,10 @@
 
 [pull]
   default = current
+  rebase = true
+
+[fetch]
+  prune = true
 
 [user]
 	email = joel.matelli@codikos.io
