@@ -10,6 +10,7 @@ M.setup = function()
   end
 
   tokyonight.setup({
+    transparent = true,
     on_highlights = function(hl, c)
       local prompt = "#2d3149"
       hl.TelescopeBorder = {
