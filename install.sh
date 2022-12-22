@@ -269,22 +269,30 @@ setupMisc() {
 #######
 
 setupNeovim() {
-  NVIM_PATH=$HOME/.config/nvim-lua
+  NVIM_PATH=$HOME/.config/nvim
+  PACKER_PATH=$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim
 
   echo "- Clear previous config at '${NVIM_PATH}'"
   rm -rf $NVIM_PATH
+  rm -rf $HOME/.local/share/nvim
   printDone
 
-  echo "- Create folder '${NVIM_PATH}/share'"
-  mkdir -p $NVIM_PATH/share
+  echo "- Create folder '${NVIM_PATH}'"
+  mkdir -p $NVIM_PATH
   printDone
 
-  echo "- Create folder '${NVIM_PATH}/nvim'"
-  mkdir -p $NVIM_PATH/nvim
+  if [[ ! -f "$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim" ]]; then
+    echo "- Install packer"
+    git clone --depth 1 https://github.com/wbthomason/packer.nvim $HOME/.local/share/nvim/site/pack/packer/start/packer.nvim
+    printDone
+  fi
+
+  echo "- Link NeoVim configuration to '${NVIM_PATH}'"
+  stow --restow --target=$NVIM_PATH nvim
   printDone
 
-  echo "- Link NeoVim configuration to '${NVIM_PATH}/nvim'"
-  stow --restow --target=$NVIM_PATH/nvim nvim
+  echo "- Install NeoVim packages"
+  nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
   printDone
 
   printSuccess "NeoVim was installed successfuly."

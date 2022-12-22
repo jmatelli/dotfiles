@@ -1,3 +1,7 @@
+require("core.mappings")
+require("core.options")
+require("core.plugins")
+
 local autocmd = vim.api.nvim_create_autocmd
 
 -- Disable statusline in dashboard
