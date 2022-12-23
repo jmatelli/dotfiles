@@ -28,6 +28,7 @@ end
 local telescope = require("telescope")
 local tree = require("nvim-tree.api")
 
+telescope.load_extension("fzf")
 telescope.load_extension("emoji")
 telescope.load_extension("glyph")
 telescope.load_extension("ui-select")

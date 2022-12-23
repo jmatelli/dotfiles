@@ -44,14 +44,25 @@ local mappings = {
 
   f = {
     name = "Telescope",
-    b = { "<cmd>Telescope buffers<CR>", "Buffers" },
-    c = { "<cmd>Telescope git_commits<CR>", "Git commits" },
-    e = { "<cmd>Telescope emoji<CR>", "Emoji" },
-    f = { "<cmd>Telescope find_files<CR>", "Find files" },
-    g = { "<cmd>Telescope git_files<CR>", "Git files" },
-    o = { "<cmd>Telescope oldfiles<CR>", "Old files" },
-    w = { "<cmd>Telescope live_grep<CR>", "Find words" },
-    z = { "<cmd>Telescope glyph<CR>", "Glyph" },
+    b = { "<cmd>Telescope buffers<CR>", "[F]ind [B]uffers" },
+    c = { "<cmd>Telescope git_commits<CR>", "[F]ind Git [C]ommits" },
+    d = { "<cmd>Telescope diagnostics<CR>", "[F]ind [D]iagnostic" },
+    e = { "<cmd>Telescope emoji<CR>", "[F]ind [E]moji" },
+    f = { "<cmd>Telescope find_files<CR>", "[F]ind [F]iles" },
+    g = { "<cmd>Telescope git_files<CR>", "[F]ind [G]it Files" },
+    o = { "<cmd>Telescope oldfiles<CR>", "[F]ind [O]ld Files" },
+    w = { "<cmd>Telescope live_grep<CR>", "[F]ind [W]ords" },
+    y = { "<cmd>Telescope glyph<CR>", "[F]ind Gl[y]ph" },
+    ["/"] = {
+      function()
+        -- You can pass additional configuration to telescope to change theme, layout, etc.
+        require('telescope.builtin').current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
+          winblend = 10,
+          previewer = false,
+        })
+      end,
+      "[/] Fuzzily search in current buffer"
+    },
   },
 
   g = {
@@ -61,35 +72,34 @@ local mappings = {
 
   l = {
     name = "LSP",
-    a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "LSP code action" },
-    d = { "<cmd>Telescope lsp_definitions<CR>", "LSP document symbols" },
-    r = { "<cmd>Telescope lsp_references<CR>", "LSP references" },
-    s = { "<cmd>Telescope lsp_document_symbols<CR>", "LSP document symbols" },
+    a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "[L]SP Code [A]ction" },
+    d = { "<cmd>Telescope lsp_definitions<CR>", "[L]SP [D]efinitions" },
+    r = { "<cmd>Telescope lsp_references<CR>", "[L]SP [R]eferences" },
+    s = { "<cmd>Telescope lsp_document_symbols<CR>", "[L]SP Document [S]ymbols" },
   },
 
   m = {
     name = "Mason/Markdown",
-    m = { "<cmd>Mason<CR>", "Open Mason" },
-    l = { "<cmd>MasonLog<CR>", "Show Mason logs" },
+    o = { "<cmd>Mason<CR>", "[M]ason [O]pen" },
+    l = { "<cmd>MasonLog<CR>", "Show [M]ason [l]ogs" },
     p = { "<cmd>MarkdownPreview<CR>" }
   },
 
   t = {
     name = "Trouble",
-    w = { "<cmd>TroubleToggle workspace_diagnostics<CR>", "Workspace diagnostics" },
     d = { "<cmd>TroubleToggle document_diagnostics<CR>", "Document diagnostics" },
     l = { "<cmd>TroubleToggle loclist<CR>", "Loclist" },
     q = { "<cmd>TroubleToggle quickfix<CR>", "Quickfix" },
-    R = { "<cmd>TroubleToggle lsp_references<CR>", "LSP references" },
+    w = { "<cmd>TroubleToggle workspace_diagnostics<CR>", "Workspace diagnostics" },
   },
 
   p = {
     name = "Packer",
-    c = { "<cmd>PackerCompile<CR>", "Compile" },
-    i = { "<cmd>PackerInstall<CR>", "Install" },
-    s = { "<cmd>PackerSync<CR>", "Sync" },
-    S = { "<cmd>PackerStatus<CR>", "Status" },
-    u = { "<cmd>PackerUpdate<CR>", "Update" },
+    c = { "<cmd>PackerCompile<CR>", "[C]ompile" },
+    i = { "<cmd>PackerInstall<CR>", "[I]nstall" },
+    s = { "<cmd>PackerSync<CR>", "[S]ync" },
+    t = { "<cmd>PackerStatus<CR>", "S[t]atus" },
+    u = { "<cmd>PackerUpdate<CR>", "[U]pdate" },
   },
 }
 
