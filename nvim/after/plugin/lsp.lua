@@ -49,9 +49,18 @@ lsp.set_preferences({
 lsp.ensure_installed({
   "bashls",
   "tsserver",
+  "jsonls",
+  "html",
+  "cssls",
+  "cssmodules_ls",
   "eslint",
   "sumneko_lua",
   "gopls",
+  "prosemd_lsp",
+  "dockerls",
+  "elmls",
+  "tailwindcss",
+  "stylelint_lsp",
 })
 lsp.nvim_workspace()
 lsp.on_attach(on_attach)
