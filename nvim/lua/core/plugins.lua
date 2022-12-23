@@ -25,17 +25,18 @@ return require("packer").startup({
       end,
     }
 
-    -- Telescope
-    use {
+    use { -- Telescope
       "nvim-telescope/telescope.nvim",
       branch = "0.1.x",
       requires = {
         { "nvim-lua/plenary.nvim" },
         { "xiyaowong/telescope-emoji.nvim" },
         { "ghassan0/telescope-glyph.nvim" },
-        {'nvim-telescope/telescope-ui-select.nvim' },
+        { "nvim-telescope/telescope-ui-select.nvim" },
       }
     }
+    -- Fuzzy Finder Algorithm which requires local dependencies to be built. Only load if `make` is available
+    use { "nvim-telescope/telescope-fzf-native.nvim", run = "make", cond = vim.fn.executable "make" == 1 }
 
     use {
       "VonHeikemen/lsp-zero.nvim",
