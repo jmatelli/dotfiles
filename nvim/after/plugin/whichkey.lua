@@ -34,12 +34,11 @@ local mappings = {
   ["q"] = { "<cmd>q!<CR>", "Quit" },
   [","] = { "m`A,<Esc>``", "Add colon eol" },
   [";"] = { "m`A;<Esc>``", "Add semi-colon eol" },
-  ["noh"] = { "<cmd>noh<bar>:echo<CR>", "No highlight" },
 
   b = {
-    name = "Buffer",
-    c = { "<cmd>bd!<CR>", "Close current buffer" },
-    D = { "<cmd>%bd|e#|bd#<CR>", "Delete all buffers" },
+    name = "[B]uffer",
+    c = { "<cmd>bd!<CR>", "[C]lose current buffer" },
+    D = { "<cmd>%bd|e#|bd#<CR>", "[D]elete all buffers" },
   },
 
   f = {
@@ -66,12 +65,12 @@ local mappings = {
   },
 
   g = {
-    name = "Git",
-    s = { "<cmd>Neogit<CR>", "Status" },
+    name = "[G]it",
+    s = { "<cmd>Neogit<CR>", "[S]tatus" },
   },
 
   l = {
-    name = "LSP",
+    name = "[L]SP",
     a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "[L]SP Code [A]ction" },
     d = { "<cmd>Telescope lsp_definitions<CR>", "[L]SP [D]efinitions" },
     r = { "<cmd>Telescope lsp_references<CR>", "[L]SP [R]eferences" },
@@ -79,14 +78,14 @@ local mappings = {
   },
 
   m = {
-    name = "Mason/Markdown",
+    name = "[M]ason/[M]arkdown",
     o = { "<cmd>Mason<CR>", "[M]ason [O]pen" },
     l = { "<cmd>MasonLog<CR>", "Show [M]ason [l]ogs" },
     p = { "<cmd>MarkdownPreview<CR>" }
   },
 
   t = {
-    name = "Trouble",
+    name = "[T]rouble",
     d = { "<cmd>TroubleToggle document_diagnostics<CR>", "Document diagnostics" },
     l = { "<cmd>TroubleToggle loclist<CR>", "Loclist" },
     q = { "<cmd>TroubleToggle quickfix<CR>", "Quickfix" },
@@ -94,7 +93,7 @@ local mappings = {
   },
 
   p = {
-    name = "Packer",
+    name = "[P]acker",
     c = { "<cmd>PackerCompile<CR>", "[C]ompile" },
     i = { "<cmd>PackerInstall<CR>", "[I]nstall" },
     s = { "<cmd>PackerSync<CR>", "[S]ync" },
