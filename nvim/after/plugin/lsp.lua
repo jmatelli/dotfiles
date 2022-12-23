@@ -3,19 +3,21 @@ local utils = require("core.utils")
 local on_attach = function(client, bufnr)
   client.server_capabilities.documentFormattingProvider = false
   client.server_capabilities.documentRangeFormattingProvider = false
-  local bufopts = { noremap = true, silent = true, buffer = bufnr }
-  local nmap = function(keys, mapping)
-    utils.nnoremap(keys, mapping, bufopts)
+  local getBufOpts = function(desc)
+    if desc then
+      return { noremap = true, silent = true, buffer = bufnr, desc = desc }
+    end
+    return { noremap = true, silent = true, buffer = bufnr }
   end
-  nmap("K", "<cmd>lua vim.lsp.buf.hover()<cr>")
-  nmap("gd", "<cmd>lua vim.lsp.buf.definition()<cr>")
-  nmap("gD", "<cmd>lua vim.lsp.buf.declaration()<cr>")
-  nmap("gi", "<cmd>lua vim.lsp.buf.implementation()<cr>")
-  nmap("go", "<cmd>lua vim.lsp.buf.type_definition()<cr>")
-  nmap("gr", "<cmd>lua vim.lsp.buf.references()<cr>")
-  nmap("<leader>sh", "<cmd>lua vim.lsp.buf.signature_help()<cr>")
-  nmap("<leader>fm", "<cmd>lua vim.lsp.buf.formatting()<cr>")
-  nmap("<leader>rn", "<cmd>lua vim.lsp.buf.rename()<cr>")
+  utils.nnoremap("K", "<cmd>lua vim.lsp.buf.hover()<cr>", getBufOpts())
+  utils.nnoremap("gd", "<cmd>lua vim.lsp.buf.definition()<cr>", getBufOpts())
+  utils.nnoremap("gD", "<cmd>lua vim.lsp.buf.declaration()<cr>", getBufOpts())
+  utils.nnoremap("gi", "<cmd>lua vim.lsp.buf.implementation()<cr>", getBufOpts())
+  utils.nnoremap("go", "<cmd>lua vim.lsp.buf.type_definition()<cr>", getBufOpts())
+  utils.nnoremap("gr", "<cmd>lua vim.lsp.buf.references()<cr>", getBufOpts())
+  utils.nnoremap("<leader>sh", "<cmd>lua vim.lsp.buf.signature_help()<cr>", getBufOpts("[S]ignature [H]elp"))
+  utils.nnoremap("<leader>fm", "<cmd>lua vim.lsp.buf.formatting()<cr>", getBufOpts("[F]or[M]atting"))
+  utils.nnoremap("<leader>rn", "<cmd>lua vim.lsp.buf.rename()<cr>", getBufOpts("[R]e[N]ame"))
 end
 
 
