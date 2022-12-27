@@ -138,10 +138,16 @@ setupBrew() {
   brew cleanup
   printDone
 
-  if [[ "${INSTALL_CASKS:-0}" == "1" ]] || [[ "${ACCEPT_ALL:-0}" == "1" ]]; then
-    echo "- Installing brew casks"
-    brew install -q --cask ${BREW_CASKS[@]} --force
-    printDone
+  if [[ $OSTYPE == 'darwin'* ]]; then
+    if [[ "${INSTALL_CASKS:-0}" == "1" ]] || [[ "${ACCEPT_ALL:-0}" == "1" ]]; then
+      echo "- Installing brew casks"
+      brew install -q --cask ${BREW_CASKS[@]} --force
+      printDone
+    fi
+  else
+    if [[ "${INSTALL_CASKS:-0}" == "1" ]] || [[ "${ACCEPT_ALL:-0}" == "1" ]]; then
+      echo "Can't install Casks on other OS than MacOS"
+    fi
   fi
 }
 
