@@ -34,6 +34,7 @@ require("mason.settings").set({
 })
 
 local lsp = require("lsp-zero")
+local null_ls = require("null-ls")
 
 lsp.preset("recommended")
 lsp.set_preferences({
@@ -62,6 +63,41 @@ lsp.ensure_installed({
   "tailwindcss",
   "stylelint_lsp",
 })
+lsp.setup_nvim_cmp({
+  preselect = "none",
+  completion = {
+    completeopt = "menu,menuone,noinsert,noselect",
+  },
+})
 lsp.nvim_workspace()
 lsp.on_attach(on_attach)
+lsp.configure('tsserver', {
+  on_attach = function(client, bufnr)
+    on_attach(client, bufnr)
+      local au_lsp = vim.api.nvim_create_augroup("eslint_lsp", { clear = true })
+      vim.api.nvim_create_autocmd("BufWritePre", {
+        pattern = "*",
+        callback = function()
+          vim.cmd "LspZeroFormat"
+        end,
+        group = au_lsp,
+      })
+  end,
+})
+
 lsp.setup()
+
+-- see documentation of null-null-ls for more configuration options!
+local mason_nullls = require("mason-null-ls")
+mason_nullls.setup({
+  ensure_installed = { "eslint_d", "prettierd", "stylua" },
+  automatic_installation = true,
+  automatic_setup = true,
+})
+null_ls.setup({
+  sources = {
+    null_ls.builtins.formatting.eslint,
+    null_ls.builtins.formatting.prettierd,
+    null_ls.builtins.formatting.stylua,
+  }
+})

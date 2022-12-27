@@ -45,6 +45,8 @@ return require("packer").startup({
         { "neovim/nvim-lspconfig" },
         { "williamboman/mason.nvim" },
         { "williamboman/mason-lspconfig.nvim" },
+        { "jose-elias-alvarez/null-ls.nvim" },
+        { "jayp0521/mason-null-ls.nvim" },
 
         -- Autocompletion
         { "hrsh7th/nvim-cmp" },
