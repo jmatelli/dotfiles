@@ -87,6 +87,17 @@ lsp.configure('tsserver', {
 
 lsp.setup()
 
+local signs = {
+  { name = "DiagnosticSignError", text = "" },
+  { name = "DiagnosticSignWarn", text = "" },
+  { name = "DiagnosticSignHint", text = "" },
+  { name = "DiagnosticSignInfo", text = "" },
+}
+
+for _, sign in ipairs(signs) do
+  vim.fn.sign_define(sign.name, { texthl = sign.name, text = sign.text, numhl = "" })
+end
+
 -- see documentation of null-null-ls for more configuration options!
 local mason_nullls = require("mason-null-ls")
 mason_nullls.setup({
