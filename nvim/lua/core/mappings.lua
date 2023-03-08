@@ -29,10 +29,6 @@ utils.nnoremap("<ESC>", ":nohlsearch<Bar>:echo<CR>", default_opts)
 utils.nleader("c", "gcc", { remap = true })
 utils.vleader("c", "gc", { remap = true })
 
--- Insert line above/below
-utils.nleader("o", "o<Esc>k", default_opts)
-utils.nleader("O", "O<Esc>k", default_opts)
-
 utils.nnoremap("<C-Up>", ":resize -2<CR>")
 utils.nnoremap("<C-Down>", ":resize +2<CR>")
 utils.nnoremap("<C-Left>", ":vertical resize -2<CR>")

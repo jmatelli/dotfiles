@@ -34,6 +34,8 @@ local mappings = {
   ["q"] = { "<cmd>q!<CR>", "Quit" },
   [","] = { "m`A,<Esc>``", "Add colon eol" },
   [";"] = { "m`A;<Esc>``", "Add semi-colon eol" },
+  ["o"] = { "o<Esc>k", "Insert new line beneath cursor" },
+  ["O"] = { "O<Esc>j", "Insert new line above cursor" },
 
   b = {
     name = "[B]uffer",

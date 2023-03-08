@@ -54,6 +54,16 @@ fancy-ctrl-z () {
 zle -N fancy-ctrl-z
 bindkey '^Z' fancy-ctrl-z
 
+# useful only for Mac OS Silicon M1, 
+# still working but useless for the other platforms
+docker() {
+ if [[ `uname -m` == "arm64" ]] && [[ "$1" == "run" || "$1" == "build" ]]; then
+    /usr/local/bin/docker "$1" --platform linux/amd64 "${@:2}"
+  else
+     /usr/local/bin/docker "$@"
+  fi
+}
+
 export PYENV_ROOT="$HOME/.pyenv" 
 export PATH="$PYENV_ROOT/bin:$PATH" 
 eval "$(pyenv init --path)" 
@@ -109,3 +119,9 @@ export PNPM_HOME="/Users/joelmatelli/Library/pnpm"
 export PATH="$PNPM_HOME:$PATH"
 # pnpm end
 source /Users/joelmatelli/.config/broot/launcher/bash/br
+
+export ANDROID_HOME=$HOME/Library/Android/sdk/
+export PATH=$ANDROID_HOME/platform-tools:$PATH
+
+export PATH="/opt/homebrew/opt/ruby@3.1/bin:$PATH"
+export PATH="/Users/joelmatelli/.gem/ruby/2.6.0/bin:$PATH"
