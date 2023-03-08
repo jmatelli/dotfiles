@@ -24,3 +24,8 @@ autocmd("BufEnter", {
   pattern = "*",
   command = "set fo-=c fo-=r fo-=o",
 })
+
+autocmd({"BufNewFile", "BufRead"}, {
+  pattern = {"Podfile", "*.podsec"},
+  command = "set filetype=ruby",
+})

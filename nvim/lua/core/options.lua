@@ -23,10 +23,10 @@ opt.ignorecase = true -- Case insensitive searching unless /C or capital in sear
 opt.smartcase = true -- Smart case
 
 -- Folds
-opt.foldmethod = "expr"
-opt.foldcolumn = "2"
-opt.foldexpr = "nvim_treesitter#foldexpr()"
-opt.foldlevel = 99
+-- opt.foldmethod = "expr"
+-- opt.foldcolumn = "2"
+-- opt.foldexpr = "nvim_treesitter#foldexpr()"
+-- opt.foldlevel = 99
 
 opt.timeoutlen = 300 -- Time in ms to wait for a mappaed sequence to complete
 opt.updatetime = 250 -- Decrease update time

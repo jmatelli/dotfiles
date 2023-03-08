@@ -15,7 +15,7 @@ M.nleader = function(lhs, rhs, options)
   keymap('n', '<leader>' .. lhs, rhs, options or { silent = true })
 end
 M.vleader = function(lhs, rhs, options)
-  keymap('x', '<leader>' .. lhs, rhs, options or { silent = true })
+  keymap('v', '<leader>' .. lhs, rhs, options or { silent = true })
 end
 
 return M
