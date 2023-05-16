@@ -39,8 +39,8 @@
                 "Alpha Component": 1,
                 "Green Component": 0.9372549057006836
             },
-            "Normal Font": "HackNerdFontCompleteM-Regular 14",
-            "Vertical Spacing": 1.12,
+            "Normal Font": "DroidSansMonoNerdFontCompleteM-Regular 15",
+            "Vertical Spacing": 1,
             "Rows": 70,
             "Default Bookmark": "No",
             "Ansi 0 Color": {
@@ -323,7 +323,7 @@
                 }
             },
             "Window Type": 15,
-            "Blur Radius": 15.110688164893617,
+            "Blur Radius": 30,
             "Background Image Location": "",
             "Blur": true,
             "Badge Color": {

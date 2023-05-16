@@ -253,7 +253,7 @@ setupIterm() {
 
   echo "- Installing required Nerd Fonts"
   # $HOME/fonts/nerd-fonts/install.sh meslo
-  $HOME/fonts/nerd-fonts/install.sh hack
+  $HOME/fonts/nerd-fonts/install.sh Hack
   printDone
 
   echo "- Linking iTerm2 profile"
@@ -268,6 +268,7 @@ setupIterm() {
 setupMisc() {
   [[ ! -f "$HOME/.gitconfig" ]] && echo "- Link git configuration to ~/.gitconfig" && ln -sf $DOTFILES_PATH/.gitconfig $HOME/.gitconfig && printDone
   [[ ! -f "$HOME/.tmux.conf" ]] && echo "- Link tmux configuration to ~/.tmux.conf" && ln -sf $DOTFILES_PATH/.tmux.conf $HOME/.tmux.conf && printDone
+  [[ ! -f "$HOME/.rgignore" ]] && echo "- Link .rgignore to ~/.rgignore" && ln -sf $DOTFILES_PATH/.rgignore $HOME/.rgignore && printDone
 }
 
 #######
@@ -276,7 +277,6 @@ setupMisc() {
 
 setupNeovim() {
   NVIM_PATH=$HOME/.config/nvim
-  PACKER_PATH=$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim
 
   echo "- Clear previous config at '${NVIM_PATH}'"
   rm -rf $NVIM_PATH
@@ -318,7 +318,7 @@ setupNeovim() {
 conditionalRun() {
   if [[ "${ACCEPT_ALL:-0}" != "1" ]]; then
     while true; do
-      read -p "$1, proceed? (y/n)" yn
+      read -rp "$1, proceed? (y/n)" yn
       case $yn in
         [Yy]* ) $2; break;;
         [Nn]* ) break;;
