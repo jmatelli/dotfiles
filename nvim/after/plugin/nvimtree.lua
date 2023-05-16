@@ -3,7 +3,7 @@ local utils = require("core.utils")
 local default_opts = { noremap = true, silent = true }
 
 utils.nnoremap("<F2>", ":NvimTreeToggle<CR>", default_opts)
-utils.nnoremap("<F3>", ":NvimTreeFindFile<CR>", default_opts)
+utils.nnoremap("<F3>", ":NvimTreeFindFileToggle<CR>", default_opts)
 
 tree.setup {
   diagnostics = {

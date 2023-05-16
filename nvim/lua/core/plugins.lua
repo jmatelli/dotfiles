@@ -65,10 +65,12 @@ return require("packer").startup({
       }
     }
 
-    use { "TimUntersberger/neogit", requires = "nvim-lua/plenary.nvim" } -- Git
+    -- use { "TimUntersberger/neogit", requires = { "nvim-lua/plenary.nvim", "sindrets/diffview.nvim" }} -- Git
+    use { "tpope/vim-fugitive" }
     use { "lewis6991/gitsigns.nvim" } -- Git
     use { "folke/which-key.nvim" }
-    use { "tpope/vim-commentary" }
+    -- use { "tpope/vim-commentary" }
+    use { "numToStr/Comment.nvim", requires = "JoosepAlviste/nvim-ts-context-commentstring" } -- Comments
     use { "nvim-lualine/lualine.nvim", requires = "nvim-tree/nvim-web-devicons" } -- Status line
     use { "windwp/nvim-autopairs", requires = "nvim-treesitter/nvim-treesitter" }
     use { "windwp/nvim-ts-autotag" }

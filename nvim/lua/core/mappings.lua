@@ -25,10 +25,6 @@ utils.vnoremap("p", '"_dP', default_opts)
 -- Cancel search highlighting
 utils.nnoremap("<ESC>", ":nohlsearch<Bar>:echo<CR>", default_opts)
 
--- Comments
-utils.nleader("c", "gcc", { remap = true })
-utils.vleader("c", "gc", { remap = true })
-
 utils.nnoremap("<C-Up>", ":resize -2<CR>")
 utils.nnoremap("<C-Down>", ":resize +2<CR>")
 utils.nnoremap("<C-Left>", ":vertical resize -2<CR>")
