@@ -69,8 +69,18 @@ export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init --path)" 
 eval "$(pyenv init -)"
 
-# FZF theme
-export FZF_DEFAULT_OPTS="--color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9 --color=fg+:#f8f8f2,bg+:#44475a,hl+:#bd93f9 --color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6 --color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4"
+# FZF theme for tokyonight
+# bg:#1a1b26
+# bg+:#1a1b26
+export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' 
+  --height 40% --reverse
+	--color=fg:#ffffff,bg:-1,hl:#bb9af7
+	--color=fg+:#c0caf5,bg+:-1,gutter:-1,hl+:#7dcfff
+	--color=info:#7aa2f7,prompt:#7dcfff,pointer:#7dcfff 
+	--color=marker:#9ece6a,spinner:#9ece6a,header:#9ece6a'
+export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --hidden'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+
 
 # VIM
 export NVIM_PATH=~/.config/nvim-lua
@@ -110,7 +120,6 @@ load-nvmrc
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-source /opt/homebrew/opt/powerlevel10k/powerlevel10k.zsh-theme
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 

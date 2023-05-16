@@ -68,7 +68,7 @@ telescope.setup {
       height = 0.8,
       preview_cutoff = 120,
     },
-    file_ignore_patterns = { "node_modules", "^.git/" },
+    file_ignore_patterns = { "node_modules" },
     path_display = { "truncate" },
     winblend = 1,
     border = {},
@@ -81,7 +81,7 @@ telescope.setup {
       sort_lastused = true,
     },
     find_files = {
-      find_command = { "fd", "--type", "f", "--strip-cwd-prefix" },
+      find_command = { "rg", "--files", "--hidden", "-g", "!.git" },
       hidden = true,
     },
   },

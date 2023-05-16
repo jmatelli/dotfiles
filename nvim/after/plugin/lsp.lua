@@ -1,5 +1,34 @@
 local utils = require("core.utils")
 
+local filter = function(arr, fn)
+  if type(arr) ~= "table" then
+    return arr
+  end
+
+  local filtered = {}
+  for k, v in pairs(arr) do
+    if fn(v, k, arr) then
+      table.insert(filtered, v)
+    end
+  end
+
+  return filtered
+end
+
+local filterReactDTS = function(value)
+  return string.match(value.filename, '%.d.ts') == nil
+end
+
+local on_list = function(options)
+  local items = options.items
+  if #items > 1 then
+    items = filter(items, filterReactDTS)
+  end
+
+  vim.fn.setqflist({}, ' ', { title = options.title, items = items, context = options.context })
+  vim.api.nvim_command('cfirst') -- or maybe you want 'copen' instead of 'cfirst'
+end
+
 local on_attach = function(client, bufnr)
   client.server_capabilities.documentFormattingProvider = false
   client.server_capabilities.documentRangeFormattingProvider = false
@@ -10,11 +39,11 @@ local on_attach = function(client, bufnr)
     return { noremap = true, silent = true, buffer = bufnr }
   end
   utils.nnoremap("K", "<cmd>lua vim.lsp.buf.hover()<cr>", getBufOpts())
-  utils.nnoremap("gd", "<cmd>lua vim.lsp.buf.definition()<cr>", getBufOpts())
-  utils.nnoremap("gD", "<cmd>lua vim.lsp.buf.declaration()<cr>", getBufOpts())
-  utils.nnoremap("gi", "<cmd>lua vim.lsp.buf.implementation()<cr>", getBufOpts())
+  utils.nnoremap("gd", function() vim.lsp.buf.definition({ on_list = on_list }) end, getBufOpts("[G]o to [D]efinition"))
+  utils.nnoremap("gD", "<cmd>lua vim.lsp.buf.declaration()<cr>", getBufOpts("[G]o to [D]eclaration"))
+  utils.nnoremap("gi", "<cmd>lua vim.lsp.buf.implementation()<cr>", getBufOpts("[G]o to [I]mplementation"))
   utils.nnoremap("go", "<cmd>lua vim.lsp.buf.type_definition()<cr>", getBufOpts())
-  utils.nnoremap("gr", "<cmd>lua vim.lsp.buf.references()<cr>", getBufOpts())
+  utils.nnoremap("gr", "<cmd>lua vim.lsp.buf.references()<cr>", getBufOpts("[G]o to [R]eference"))
   utils.nnoremap("<leader>sh", "<cmd>lua vim.lsp.buf.signature_help()<cr>", getBufOpts("[S]ignature [H]elp"))
   utils.nnoremap("<leader>fm", "<cmd>lua vim.lsp.buf.formatting()<cr>", getBufOpts("[F]or[M]atting"))
   utils.nnoremap("<leader>rn", "<cmd>lua vim.lsp.buf.rename()<cr>", getBufOpts("[R]e[N]ame"))
@@ -71,18 +100,21 @@ lsp.setup_nvim_cmp({
 })
 lsp.nvim_workspace()
 lsp.on_attach(on_attach)
-lsp.configure('tsserver', {
-  on_attach = function(client, bufnr)
-    on_attach(client, bufnr)
-      local au_lsp = vim.api.nvim_create_augroup("eslint_lsp", { clear = true })
-      vim.api.nvim_create_autocmd("BufWritePre", {
-        pattern = "*",
-        callback = function()
-          vim.cmd "LspZeroFormat"
-        end,
-        group = au_lsp,
-      })
-  end,
+-- lsp.configure('tsserver', {
+--   on_attach = function(client, bufnr)
+--     on_attach(client, bufnr)
+--     local au_lsp = vim.api.nvim_create_augroup("eslint_lsp", { clear = true })
+--     vim.api.nvim_create_autocmd("BufWritePre", {
+--       pattern = "*",
+--       callback = function()
+--         vim.cmd "LspZeroFormat"
+--       end,
+--       group = au_lsp,
+--     })
+--   end,
+-- })
+lsp.configure('stylelint_lsp', {
+  filetypes = { "css", "less", "scss" },
 })
 
 lsp.setup()
