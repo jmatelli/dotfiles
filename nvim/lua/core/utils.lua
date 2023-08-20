@@ -5,6 +5,9 @@ local keymap = vim.keymap.set
 M.nnoremap = function(lhs, rhs, options)
   keymap('n', lhs, rhs, options or { silent = true })
 end
+M.inoremap = function(lhs, rhs, options)
+  keymap('i', lhs, rhs, options or { silent = true })
+end
 M.vnoremap = function(lhs, rhs, options)
   keymap('v', lhs, rhs, options or { silent = true })
 end

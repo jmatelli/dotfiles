@@ -4,7 +4,18 @@ require("nvim-treesitter.install").prefer_git = true
 
 ts.setup {
   -- One of "all", "maintained" (parsers with maintainers), or a list of languages
-  ensure_installed = { "css", "html", "javascript", "tsx", "typescript", "json", "lua", "go", "bash", "vim" },
+  ensure_installed = {
+    "css",
+    "html",
+    "javascript",
+    -- "tsx",
+    "typescript",
+    "json",
+    "lua",
+    "go",
+    "bash",
+    "vim"
+  },
 
   -- Install languages synchronously (only applied to `ensure_installed`)
   sync_install = false,
@@ -21,6 +32,7 @@ ts.setup {
   },
   autotag = {
     enable = true,
+    enable_close_on_slash = false,
   },
   context_commentstring = {
     enable = true,

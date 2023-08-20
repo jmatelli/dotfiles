@@ -1,3 +1,5 @@
+local telescope = require("telescope")
+local tree = require("nvim-tree.api")
 local actions = require("telescope.actions")
 local previewers = require("telescope.previewers")
 local Job = require("plenary.job")
@@ -24,9 +26,6 @@ local new_maker = function(filepath, bufnr, opts)
     end
   }):sync()
 end
-
-local telescope = require("telescope")
-local tree = require("nvim-tree.api")
 
 telescope.load_extension("fzf")
 telescope.load_extension("emoji")
@@ -81,7 +80,7 @@ telescope.setup {
       sort_lastused = true,
     },
     find_files = {
-      find_command = { "rg", "--files", "--hidden", "-g", "!.git" },
+      find_command = { "rg", "--files", "--hidden" },
       hidden = true,
     },
   },

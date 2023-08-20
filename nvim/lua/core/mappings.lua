@@ -19,6 +19,14 @@ utils.vnoremap(">", ">gv", default_opts)
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 
+-- Move line(s)
+utils.nnoremap("<S-Up>", ":m .-2<CR>==", default_opts)
+utils.nnoremap("<S-Down>", ":m .+1<CR>==", default_opts)
+utils.inoremap("<S-Up>", "<Esc>:m .-2<CR>==gi", default_opts)
+utils.inoremap("<S-Down>", "<Esc>:m .+1<CR>==gi", default_opts)
+utils.vnoremap("<S-Up>", ":m '<-2<CR>gv=gv", default_opts)
+utils.vnoremap("<S-Down>", ":m '>+1<CR>gv=gv", default_opts)
+
 -- Paste over currently selected text without yanking it
 utils.vnoremap("p", '"_dP', default_opts)
 

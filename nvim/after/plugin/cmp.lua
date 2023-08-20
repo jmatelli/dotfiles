@@ -95,3 +95,7 @@ cmp.setup.cmdline('/', {
     { name = 'buffer' }
   }
 })
+
+cmp.config.formatting = {
+  format = require("tailwindcss-colorizer-cmp").formatter
+}

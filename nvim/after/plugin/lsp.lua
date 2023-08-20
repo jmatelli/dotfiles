@@ -1,52 +1,29 @@
 local utils = require("core.utils")
 
-local filter = function(arr, fn)
-  if type(arr) ~= "table" then
-    return arr
-  end
+local lspconfig = require("lspconfig")
+local null_ls = require("null-ls")
+local mason = require("mason")
+local masonlsp = require("mason-lspconfig")
+local mason_nullls = require("mason-null-ls")
+local cmp_lsp = require("cmp_nvim_lsp")
+local schemas = require("schemastore")
 
-  local filtered = {}
-  for k, v in pairs(arr) do
-    if fn(v, k, arr) then
-      table.insert(filtered, v)
-    end
-  end
-
-  return filtered
+local getBufOpts = function(bufnr, desc)
+  return { noremap = true, silent = true, buffer = bufnr, desc = desc }
 end
 
-local filterReactDTS = function(value)
-  return string.match(value.filename, '%.d.ts') == nil
-end
-
-local on_list = function(options)
-  local items = options.items
-  if #items > 1 then
-    items = filter(items, filterReactDTS)
-  end
-
-  vim.fn.setqflist({}, ' ', { title = options.title, items = items, context = options.context })
-  vim.api.nvim_command('cfirst') -- or maybe you want 'copen' instead of 'cfirst'
-end
-
-local on_attach = function(client, bufnr)
-  client.server_capabilities.documentFormattingProvider = false
-  client.server_capabilities.documentRangeFormattingProvider = false
-  local getBufOpts = function(desc)
-    if desc then
-      return { noremap = true, silent = true, buffer = bufnr, desc = desc }
-    end
-    return { noremap = true, silent = true, buffer = bufnr }
-  end
-  utils.nnoremap("K", "<cmd>lua vim.lsp.buf.hover()<cr>", getBufOpts())
-  utils.nnoremap("gd", function() vim.lsp.buf.definition({ on_list = on_list }) end, getBufOpts("[G]o to [D]efinition"))
-  utils.nnoremap("gD", "<cmd>lua vim.lsp.buf.declaration()<cr>", getBufOpts("[G]o to [D]eclaration"))
-  utils.nnoremap("gi", "<cmd>lua vim.lsp.buf.implementation()<cr>", getBufOpts("[G]o to [I]mplementation"))
-  utils.nnoremap("go", "<cmd>lua vim.lsp.buf.type_definition()<cr>", getBufOpts())
-  utils.nnoremap("gr", "<cmd>lua vim.lsp.buf.references()<cr>", getBufOpts("[G]o to [R]eference"))
-  utils.nnoremap("<leader>sh", "<cmd>lua vim.lsp.buf.signature_help()<cr>", getBufOpts("[S]ignature [H]elp"))
-  utils.nnoremap("<leader>fm", "<cmd>lua vim.lsp.buf.formatting()<cr>", getBufOpts("[F]or[M]atting"))
-  utils.nnoremap("<leader>rn", "<cmd>lua vim.lsp.buf.rename()<cr>", getBufOpts("[R]e[N]ame"))
+local on_attach = function(_, bufnr)
+  utils.nnoremap("K", vim.lsp.buf.hover, getBufOpts(bufnr, "Hover"))
+  utils.nnoremap("gd", vim.lsp.buf.definition, getBufOpts(bufnr, "[G]o to [D]efinition"))
+  utils.nnoremap("gD", vim.lsp.buf.declaration, getBufOpts(bufnr, "[G]o to [D]eclaration"))
+  utils.nnoremap("gi", vim.lsp.buf.implementation, getBufOpts(bufnr, "[G]o to [I]mplementation"))
+  utils.nnoremap("go", vim.lsp.buf.type_definition, getBufOpts(bufnr, "Type Definition"))
+  utils.nnoremap("gr", vim.lsp.buf.references, getBufOpts(bufnr, "[G]o to [R]eference"))
+  utils.nnoremap("<leader>sh", vim.lsp.buf.signature_help, getBufOpts(bufnr, "[S]ignature [H]elp"))
+  utils.nnoremap("<leader>fm", function()
+    vim.lsp.buf.format({ async = true })
+  end, getBufOpts(bufnr, "[F]or[M]at"))
+  utils.nnoremap("<leader>rn", vim.lsp.buf.rename, getBufOpts(bufnr, "[R]e[N]ame"))
 end
 
 
@@ -62,62 +39,103 @@ require("mason.settings").set({
   }
 })
 
-local lsp = require("lsp-zero")
-local null_ls = require("null-ls")
-
-lsp.preset("recommended")
-lsp.set_preferences({
-  set_lsp_keymaps = false,
-  configure_diagnostics = false,
-  sign_icons = {
-    error = "✘",
-    warn = "",
-    hint = "",
-    info = ""
-  }
-})
-lsp.ensure_installed({
+local servers = {
   "bashls",
   "tsserver",
-  "jsonls",
   "html",
-  "cssls",
-  "cssmodules_ls",
   "eslint",
-  "sumneko_lua",
+  "lua_ls",
   "gopls",
-  "prosemd_lsp",
-  "dockerls",
-  "elmls",
   "tailwindcss",
-  "stylelint_lsp",
-})
-lsp.setup_nvim_cmp({
-  preselect = "none",
-  completion = {
-    completeopt = "menu,menuone,noinsert,noselect",
+  "jsonls",
+  "yamlls",
+  -- "stylelint_lsp",
+}
+
+local capabilities = cmp_lsp.default_capabilities()
+
+for _, lsp in ipairs(servers) do
+  lspconfig[lsp].setup {
+    on_attach = on_attach,
+    capabilities = capabilities,
+  }
+end
+
+lspconfig.lua_ls.setup {
+  on_attach = on_attach,
+  capabilities = capabilities,
+  settings = {
+    Lua = {
+      diagnostics = {
+        -- Get the language server to recognize the `vim` global
+        globals = {'vim'},
+      },
+    },
   },
-})
-lsp.nvim_workspace()
-lsp.on_attach(on_attach)
--- lsp.configure('tsserver', {
---   on_attach = function(client, bufnr)
---     on_attach(client, bufnr)
---     local au_lsp = vim.api.nvim_create_augroup("eslint_lsp", { clear = true })
---     vim.api.nvim_create_autocmd("BufWritePre", {
---       pattern = "*",
---       callback = function()
---         vim.cmd "LspZeroFormat"
---       end,
---       group = au_lsp,
---     })
---   end,
--- })
-lsp.configure('stylelint_lsp', {
-  filetypes = { "css", "less", "scss" },
+}
+lspconfig.eslint.setup {
+  on_attach = function(_, bufnr)
+    on_attach(_, bufnr)
+    vim.api.nvim_create_autocmd("BufWritePre", {
+      buffer = bufnr,
+      command = "EslintFixAll",
+    })
+  end,
+  capabilities = capabilities,
+}
+lspconfig.jsonls.setup {
+  on_attach = on_attach,
+  capabilities = capabilities,
+  settings = {
+    json = {
+      schemas = schemas.json.schemas(),
+      validate = { enable = true },
+    }
+  }
+}
+lspconfig.yamlls.setup {
+  settings = {
+    yaml = {
+      schemaStore = {
+        -- You must disable built-in schemaStore support if you want to use
+        -- this plugin and its advanced options like `ignore`.
+        enable = false,
+        -- Avoid TypeError: Cannot read properties of undefined (reading 'length')
+        url = "",
+      },
+      schemas = schemas.yaml.schemas(),
+    },
+  },
+}
+
+-- lspconfig.stylelint_lsp.setup {
+--   on_attach = on_attach,
+--   capabilities = capabilities,
+--   filetypes = { "css", "less", "scss" },
+--   settings = {
+--     autofixOnSave = true,
+--     autofixOnFormat = true,
+--     validateOnSave = false,
+--     validateOnType = false,
+--   }
+-- }
+
+mason.setup()
+masonlsp.setup({
+  ensure_installed = servers
 })
 
-lsp.setup()
+vim.api.nvim_create_autocmd("BufWritePre", {
+  callback = function(event)
+    local client = vim.lsp.get_active_clients({ bufnr = event.buf, name = "eslint" })[1]
+    if client then
+      local diag = vim.diagnostic.get(event.buf, { namespace = vim.lsp.diagnostic.get_namespace(client.id) })
+      if #diag > 0 then
+        vim.cmd("EslintFixAll")
+      end
+    end
+  end
+})
 
 local signs = {
   { name = "DiagnosticSignError", text = "✘" },
@@ -131,7 +149,6 @@ for _, sign in ipairs(signs) do
 end
 
 -- see documentation of null-null-ls for more configuration options!
-local mason_nullls = require("mason-null-ls")
 mason_nullls.setup({
   ensure_installed = { "eslint_d", "prettierd", "stylua" },
   automatic_installation = true,

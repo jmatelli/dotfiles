@@ -1,4 +1,5 @@
 local luasnip = require("luasnip")
+
 local loaders = require("luasnip.loaders.from_vscode")
 
 luasnip.config.set_config({
