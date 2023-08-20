@@ -36,3 +36,6 @@ fonts
 *.min*
 *history*
 vendor
+!.env
+!.env.*
+!.env.*.local
