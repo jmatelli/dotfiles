@@ -1,0 +1,8 @@
+{
+    "workspace.library": [
+        "/opt/homebrew/Cellar/neovim/0.9.0/share/nvim/runtime/lua",
+        "/Users/joel_matelli/.config/nvim/lua",
+        "/Users/joel_matelli/.local/share/nvim/mason/packages/lua-language-server/libexec/meta/1fe21a61",
+        "/Users/joel_matelli/.local/share/nvim/mason/packages/lua-language-server/libexec/meta/17fa394e"
+    ]
+}

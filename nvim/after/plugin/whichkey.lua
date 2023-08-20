@@ -1,4 +1,4 @@
-local whichkey = require("which-key")
+local wk = require("which-key")
 
 local conf = {
   window = {
@@ -20,7 +20,7 @@ local conf = {
   hidden = { "<silent>", "<cmd>", "<Cmd>", "<CR>", "<cr>", "<Cr>", "ˆ:" },
 }
 
-local opts = {
+local normalOpts = {
   mode = "n", -- Normal mode
   prefix = "<leader>",
   buffer = nil, -- Global mappings. Specify a buffer number for buffer local mappings
@@ -29,13 +29,23 @@ local opts = {
   nowait = false, -- use 'nowait' when creating keymaps
 }
 
-local mappings = {
+local visualOpts = {
+  mode = "v", -- Normal mode
+  prefix = "<leader>",
+  buffer = nil, -- Global mappings. Specify a buffer number for buffer local mappings
+  silent = true, -- use 'silent' when creating keymaps
+  noremap = true, -- use 'noremap' when creating keymaps
+  nowait = false, -- use 'nowait' when creating keymaps
+}
+
+local normalMappings = {
   ["w"] = { "<cmd>update!<CR>", "Save" },
   ["q"] = { "<cmd>q!<CR>", "Quit" },
   [","] = { "m`A,<Esc>``", "Add colon eol" },
   [";"] = { "m`A;<Esc>``", "Add semi-colon eol" },
   ["o"] = { "o<Esc>k", "Insert new line beneath cursor" },
   ["O"] = { "O<Esc>j", "Insert new line above cursor" },
+  ["S"] = { "<cmd>lua require('spectre').open()<CR>", "Open [S]pectre" },
 
   b = {
     name = "[B]uffer",
@@ -83,15 +93,30 @@ local mappings = {
     name = "[M]ason/[M]arkdown",
     o = { "<cmd>Mason<CR>", "[M]ason [O]pen" },
     l = { "<cmd>MasonLog<CR>", "Show [M]ason [l]ogs" },
-    p = { "<cmd>MarkdownPreview<CR>" }
+    p = { "<cmd>MarkdownPreview<CR>", "[M]arkdown [P]review" }
+  },
+
+  n = {
+    name = "[N]eotest",
+    r = { "<cmd>lua require('neotest').run.run()<CR>", "[R]un Tests" },
+    f = { "<cmd>lua require('neotest').run.run(vim.fn.expand('%'))<CR>", "Run [F]ile Tests" },
+    s = { "<cmd>lua require('neotest').run.stop()<CR>", "[S]top Tests" },
+    a = { "<cmd>lua require('neotest').run.attach()<CR>", "[A]ttach Tests" },
+    o = { "<cmd>lua require('neotest').output_panel.toggle()<CR>", "[O]pen Tests Output" },
+  },
+
+  s = {
+    name = "[S]pectre",
+    w = { "<cmd>lua require('spectre').open_visual({ select_word = true })<CR>", "[S]earch Current [W]ord" },
+    f = { "<cmd>lua require('spectre').open_file_search({ select_word = true })<CR>", "[S]earch On Current [F]ile" },
   },
 
   t = {
     name = "[T]rouble",
-    d = { "<cmd>TroubleToggle document_diagnostics<CR>", "Document diagnostics" },
-    l = { "<cmd>TroubleToggle loclist<CR>", "Loclist" },
-    q = { "<cmd>TroubleToggle quickfix<CR>", "Quickfix" },
-    w = { "<cmd>TroubleToggle workspace_diagnostics<CR>", "Workspace diagnostics" },
+    d = { "<cmd>TroubleToggle document_diagnostics<CR>", "[D]ocument diagnostics" },
+    l = { "<cmd>TroubleToggle loclist<CR>", "[L]oclist" },
+    q = { "<cmd>TroubleToggle quickfix<CR>", "[Q]uickfix" },
+    w = { "<cmd>TroubleToggle workspace_diagnostics<CR>", "[W]orkspace diagnostics" },
   },
 
   p = {
@@ -104,5 +129,13 @@ local mappings = {
   },
 }
 
-whichkey.setup(conf)
-whichkey.register(mappings, opts)
+local visualMappings = {
+  s = {
+    name = "[S]pectre",
+    w = { "<cmd>lua require('spectre').open_visual()<CR>", "[S]earch Current [W]ord" },
+  },
+}
+
+wk.setup(conf)
+wk.register(normalMappings, normalOpts)
+wk.register(visualMappings, visualOpts)

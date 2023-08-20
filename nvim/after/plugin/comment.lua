@@ -1,11 +1,13 @@
-local comment = require("Comment")
+local comment = require("mini.comment")
 
-local options = {
-    pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
-    opleader = {
-        line = '<leader>c',
-        block = '<leader>b',
-    }
-}
-
-comment.setup(options)
+comment.setup({
+  options = {
+    custom_commentstring = function()
+      return require("ts_context_commentstring.internal").calculate_commentstring() or vim.bo.commentstring
+    end,
+  },
+  mappings = {
+    comment = '<leader>c',
+    comment_line = '<leader>c'
+  },
+})
