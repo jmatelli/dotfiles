@@ -36,7 +36,7 @@ opt.scrolloff = 8
 opt.sessionoptions = { "buffers", "curdir", "winsize" }
 opt.shiftround = true
 opt.shiftwidth = 2
-opt.shortmess:append "sI"
+opt.shortmess:append("sI")
 opt.showmode = false
 opt.showtabline = 0
 opt.sidescrolloff = 8
@@ -57,10 +57,15 @@ opt.undolevels = 10000
 opt.updatetime = 250 -- Decrease update time
 -- go to previous/next line with h,l,left arrow and right arrow
 -- when cursor reaches end/beginning of line
-opt.whichwrap:append "<>[]hl"
+opt.whichwrap:append("<>[]hl")
 opt.wildmode = "longest:full,full"
 opt.winminwidth = 5
 opt.wrap = true
+
+opt.foldcolumn = "1" -- '0' is not bad
+opt.foldlevel = 99 -- Using ufo provider need a large value, feel free to decrease the value
+opt.foldlevelstart = 99
+opt.foldenable = true
 
 if vim.fn.has("nvim-0.9.0") == 1 then
   opt.splitkeep = "screen"
@@ -72,17 +77,17 @@ g.markdowm_recommended_style = 0
 g.transparency = true
 
 -- Highlight on yank
-vim.cmd [[
+vim.cmd([[
   augroup YankHighlight
     autocmd!
     autocmd TextYankPost * silent! lua vim.highlight.on_yank()
   augroup end
-]]
+]])
 
 -- Write and Quit and BufDelete
-vim.cmd [[
+vim.cmd([[
   command! -bang -range=% -complete=file -nargs=* W <line1>,<line2>write<bang> <args>
   command! -bang Q quit<bang>
   command! -bang Bd bde<bang>
   command! -bang BD bde<bang>
-]]
+]])

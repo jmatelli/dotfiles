@@ -230,7 +230,7 @@ setupNode() {
   do
     echo "Installing node version $version"
     # sh -e ". $NVM_PATH/nvm.sh && nvm ls-remote --lts=$lts"
-    . $NVM_PATH/nvm.sh && nvm install $version
+    . $NVM_PATH/nvm.sh && nvm install "$version"
   done
   printDone
 
@@ -238,8 +238,8 @@ setupNode() {
   . $NVM_PATH/nvm.sh && nvm use --lts
   printDone
 
-  echo "- Installing node global packages ${NODE_PACKAGES[@]}"
-  npm install -g ${NODE_PACKAGES[@]}
+  echo "- Installing node global packages ${NODE_PACKAGES[*]}"
+  npm install -g "${NODE_PACKAGES[@]}"
   printDone
 }
 
@@ -248,16 +248,25 @@ setupNode() {
 #########
 
 setupIterm() {
-  [[ ! -d "$HOME/fonts" ]] && mkdir -p $HOME/fonts
+  [[ ! -d "$HOME/fonts" ]] && mkdir -p "$HOME/fonts"
   [[ ! -d "$HOME/fonts/nerd-fonts" ]] && echo "- Downloading Nerd Fonts" && git clone https://github.com/ryanoasis/nerd-fonts.git $HOME/fonts/nerd-fonts && printDone
 
   echo "- Installing required Nerd Fonts"
   # $HOME/fonts/nerd-fonts/install.sh meslo
-  $HOME/fonts/nerd-fonts/install.sh Hack
+  "$HOME"/fonts/nerd-fonts/install.sh Hack
   printDone
 
   echo "- Linking iTerm2 profile"
-  ln -sf $DOTFILES_PATH/Profiles.json $HOME/Library/Application\ Support/iTerm2/DynamicProfiles/Profiles.json
+  ln -sf "$DOTFILES_PATH"/Profiles.json "$HOME"/Library/Application\ Support/iTerm2/DynamicProfiles/Profiles.json
+  printDone
+
+  # see https://apple.stackexchange.com/questions/266333/how-to-show-italic-in-vim-in-iterm2
+  echo "- Linking Terminfo files to ${HOME}/terminfo"
+  mkdir -p "$HOME/terminfo"
+  stow --restow --target="$HOME/terminfo" terminfo
+  tic -o ~/.terminfo "$HOME/terminfo/xterm-256color.terminfo.txt"
+  tic -o ~/.terminfo "$HOME/terminfo/tmux.terminfo.txt"
+  tic -o ~/.terminfo "$HOME/terminfo/tmux-256color.terminfo.txt"
   printDone
 }
 
@@ -287,19 +296,19 @@ setupNeovim() {
   mkdir -p $NVIM_PATH
   printDone
 
-  if [[ ! -f "$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim" ]]; then
-    echo "- Install packer"
-    git clone --depth 1 https://github.com/wbthomason/packer.nvim $HOME/.local/share/nvim/site/pack/packer/start/packer.nvim
-    printDone
-  fi
+  # if [[ ! -f "$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim" ]]; then
+  #   echo "- Install packer"
+  #   git clone --depth 1 https://github.com/wbthomason/packer.nvim $HOME/.local/share/nvim/site/pack/packer/start/packer.nvim
+  #   printDone
+  # fi
 
   echo "- Link NeoVim configuration to '${NVIM_PATH}'"
   stow --restow --target=$NVIM_PATH nvim
   printDone
 
-  echo "- Install NeoVim packages"
-  nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
-  printDone
+  # echo "- Install NeoVim packages"
+  # nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
+  # printDone
 
   printSuccess "NeoVim was installed successfuly."
   echo ""

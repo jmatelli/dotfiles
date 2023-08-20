@@ -1,4 +1,25 @@
 local mason = require("mason")
+local settings = require("mason.settings")
+local masonlsp = require("mason-lspconfig")
+
+local servers = {
+  "bashls",
+  "tsserver",
+  "html",
+  "eslint",
+  "lua_ls",
+  "gopls",
+  "tailwindcss",
+  "jsonls",
+  "yamlls",
+  -- "stylelint_lsp",
+}
+
+settings.set({
+  ui = {
+    border = "rounded",
+  }
+})
 
 mason.setup({
   ui = {
@@ -18,4 +39,8 @@ mason.setup({
     },
   },
   max_concurrent_installers = 10,
+})
+
+masonlsp.setup({
+  ensure_installed = servers
 })

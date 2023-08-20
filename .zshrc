@@ -11,8 +11,10 @@ export PATH=$HOME/.cargo/bin:$HOME/bin:/usr/local/bin:$PATH
 source $HOME/.zsh.d/theme.zsh
 
 # Path to your oh-my-zsh installation.
-export ZSH="/Users/joelmatelli/.oh-my-zsh"
+export ZSH="$HOME/.oh-my-zsh"
 export EDITOR=/opt/homebrew/bin/nvim
+export TERM=xterm-256color-italic
+
 source ~/antigen.zsh
 
 antigen use oh-my-zsh
@@ -40,6 +42,11 @@ zstyle ':omz:update' mode reminder  # just remind me to update when it's time
 zstyle ':completion:*' menu select # added for zsh-z
 
 source $ZSH/oh-my-zsh.sh
+
+HISTSIZE=30000
+setopt INC_APPEND_HISTORY
+PROMPT_COMMAND="history -a;$PROMPT_COMMAND"
+export HISTSIZE PROMPT_COMMAND
 
 # Use Ctrl-z to switch between vim and cli
 fancy-ctrl-z () {
@@ -73,13 +80,15 @@ eval "$(pyenv init -)"
 # bg:#1a1b26
 # bg+:#1a1b26
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' 
-  --height 40% --reverse
+  --height 40% --reverse --header "[Search history]"
 	--color=fg:#ffffff,bg:-1,hl:#bb9af7
 	--color=fg+:#c0caf5,bg+:-1,gutter:-1,hl+:#7dcfff
 	--color=info:#7aa2f7,prompt:#7dcfff,pointer:#7dcfff 
 	--color=marker:#9ece6a,spinner:#9ece6a,header:#9ece6a'
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --hidden'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_TMUX_OPTS=$FZF_TMUX_OPTS' 
+  -p'
 
 
 # VIM
@@ -124,10 +133,10 @@ load-nvmrc
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # pnpm
-export PNPM_HOME="/Users/joelmatelli/Library/pnpm"
+export PNPM_HOME="$HOME/Library/pnpm"
 export PATH="$PNPM_HOME:$PATH"
 # pnpm end
-source /Users/joelmatelli/.config/broot/launcher/bash/br
+# source /Users/joelmatelli/.config/broot/launcher/bash/br
 
 export ANDROID_HOME=$HOME/Library/Android/sdk/
 export PATH=$ANDROID_HOME/platform-tools:$PATH
