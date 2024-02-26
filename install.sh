@@ -36,7 +36,7 @@ printSuccess() {
 printHelp() {
   echo ""
   echo -e "Dotfiles install script of ${BOLD}Joël Matelli${NC}"
-  echo -e "This script will install and configure ${BOLD}ZSH${NC}, ${BOLD}iTerm2${NC}, ${BOLD}Git${NC}, ${BOLD}NeoVim${NC}..."
+  echo -e "This script will install and configure ${BOLD}ZSH${NC}, ${BOLD}terminal${NC}, ${BOLD}Git${NC}, ${BOLD}NeoVim${NC}..."
   echo "It will also install all necessary packages for a full-stack software engineer"
   echo -e "like ${BOLD}Golang${NC}, ${BOLD}Node.js${NC}, ${BOLD}Typescript${NC}, ${BOLD}Eslint${NC}, ${BOLD}prettier${NC}..."
   echo ""
@@ -80,6 +80,7 @@ setupBrew() {
     ripgrep
     ruby
     rustup
+    starship
     stow
     the_silver_searcher
     tmux
@@ -89,17 +90,17 @@ setupBrew() {
   )
 
   BREW_CASKS=(
-    alfred
+    alacritty
     alt-tab
     discord
     firefox
     google-chrome
     google-drive
-    iterm2
     keycastr
     messenger
     notion
     obsidian
+    raycast
     rectangle
     slack
     spotify
@@ -184,21 +185,14 @@ setupZsh() {
   printDone
 
   ZSHRC=$HOME/.zshrc
+  ZSHENV=$HOME/.zshenv
 
   echo "- Linking .zshrc"
   ln -fs $DOTFILES_PATH/.zshrc $ZSHRC
   printDone
 
-  ZSH_CUSTOM=$HOME/.oh-my-zsh/custom
-  POWERLEVEL=$ZSH_CUSTOM/themes/powerlevel10k
-  if [[ -d "$POWERLEVEL" ]]; then
-    echo "- Powerlevel10k already installed, removing it"
-    rm -rf $POWERLEVEL
-    printDone
-  fi
-
-  echo "- Installing powerlevel10k"
-  git clone https://github.com/romkatv/powerlevel10k.git $ZSH_CUSTOM/themes/powerlevel10k
+  echo "- Linking .zshenv"
+  ln -fs $DOTFILES_PATH/.zshenv $ZSHRC
   printDone
 
   if [[ ! -f "$HOME/antigen.zsh" ]]; then
@@ -216,7 +210,6 @@ setupNode() {
     eslint
     eslint_d
     prettier
-    tldr
     typescript
     yarn
   )
@@ -244,10 +237,10 @@ setupNode() {
 }
 
 #########
-# iTerm #
+# Terminal #
 #########
 
-setupIterm() {
+setupTerminal() {
   [[ ! -d "$HOME/fonts" ]] && mkdir -p "$HOME/fonts"
   [[ ! -d "$HOME/fonts/nerd-fonts" ]] && echo "- Downloading Nerd Fonts" && git clone https://github.com/ryanoasis/nerd-fonts.git $HOME/fonts/nerd-fonts && printDone
 
@@ -256,8 +249,8 @@ setupIterm() {
   "$HOME"/fonts/nerd-fonts/install.sh Hack
   printDone
 
-  echo "- Linking iTerm2 profile"
-  ln -sf "$DOTFILES_PATH"/Profiles.json "$HOME"/Library/Application\ Support/iTerm2/DynamicProfiles/Profiles.json
+  echo "- Linking Alacritty configuration"
+  stow --restow --target="$HOME/.config/alacritty" alacritty
   printDone
 
   # see https://apple.stackexchange.com/questions/266333/how-to-show-italic-in-vim-in-iterm2
@@ -275,8 +268,15 @@ setupIterm() {
 ########
 
 setupMisc() {
+  read gitemail
+
   [[ ! -f "$HOME/.gitconfig" ]] && echo "- Link git configuration to ~/.gitconfig" && ln -sf $DOTFILES_PATH/.gitconfig $HOME/.gitconfig && printDone
+
+  echo "- Setting up git email"
+  git config --global user.email $gitemail
+
   [[ ! -f "$HOME/.tmux.conf" ]] && echo "- Link tmux configuration to ~/.tmux.conf" && ln -sf $DOTFILES_PATH/.tmux.conf $HOME/.tmux.conf && printDone
+
   [[ ! -f "$HOME/.rgignore" ]] && echo "- Link .rgignore to ~/.rgignore" && ln -sf $DOTFILES_PATH/.rgignore $HOME/.rgignore && printDone
 }
 
@@ -296,19 +296,9 @@ setupNeovim() {
   mkdir -p $NVIM_PATH
   printDone
 
-  # if [[ ! -f "$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim" ]]; then
-  #   echo "- Install packer"
-  #   git clone --depth 1 https://github.com/wbthomason/packer.nvim $HOME/.local/share/nvim/site/pack/packer/start/packer.nvim
-  #   printDone
-  # fi
-
   echo "- Link NeoVim configuration to '${NVIM_PATH}'"
   stow --restow --target=$NVIM_PATH nvim
   printDone
-
-  # echo "- Install NeoVim packages"
-  # nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'
-  # printDone
 
   printSuccess "NeoVim was installed successfuly."
   echo ""
@@ -343,7 +333,7 @@ setupAll() {
   conditionalRun "You are about to setup brew and install all neede formulae" setupBrew
   conditionalRun "You are about to setup ZSH" setupZsh
   conditionalRun "You are about to setup Node" setupNode
-  conditionalRun "You are about to setup iTerm" setupIterm
+  conditionalRun "You are about to setup iTerm" setupTerminal
   conditionalRun "You are about to setup Git..." setupMisc
   conditionalRun "You are about to setup NeoVim" setupNeovim
 }
@@ -370,7 +360,7 @@ partialRun() {
         ;;
       "Iterm")
         echo ""
-        setupIterm
+        setupTerminal
         exit
         ;;
       "Misc")
@@ -409,7 +399,7 @@ main() {
     [[ "${INSTALL_STEP:-0}" = "1" ]] && conditionalRun "You are about to setup brew and install all neede formulae" setupBrew
     [[ "${INSTALL_STEP:-0}" = "2" ]] && conditionalRun "You are about to setup ZSH" setupZsh
     [[ "${INSTALL_STEP:-0}" = "3" ]] && conditionalRun "You are about to setup Node" setupNode
-    [[ "${INSTALL_STEP:-0}" = "4" ]] && conditionalRun "You are about to setup iTerm" setupIterm
+    [[ "${INSTALL_STEP:-0}" = "4" ]] && conditionalRun "You are about to setup Terminal" setupTerminal
     [[ "${INSTALL_STEP:-0}" = "5" ]] && conditionalRun "You are about to setup Git, tmux..." setupMisc
     [[ "${INSTALL_STEP:-0}" = "6" ]] && conditionalRun "You are about to setup NeoVim" setupNeovim
     exit
