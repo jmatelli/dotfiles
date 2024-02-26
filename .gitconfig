@@ -41,6 +41,7 @@
   ll = log --pretty=format:"%C(yellow)%h%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --numstat
   lc  = "!f() { git ll "$1"^.."$1"; }; f"
   lnc = log --pretty=format:"%h\\ %s\\ [%cn]"
+	pfl = push --force-with-lease
 
 # INCLUDES
 # --------
@@ -114,7 +115,7 @@
   prune = true
 
 [user]
-	email = joel.matelli@codikos.io
+	email = joel_matelli@ext.connect-tech.sncf
 	name = Joël Matelli
 
 [core]
@@ -161,3 +162,8 @@
 [credential]
 	helper = 
 	helper = /usr/local/share/gcm-core/git-credential-manager
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true

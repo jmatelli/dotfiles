@@ -6,6 +6,8 @@ alias ll='exa -lah --group-directories-first --icons'
 
 alias dotf='cd ~/.dotfiles'
 
+alias lg='lazygit'
+
 # Git
 alias gp='git pull'
 alias gco='git co $(git br | fzf-tmux -p --header "[Switch branches]")'
@@ -23,13 +25,24 @@ alias gcan='git can'
 alias gsta='git stash'
 alias gstu='git stash -u'
 alias gpu='git push'
-alias gpf='git push -f'
+alias gpf='git push --force-with-lease'
 alias gbr='git br | fzf'
 alias gclean='git branch -d `git branch --merged | ag -v "\\*" | ag -v main | ag -v master | ag -v devel`'
 
 function gdb() {
   git branch --merged | ag --invert-match '\*' | fzf-tmux -p --header "[Delete git branches]" --multi --preview="git log {} --" | xargs -r git branch --delete --force
 }
+
+# function gco() {
+#   local branch
+#   branch=$(git br | fzf-tmux --print-query -p --header "[Switch branches]" | tail -1)
+#
+#   if [[ $branch =~ ^ivts-[0-9]{5}(?:web|mobile)?$  ]]; then
+#     git co "$branch"
+#   else;
+#     git co -b "$branch"
+#   fi
+# }
 
 # @description:
 #   This function allows the creation of aliases that push a filtered list of files to fzf and run a command on the selected files
