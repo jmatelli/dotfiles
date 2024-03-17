@@ -86,5 +86,7 @@ add-zsh-hook chpwd load-nvmrc
 load-nvmrc
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+[ -f "$HOME/.sdkman/bin/sdkman-init.sh" ] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+
 
 eval "$(starship init zsh)"

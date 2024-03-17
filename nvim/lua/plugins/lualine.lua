@@ -36,7 +36,7 @@ return {
 						},
 					},
 				},
-				lualine_b = { "diff", "diagnostics" },
+				lualine_b = { "mode", "diff", "diagnostics" },
 				lualine_c = {
 					{
 						"filename",
