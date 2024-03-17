@@ -158,6 +158,8 @@ setupBrew() {
 
 setupZsh() {
   ZSHD=$HOME/.zsh.d
+  ZSHRC=$HOME/.zshrc
+  ZSHENV=$HOME/.zshenv
 
   if [[ -d "$HOME/.oh-my-zsh" ]]; then
     echo "- Oh My ZSH folder already exists, removing it"
@@ -181,18 +183,15 @@ setupZsh() {
   fi
 
   echo "- Linking ZSH files to ${ZSHD}"
-  stow --restow --target=$HOME/.zsh.d .zsh.d
+  stow --restow --target=$HOME/.zsh.d --dir=$DOTFILES_PATH/zsh .zsh.d
   printDone
 
-  ZSHRC=$HOME/.zshrc
-  ZSHENV=$HOME/.zshenv
-
   echo "- Linking .zshrc"
-  ln -fs $DOTFILES_PATH/.zshrc $ZSHRC
+  ln -fs $DOTFILES_PATH/zsh/.zshrc $ZSHRC
   printDone
 
   echo "- Linking .zshenv"
-  ln -fs $DOTFILES_PATH/.zshenv $ZSHRC
+  ln -fs $DOTFILES_PATH/zsh/.zshenv $ZSHENV
   printDone
 
   if [[ ! -f "$HOME/antigen.zsh" ]]; then
