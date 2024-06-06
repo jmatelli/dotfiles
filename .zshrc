@@ -1,92 +1,82 @@
-source $HOME/.zsh.d/theme.zsh
-
-source ~/antigen.zsh
-
-antigen use oh-my-zsh
-# antigen theme "robbyrussell"
-# antigen theme "af-magic"
-
-antigen bundle git
-antigen bundle brew
-antigen bundle npm
-antigen bundle macos
-antigen bundle tmuxinator
-antigen bundle zsh-users/zsh-autosuggestions
-antigen bundle zsh-users/zsh-syntax-highlighting
-antigen bundle lukechilds/zsh-better-npm-completion
-antigen bundle greymd/docker-zsh-completion
-antigen bundle command-not-found
-antigen bundle agkozak/zsh-z
-
-antigen apply
-
-zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-zstyle ':completion:*' menu select # added for zsh-z
-
-source $ZSH/oh-my-zsh.sh
-
-HISTSIZE=30000
-setopt INC_APPEND_HISTORY
-
-# Use Ctrl-z to switch between vim and cli
-fancy-ctrl-z () {
-  if [[ $#BUFFER -eq 0 ]]; then
-    BUFFER="fg"
-    zle accept-line
-  else
-    zle push-input
-    zle clear-screen
-  fi
-}
-zle -N fancy-ctrl-z
-bindkey '^Z' fancy-ctrl-z
-
-# useful only for Mac OS Silicon M1, 
-# still working but useless for the other platforms
-docker() {
- if [[ `uname -m` == "arm64" ]] && [[ "$1" == "run" || "$1" == "build" ]]; then
-    /usr/local/bin/docker "$1" --platform linux/amd64 "${@:2}"
-  else
-     /usr/local/bin/docker "$@"
-  fi
-}
-eval "$(pyenv init --path)" 
-eval "$(pyenv init -)"
-
-source $HOME/.zsh.d/aliases.zsh
-
-if ! brew ls --version ruby >/dev/null; then
-  echo ""
-  export PATH=$(brew --prefix ruby)/bin:$(ruby -e 'puts Gem.bindir'):$PATH
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
-# place this after nvm initialization!
-autoload -U add-zsh-hook
-load-nvmrc() {
-  local node_version="$(nvm version)"
-  local nvmrc_path="$(nvm_find_nvmrc)"
+# set up zinit directory
+ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
 
-  if [ -n "$nvmrc_path" ]; then
-    local nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+# clone zinit if it doesn't exist
+if [ ! -d "$ZINIT_HOME" ]; then
+  mkdir -p "$(dirname "$ZINIT_HOME")"
+  git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+fi
 
-    if [ "$nvmrc_node_version" = "N/A" ]; then
-      nvm install
-    elif [ "$nvmrc_node_version" != "$node_version" ]; then
-      nvm use
-    fi
-  elif [ "$node_version" != "$(nvm version default)" ]; then
-    echo "Reverting to nvm default version"
-    nvm use default
-  fi
-}
-add-zsh-hook chpwd load-nvmrc
-load-nvmrc
+# source zinit
+source "$ZINIT_HOME/zinit.zsh"
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-[ -f "$HOME/.sdkman/bin/sdkman-init.sh" ] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+# add powerlevel10k
+zinit ice depth=1; zinit light romkatv/powerlevel10k
 
+# add zinit plugins
+zinit light zsh-users/zsh-syntax-highlighting
+zinit light zsh-users/zsh-completions
+zinit light zsh-users/zsh-autosuggestions
+zinit light Aloxaf/fzf-tab
+zinit light greymd/docker-zsh-completion
+zinit light lukechilds/zsh-nvm
+zinit light lukechilds/zsh-better-npm-completion
 
-eval "$(starship init zsh)"
+# add zinit snippets
+zinit snippet OMZP::git
+zinit snippet OMZP::brew
+zinit snippet OMZP::npm
+zinit snippet OMZP::sudo
+zinit snippet OMZP::command-not-found
+
+# load zfunc
+fpath=(~/.zfunc $fpath)
+
+# load completions
+autoload -U compinit && compinit
+
+zinit cdreplay -q
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# key bindings
+bindkey '^y' autosuggest-accept
+bindkey '^n' history-search-forward
+bindkey '^p' history-search-backward
+
+# history
+HISTSIZE=5000
+HISTFILE=~/.zsh_history
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
+
+# completion styling
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' menu no
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+
+# aliases
+source $HOME/.zsh.d/aliases.zsh
+
+# Shell integrations
+eval "$(fzf --zsh)"
+eval "$(zoxide init zsh)"
