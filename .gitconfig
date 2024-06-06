@@ -41,7 +41,6 @@
   ll = log --pretty=format:"%C(yellow)%h%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --numstat
   lc  = "!f() { git ll "$1"^.."$1"; }; f"
   lnc = log --pretty=format:"%h\\ %s\\ [%cn]"
-	pfl = push --force-with-lease
 
 # INCLUDES
 # --------
@@ -109,13 +108,9 @@
 
 [pull]
   default = current
-  rebase = true
-
-[fetch]
-  prune = true
 
 [user]
-	email = joel_matelli@ext.connect-tech.sncf
+	email = jo.matelli@gmail.com
 	name = Joël Matelli
 
 [core]
@@ -127,17 +122,8 @@
 [delta]
   features = side-by-side line-numbers decorations
   syntax-theme = Dracula
-  minus-style                   = syntax "#3f2d3d"
-  minus-non-emph-style          = syntax "#3f2d3d"
-  minus-emph-style              = syntax "#763842"
-  minus-empty-line-marker-style = syntax "#3f2d3d"
-  line-numbers-minus-style      = "#b2555b"
-  plus-style                    = syntax "#283b4d"
-  plus-non-emph-style           = syntax "#283b4d"
-  plus-emph-style               = syntax "#316172"
-  plus-empty-line-marker-style  = syntax "#283b4d"
-  line-numbers-plus-style       = "#266d6a"
-  line-numbers-zero-style       = "#3b4261"
+  plus-style = syntax "#003800"
+  minus-style = syntax "#3f0001"
 
 [delta "decorations"]
   commit-decoration-style = bold yellow box ul
@@ -156,14 +142,12 @@
 
 [diff]
   colorMoved = default
-[credential "https://dev.azure.com"]
-	useHttpPath = true
-
 [credential]
 	helper = 
 	helper = /usr/local/share/gcm-core/git-credential-manager
-[filter "lfs"]
-	clean = git-lfs clean -- %f
-	smudge = git-lfs smudge -- %f
-	process = git-lfs filter-process
-	required = true
+[credential "https://dev.azure.com"]
+	useHttpPath = true
+[init]
+	defaultBranch = main
+[credential "https://github.com"]
+	username = jmatelli
