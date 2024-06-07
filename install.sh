@@ -87,6 +87,7 @@ setupBrew() {
     tree-sitter
     unzip
     wget
+    zoxide
   )
 
   BREW_CASKS=(
@@ -97,51 +98,49 @@ setupBrew() {
     google-chrome
     google-drive
     keycastr
-    messenger
     notion
     obsidian
     raycast
     rectangle
     slack
-    spotify
     whatsapp
   )
 
   if ! command -v brew &>/dev/null; then
-    echo "- Installing macOS dependency manager Brew"
+    echo "- Installing macOS dependency manager Brew..."
     ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     printDone
   else
-    echo "Homebrew is already installed"
+    echo "Homebrew is already installed, moving on..."
   fi
 
-  echo "- Updating brew"
+  echo "- Updating brew..."
   brew update
   printDone
 
-  echo "- Installing GNU coreutils"
+  echo "- Installing GNU coreutils..."
   brew install -q coreutils
   printDone
 
-  echo "- Installing GNU findutils"
+  echo "- Installing GNU findutils..."
   brew install -q findutils
   printDone
 
-  echo "- Installing zsh"
+  echo "- Installing zsh..."
   brew install -q zsh
   printDone
 
-  echo "- Installing brew packages"
+  echo "- Installing brew packages ${BREW_PACKAGES[*]}..."
   brew install -q ${BREW_PACKAGES[@]}
   printDone
 
-  echo "- Cleanup brew"
+  echo "- Cleanup brew..."
   brew cleanup
   printDone
 
   if [[ $OSTYPE == 'darwin'* ]]; then
     if [[ "${INSTALL_CASKS:-0}" == "1" ]] || [[ "${ACCEPT_ALL:-0}" == "1" ]]; then
-      echo "- Installing brew casks"
+      echo "- Installing brew casks ${BREW_CASKS[*]}..."
       brew install -q --cask ${BREW_CASKS[@]} --force
       printDone
     fi
@@ -158,18 +157,6 @@ setupBrew() {
 
 setupZsh() {
   ZSHD=$HOME/.zsh.d
-  ZSHRC=$HOME/.zshrc
-  ZSHENV=$HOME/.zshenv
-
-  if [[ -d "$HOME/.oh-my-zsh" ]]; then
-    echo "- Oh My ZSH folder already exists, removing it"
-    rm -rf $HOME/.oh-my-zsh
-    printDone
-  fi
-
-  echo "- Installing Oh My ZSH"
-  sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" "" --keep-zshrc --unattended
-  printDone
 
   if [[ ! -d "$ZSHD" ]]; then
     echo "- Creating ${ZSHD} directory"
@@ -181,24 +168,6 @@ setupZsh() {
     mkdir -p $ZSHD
     printDone
   fi
-
-  echo "- Linking ZSH files to ${ZSHD}"
-  stow --restow --target=$HOME/.zsh.d --dir=$DOTFILES_PATH/zsh .zsh.d
-  printDone
-
-  echo "- Linking .zshrc"
-  ln -fs $DOTFILES_PATH/zsh/.zshrc $ZSHRC
-  printDone
-
-  echo "- Linking .zshenv"
-  ln -fs $DOTFILES_PATH/zsh/.zshenv $ZSHENV
-  printDone
-
-  if [[ ! -f "$HOME/antigen.zsh" ]]; then
-    echo "- Installing antigen"
-    curl -L git.io/antigen > $HOME/antigen.zsh
-    printDone
-  fi
 }
 
 setupNode() {
@@ -206,10 +175,13 @@ setupNode() {
 
   NODE_PACKAGES=(
     @fsouza/prettierd
+    @tailwindcss/language-server
+    eas-cli
     eslint
     eslint_d
     prettier
     typescript
+    typescript-language-server
     yarn
   )
 
@@ -248,14 +220,8 @@ setupTerminal() {
   "$HOME"/fonts/nerd-fonts/install.sh Hack
   printDone
 
-  echo "- Linking Alacritty configuration"
-  stow --restow --target="$HOME/.config/alacritty" alacritty
-  printDone
-
   # see https://apple.stackexchange.com/questions/266333/how-to-show-italic-in-vim-in-iterm2
   echo "- Linking Terminfo files to ${HOME}/terminfo"
-  mkdir -p "$HOME/terminfo"
-  stow --restow --target="$HOME/terminfo" terminfo
   tic -o ~/.terminfo "$HOME/terminfo/xterm-256color.terminfo.txt"
   tic -o ~/.terminfo "$HOME/terminfo/tmux.terminfo.txt"
   tic -o ~/.terminfo "$HOME/terminfo/tmux-256color.terminfo.txt"
@@ -269,14 +235,8 @@ setupTerminal() {
 setupMisc() {
   read gitemail
 
-  [[ ! -f "$HOME/.gitconfig" ]] && echo "- Link git configuration to ~/.gitconfig" && ln -sf $DOTFILES_PATH/.gitconfig $HOME/.gitconfig && printDone
-
   echo "- Setting up git email"
   git config --global user.email $gitemail
-
-  [[ ! -f "$HOME/.tmux.conf" ]] && echo "- Link tmux configuration to ~/.tmux.conf" && ln -sf $DOTFILES_PATH/.tmux.conf $HOME/.tmux.conf && printDone
-
-  [[ ! -f "$HOME/.rgignore" ]] && echo "- Link .rgignore to ~/.rgignore" && ln -sf $DOTFILES_PATH/.rgignore $HOME/.rgignore && printDone
 }
 
 #######
@@ -290,27 +250,6 @@ setupNeovim() {
   rm -rf $NVIM_PATH
   rm -rf $HOME/.local/share/nvim
   printDone
-
-  echo "- Create folder '${NVIM_PATH}'"
-  mkdir -p $NVIM_PATH
-  printDone
-
-  echo "- Link NeoVim configuration to '${NVIM_PATH}'"
-  stow --restow --target=$NVIM_PATH nvim
-  printDone
-
-  printSuccess "NeoVim was installed successfuly."
-  echo ""
-  echo -e "When you run ${BOLD}NeoVim${NC} for the first time packer.nvim will install all packages:"
-  echo ""
-  echo -e "\t${BOLD}$ nvl${NC}"
-  echo ""
-  echo -e "You will need to quit ${BOLD}NeoVim${NC} and restart it to see changes"
-  echo -e "Once ${BOLD}NeoVim${NC} is openned again, run the following command:"
-  echo ""
-  echo -e "\t${BOLD}:Mason<Enter>${NC}"
-  echo ""
-  echo "Now you are all set to start coding to your heart content ❤️  "
 }
 
 conditionalRun() {
