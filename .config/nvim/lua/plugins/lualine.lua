@@ -1,46 +1,61 @@
 return {
-    "nvim-lualine/lualine.nvim",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
-    config = function()
-        require("lualine").setup({
-            options = {
-                theme = "catppuccin",
-                component_separators = { left = "\u{e0b5}", right = "\u{e0b7}" },
-                section_separators = { left = "\u{e0b4}", right = "\u{e0b6}" },
-                ignore_focus = {
-                    "TelescopePrompt",
-                    "alpha",
-                    "NvimTree",
-                },
-                globalstatus = true,
+  "nvim-lualine/lualine.nvim",
+  dependencies = { "nvim-tree/nvim-web-devicons" },
+  config = function()
+    require("lualine").setup({
+      options = {
+        theme = "nord",
+        component_separators = { left = "\u{e0b5}", right = "\u{e0b7}" },
+        section_separators = { left = "\u{e0b4}", right = "\u{e0b6}" },
+        ignore_focus = {
+          "TelescopePrompt",
+          "alpha",
+          "NvimTree",
+        },
+        globalstatus = true,
+      },
+      sections = {
+        lualine_a = { "mode" },
+        lualine_b = {
+          "diff",
+          {
+            "diagnostics",
+            symbols = {
+              error = " ",
+              warn = " ",
+              info = " ",
+              hint = " ",
             },
-            sections = {
-                lualine_a = { "mode" },
-                lualine_b = { "diff", "diagnostics" },
-                lualine_c = {
-                    {
-                        "filename",
-                        path = 1,
-                        file_status = true,
-                        newfile_status = true,
-                    },
-                },
-                lualine_x = { "searchcount" },
-                lualine_y = { "filetype" },
-                lualine_z = {
-                    {
-                        "tabs",
-                        tab_max_length = 40,
-                        max_length = vim.o.columns / 3,
-                        mode = 0,
-                        path = 0,
-                        use_mod_colors = true,
-                        symbols = {
-                            modified = "·",
-                        },
-                    },
-                },
-            },
-        })
-    end,
+          },
+        },
+        lualine_c = {
+          {
+            "filename",
+            path = 1,
+            file_status = true,
+            newfile_status = true,
+          },
+        },
+        lualine_x = {
+          {
+            "macro",
+            fmt = function()
+              local reg = vim.fn.reg_recording()
+              if reg ~= "" then
+                return "Recording: @" .. reg
+              end
+              return nil
+            end,
+            color = { fg = "#ff9e64" },
+            draw_empty = false,
+          },
+          { "searchcount" },
+        },
+        lualine_y = {
+          "filetype",
+        },
+        lualine_z = {},
+      },
+    })
+  end,
 }

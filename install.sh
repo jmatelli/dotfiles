@@ -33,26 +33,6 @@ printSuccess() {
   echo -e "${GREEN}✓${NC} $1"
 }
 
-printHelp() {
-  echo ""
-  echo -e "Dotfiles install script of ${BOLD}Joël Matelli${NC}"
-  echo -e "This script will install and configure ${BOLD}ZSH${NC}, ${BOLD}terminal${NC}, ${BOLD}Git${NC}, ${BOLD}NeoVim${NC}..."
-  echo "It will also install all necessary packages for a full-stack software engineer"
-  echo -e "like ${BOLD}Golang${NC}, ${BOLD}Node.js${NC}, ${BOLD}Typescript${NC}, ${BOLD}Eslint${NC}, ${BOLD}prettier${NC}..."
-  echo ""
-  echo "Script usage: ./install.sh [-a] [-d] [-c] [-i 1] [-y] [-h]"
-  echo ""
-  echo -e "${GREEN}${BOLD}Options:${NC}"
-  echo -e "\t${BOLD}-a${NC}\t\tRun all steps"
-  echo -e "\t${BOLD}-c${NC}\t\tInstall casks"
-  echo -e "\t${BOLD}-d${NC}\t\tDebug mode"
-  echo -e "\t${BOLD}-i [step]${NC}\tRun specific step"
-  echo -e "\t${BOLD}-y${NC}\t\tAnswer yes to all prompt"
-  echo ""
-  echo -e "${BLUE}${BOLD}Help:${NC}"
-  echo -e "\t${BOLD}-h${NC}\t\tShow help"
-}
-
 ################
 # DEPENDENCIES #
 ################
@@ -62,7 +42,7 @@ setupBrew() {
     cmake
     curl
     docker
-    exa
+    eza
     fd
     fzf
     git
@@ -70,7 +50,9 @@ setupBrew() {
     go
     golangci-lint
     gzip
+    jandedobbeleer/oh-my-posh/oh-my-posh
     jq
+    lazygit
     lua-language-server
     luajit
     luarocks
@@ -80,10 +62,9 @@ setupBrew() {
     ripgrep
     ruby
     rustup
-    starship
     stow
     the_silver_searcher
-    tmux
+    # tmux
     tree-sitter
     unzip
     wget
@@ -91,18 +72,21 @@ setupBrew() {
   )
 
   BREW_CASKS=(
-    alacritty
+    # alacritty
+    # notion
+    # obsidian
     alt-tab
     discord
     firefox
     google-chrome
     google-drive
     keycastr
-    notion
-    obsidian
+    kitty
+    postman
     raycast
     rectangle
     slack
+    visual-studio-code
     whatsapp
   )
 
@@ -139,15 +123,11 @@ setupBrew() {
   printDone
 
   if [[ $OSTYPE == 'darwin'* ]]; then
-    if [[ "${INSTALL_CASKS:-0}" == "1" ]] || [[ "${ACCEPT_ALL:-0}" == "1" ]]; then
-      echo "- Installing brew casks ${BREW_CASKS[*]}..."
-      brew install -q --cask ${BREW_CASKS[@]} --force
-      printDone
-    fi
+    echo "- Installing brew casks ${BREW_CASKS[*]}..."
+    brew install -q --cask ${BREW_CASKS[@]} --force
+    printDone
   else
-    if [[ "${INSTALL_CASKS:-0}" == "1" ]] || [[ "${ACCEPT_ALL:-0}" == "1" ]]; then
-      echo "Can't install Casks on other OS than MacOS"
-    fi
+    echo "Can't install Casks on other OS than MacOS"
   fi
 }
 
@@ -176,6 +156,7 @@ setupNode() {
   NODE_PACKAGES=(
     @fsouza/prettierd
     @tailwindcss/language-server
+    bash-language-server
     eas-cli
     eslint
     eslint_d
@@ -252,75 +233,6 @@ setupNeovim() {
   printDone
 }
 
-conditionalRun() {
-  if [[ "${ACCEPT_ALL:-0}" != "1" ]]; then
-    while true; do
-      read -rp "$1, proceed? (y/n)" yn
-      case $yn in
-        [Yy]* ) $2; break;;
-        [Nn]* ) break;;
-        * ) echo "Please answer yes or no.";;
-      esac
-    done
-  else
-    $2
-  fi
-}
-
-setupAll() {
-  conditionalRun "You are about to setup brew and install all neede formulae" setupBrew
-  conditionalRun "You are about to setup ZSH" setupZsh
-  conditionalRun "You are about to setup Node" setupNode
-  conditionalRun "You are about to setup iTerm" setupTerminal
-  conditionalRun "You are about to setup Git..." setupMisc
-  conditionalRun "You are about to setup NeoVim" setupNeovim
-}
-
-partialRun() {
-  PS3="Choose which step to run: "
-  steps=("Brew" "ZSH" "Node" "Iterm" "Misc" "NeoVim" "All")
-  select step in "${steps[@]}"; do
-    case $step in
-      "Brew")
-        echo ""
-        setupBrew
-        exit
-        ;;
-      "ZSH")
-        echo ""
-        setupZsh
-        exit
-        ;;
-      "Node")
-        echo ""
-        setupNode
-        exit
-        ;;
-      "Iterm")
-        echo ""
-        setupTerminal
-        exit
-        ;;
-      "Misc")
-        echo ""
-        setupMisc
-        exit
-        ;;
-      "NeoVim")
-        echo ""
-        setupNeovim
-        exit
-        ;;
-      "All")
-        echo ""
-        setupAll
-        exit
-        ;;
-      *) echo "Invalid option $REPLY" ;;
-    esac
-  done
-}
-
 main() {
   if [[ "${DOTFILES_DEBUG:-0}" == "1" ]]; then
     echo "[Running on debug mode]"
@@ -333,30 +245,18 @@ main() {
     exit 1
   fi
 
-  if [[ "${INSTALL_STEP:-0}" != "7" ]] && [[ "${INSTALL_STEP:-0}" != "0" ]]; then
-    [[ "${INSTALL_STEP:-0}" = "1" ]] && conditionalRun "You are about to setup brew and install all neede formulae" setupBrew
-    [[ "${INSTALL_STEP:-0}" = "2" ]] && conditionalRun "You are about to setup ZSH" setupZsh
-    [[ "${INSTALL_STEP:-0}" = "3" ]] && conditionalRun "You are about to setup Node" setupNode
-    [[ "${INSTALL_STEP:-0}" = "4" ]] && conditionalRun "You are about to setup Terminal" setupTerminal
-    [[ "${INSTALL_STEP:-0}" = "5" ]] && conditionalRun "You are about to setup Git, tmux..." setupMisc
-    [[ "${INSTALL_STEP:-0}" = "6" ]] && conditionalRun "You are about to setup NeoVim" setupNeovim
-    exit
-  fi
-
-  if [[ "${INSTALL_STEP:-0}" = "7" ]]; then
-    setupAll
-  else
-    partialRun
-  fi
+  setupBrew
+  setupZsh
+  setupNode
+  setupTerminal
+  setupMisc
+  setupNeovim
 }
 
-while getopts "dcyhai:" OPTION; do
+while getopts "dch" OPTION; do
   case "$OPTION" in
     d) DOTFILES_DEBUG=1 ;;
     c) INSTALL_CASKS=1 ;;
-    y) ACCEPT_ALL=1 ;;
-    a) INSTALL_STEP=7 ;;
-    i) INSTALL_STEP="${OPTARG}" ;;
     h)
       printHelp
       exit 1

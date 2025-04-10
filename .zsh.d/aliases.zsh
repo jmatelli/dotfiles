@@ -1,8 +1,8 @@
 alias vim='nvim'
 
-alias ls='exa -h --group-directories-first -1'
-alias l='exa -h --group-directories-first --icons'
-alias ll='exa -lah --group-directories-first --icons'
+alias ls='eza -h --group-directories-first -1'
+alias l='eza -h --group-directories-first --icons'
+alias ll='eza -lah --group-directories-first --icons'
 
 alias dotf='cd ~/.dotfiles'
 
@@ -30,6 +30,30 @@ alias gbr='git br | fzf'
 alias gclean='git branch -d `git branch --merged | ag -v "\\*" | ag -v main | ag -v master | ag -v devel`'
 
 alias di='delta $(fzf-tmux -p) $(fzf-tmux -p)'
+
+alias :q='exit'
+alias :l='clear'
+
+function pp() {
+    local projectName=$1
+    local projectPath="~/code/$projectName"
+
+    if [ -z "$projectName" ]; then
+        projectPath=$(ls -d ~/code/*/ | fzf-tmux -p --header "[Select project]")
+    fi
+
+    local prePushPath="git-hooks/pre-push"
+    local prePushFullPath="$projectPath/$prePushPath"
+
+    echo "Executing $prePushFullPath\n\n"
+
+    if [ ! -e $prePushFullPath ]; then
+        echo "Project does not have pre-push hook\n\n"
+        return
+    fi
+
+    cd $projectPath && /bin/bash $prePushPath
+}
 
 function gdb() {
   git branch --merged | ag --invert-match '\*' | fzf-tmux -p --header "[Delete git branches]" --multi --preview="git log {} --" | xargs -r git branch --delete --force

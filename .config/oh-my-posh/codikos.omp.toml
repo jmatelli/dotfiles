@@ -1,0 +1,100 @@
+version = 3
+final_space = true
+
+[palette]
+  base = '#1e1e2e'
+  blue = '#89b4fa'
+  closer = 'p:os'
+  crust = '#11111b'
+  flamingo = '#f2cdcd'
+  green = '#a6e3a1'
+  lavender = '#b4befe'
+  mantle = '#181825'
+  maroon = '#eba0ac'
+  mauve = '#cba6f7'
+  os = '#ACB0BE'
+  overlay_0 = '#6c7086'
+  overlay_1 = '#7f849c'
+  overlay_2 = '#9399b2'
+  peach = '#fab387'
+  pink = '#f5c2e7'
+  red = '#f38ba8'
+  rosewater = '#f5e0dc'
+  sapphire = '#74c7ec'
+  sky = '#89dceb'
+  subtext_0 = '#a6adc8'
+  subtext_1 = '#bac2de'
+  surface_0 = '#313244'
+  surface_1 = '#45475a'
+  surface_2 = '#585b70'
+  teal = '#94e2d5'
+  text = '#cdd6f4'
+  yellow = '#f9e2af'
+
+[secondary_prompt]
+  template = '❯❯ '
+  background = 'transparent'
+
+[transient_prompt]
+  template = '❯ '
+  background = 'transparent'
+  foreground_templates = ['{{if gt .Code 0}}red{{end}}', '{{if eq .Code 0}}pink{{end}}']
+
+[[blocks]]
+  type = 'prompt'
+  alignment = 'left'
+  newline = true
+
+  [[blocks.segments]]
+    template = '{{ .Path }} '
+    foreground = 'p:blue'
+    background = 'transparent'
+    type = 'path'
+    style = 'plain'
+
+    [blocks.segments.properties]
+      cache_duration = 'none'
+      style = 'full'
+
+  [[blocks.segments]]
+    template = ' {{ .HEAD }}{{ if or (.Working.Changed) (.Staging.Changed) }}*{{ end }} <cyan>{{ if gt .Behind 0 }}⇣{{ end }}{{ if gt .Ahead 0 }}⇡{{ end }}</>'
+    foreground = 'p:lavender'
+    background = 'transparent'
+    type = 'git'
+    style = 'plain'
+
+    [blocks.segments.properties]
+      branch_icon = ''
+      cache_duration = 'none'
+      commit_icon = '@'
+      fetch_status = true
+
+[[blocks]]
+  type = 'rprompt'
+  overflow = 'hidden'
+
+  [[blocks.segments]]
+    template = '{{ .FormattedMs }}'
+    foreground = 'p:yellow'
+    background = 'transparent'
+    type = 'executiontime'
+    style = 'plain'
+
+    [blocks.segments.properties]
+      cache_duration = 'none'
+      threshold = 1000
+
+[[blocks]]
+  type = 'prompt'
+  alignment = 'left'
+  newline = true
+
+  [[blocks.segments]]
+    template = '❯'
+    background = 'transparent'
+    type = 'text'
+    style = 'plain'
+    foreground_templates = ['{{if gt .Code 0}}red{{end}}', '{{if eq .Code 0}}mauve{{end}}']
+
+    [blocks.segments.properties]
+      cache_duration = 'none'
