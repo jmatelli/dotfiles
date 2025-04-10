@@ -1,0 +1,104 @@
+#:schema https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json
+
+
+version = 2
+final_space = true
+
+[palette]
+  closer = 'p:os'
+  os = '#ACB0BE'
+  rosewater = '#f5e0dc'
+  flamingo = '#f2cdcd'
+  pink = '#f5c2e7'
+  mauve = '#cba6f7'
+  red = '#f38ba8'
+  maroon = '#eba0ac'
+  peach = '#fab387'
+  yellow = '#f9e2af'
+  green = '#a6e3a1'
+  teal = '#94e2d5'
+  sky = '#89dceb'
+  sapphire = '#74c7ec'
+  blue = '#89b4fa'
+  lavender = '#b4befe'
+  text = '#cdd6f4'
+  subtext_1 = '#bac2de'
+  subtext_0 = '#a6adc8'
+  overlay_2 = '#9399b2'
+  overlay_1 = '#7f849c'
+  overlay_0 = '#6c7086'
+  surface_2 = '#585b70'
+  surface_1 = '#45475a'
+  surface_0 = '#313244'
+  base = '#1e1e2e'
+  mantle = '#181825'
+  crust = '#11111b'
+
+[[blocks]]
+  type = 'prompt'
+  alignment = 'left'
+  newline = true
+
+  [[blocks.segments]]
+    type = 'path'
+    style = 'plain'
+    foreground = 'p:blue'
+    background = 'transparent'
+    template = '{{ .Path }} '
+
+    [blocks.segments.properties]
+      style = 'full'
+
+  [[blocks.segments]]
+    type = 'git'
+    style = 'plain'
+    foreground = 'p:lavender'
+    background = 'transparent'
+    template = ' {{ .HEAD }}{{ if or (.Working.Changed) (.Staging.Changed) }}*{{ end }} <cyan>{{ if gt .Behind 0 }}⇣{{ end }}{{ if gt .Ahead 0 }}⇡{{ end }}</>'
+
+    [blocks.segments.properties]
+      branch_icon = ''
+      commit_icon = '@'
+      fetch_status = true
+
+[[blocks]]
+  type = 'rprompt'
+  overflow = 'hidden'
+
+  [[blocks.segments]]
+    type = 'executiontime'
+    style = 'plain'
+    foreground = 'p:yellow'
+    background = 'transparent'
+    template = '{{ .FormattedMs }}'
+
+    [blocks.segments.properties]
+      threshold = 1000
+
+[[blocks]]
+  type = 'prompt'
+  alignment = 'left'
+  newline = true
+
+  [[blocks.segments]]
+    type = 'text'
+    style = 'plain'
+    foreground_templates = [
+      "{{if gt .Code 0}}red{{end}}",
+      "{{if eq .Code 0}}mauve{{end}}",
+    ]
+    background = 'transparent'
+    template = '❯'
+
+[transient_prompt]
+  foreground_templates = [
+    "{{if gt .Code 0}}red{{end}}",
+    "{{if eq .Code 0}}pink{{end}}",
+  ]
+  background = 'transparent'
+  template = '❯ '
+
+[secondary_prompt]
+  background = 'transparent'
+  foregrount = 'p:mauve'
+  template = '❯❯ '

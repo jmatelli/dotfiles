@@ -46,7 +46,8 @@ return {
                     },
                 },
                 defaults = {
-                    file_ignore_patterns = { "node_modules" },
+                    file_ignore_patterns = { "node_modules", "mocks" },
+                    path_display = { "smart" }
                 },
                 extensions = {
                     ["ui-select"] = {

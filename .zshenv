@@ -59,3 +59,6 @@ export PATH="$ANDROID_HOME/emulator/bin64/:$PATH"
 # Go
 export PATH="$PATH:/usr/local/go/bin"
 export PATH="$PATH:$(go env GOPATH)/bin"
+
+# Docker
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
