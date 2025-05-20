@@ -63,6 +63,8 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
 # aliases
 source $HOME/.zsh.d/aliases.zsh
+# secrets
+source $HOME/.zsh.d/secrets.zsh
 
 # Shell integrations
 eval "$(fzf --zsh)"

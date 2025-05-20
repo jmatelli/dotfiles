@@ -68,5 +68,3 @@ export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 
 # IP
 export LOCAL_IP=$(ipconfig getifaddr en1)
-
-source $HOME/.zsh.d/.zshsecrets
