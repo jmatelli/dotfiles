@@ -108,6 +108,7 @@
 
 [pull]
   default = current
+	rebase = true
 
 [user]
 	email = jo.matelli@gmail.com
