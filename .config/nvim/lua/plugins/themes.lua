@@ -14,6 +14,7 @@ return {
         transparent = true,
         on_highlights = function(hl, colors)
           hl.LspInlayHint = { fg = colors.polar_night.light }
+          hl.LineNr = { fg = colors.frost.artic_ocean }
         end,
       })
     end,
