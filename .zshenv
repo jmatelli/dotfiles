@@ -60,6 +60,9 @@ export PATH="$ANDROID_HOME/emulator/bin64/:$PATH"
 export PATH="$PATH:/usr/local/go/bin"
 export PATH="$PATH:$(go env GOPATH)/bin"
 
+# Java
+export JAVA_HOME="/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home"
+
 # Docker
 export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
 
@@ -67,4 +70,5 @@ export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 
 # IP
-export LOCAL_IP=$(ipconfig getifaddr en1)
+export LOCAL_IP=$(ipconfig getifaddr en0)
+export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
