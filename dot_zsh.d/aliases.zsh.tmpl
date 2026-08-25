@@ -125,6 +125,35 @@ pkg_manager() {
   echo npm
 }
 
+# Detects the test runner (vitest vs jest) from the nearest package.json:
+# first checks what the "test" script actually invokes (most accurate -
+# reflects what really runs), falling back to devDependencies/dependencies
+# if the script text doesn't say. Stops at the first package.json found
+# (doesn't walk past it into an unrelated ancestor project - relevant in a
+# monorepo where each workspace has its own test setup). Falls back to
+# jest if neither is detected.
+test_runner() {
+  local dir=$PWD
+  while [ "$dir" != "/" ] && [ ! -f "$dir/package.json" ]; do
+    dir=$(dirname "$dir")
+  done
+  if [ -f "$dir/package.json" ]; then
+    local hit=$(jq -r '
+      (.scripts.test // "") as $t
+      | if ($t | test("vitest")) then "vitest"
+        elif ($t | test("jest")) then "jest"
+        elif (.devDependencies.vitest // .dependencies.vitest) then "vitest"
+        elif (.devDependencies.jest // .dependencies.jest) then "jest"
+        else "" end
+    ' "$dir/package.json" 2>/dev/null)
+    if [ -n "$hit" ]; then
+      echo "$hit"
+      return
+    fi
+  fi
+  echo jest
+}
+
 # Mission specific aliases
 v() {
   newAlias ".*" "[NeoVim: Open file]" "nvim" 0
@@ -132,10 +161,19 @@ v() {
 
 tf() {
   local pm=$(pkg_manager)
-  newAlias "\.test\.tsx?" "[$pm: test unique file]" "$pm test -- -i"
+  local runner=$(test_runner)
+  local flags=""
+  # -i (--runInBand) is Jest-specific - serial execution, useful for
+  # debugging. Vitest has no equivalent and hard-errors on an unknown
+  # flag rather than ignoring it, so it must not be passed there.
+  [ "$runner" = "jest" ] && flags="-i"
+  newAlias "\.test\.tsx?" "[$pm/$runner: test unique file]" "$pm test -- $flags"
 }
 
 tfs() {
   local pm=$(pkg_manager)
-  newAlias "\.test\.tsx?" "[$pm: test multiple file]" "$pm test -- -i" 1
+  local runner=$(test_runner)
+  local flags=""
+  [ "$runner" = "jest" ] && flags="-i"
+  newAlias "\.test\.tsx?" "[$pm/$runner: test multiple files]" "$pm test -- $flags" 1
 }
