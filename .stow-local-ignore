@@ -1,8 +1,0 @@
-\.git
-
-^/README.*
-
-^/install.sh
-
-.*_bak
-.*/.*_bak
