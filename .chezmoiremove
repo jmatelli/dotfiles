@@ -17,3 +17,7 @@
 # alacritty was dropped from the brew casks list - no longer installed,
 # no reason to keep its config around.
 .config/alacritty
+
+# mcphub.nvim was dropped from the nvim rebuild - nothing reads this
+# anymore. Not the same thing as opencode's own, separate MCP config.
+.config/mcphub
