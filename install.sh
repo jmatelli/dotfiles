@@ -1,263 +1,102 @@
-#!/usr//bin/env bash
+#!/usr/bin/env bash
+#
+# Bootstraps a machine: git -> native package manager -> chezmoi -> apply.
+# Everything else (package lists, dotfile templating, machine prompts) lives
+# in the chezmoi source state and is OS-branched there, not here.
+#
+# Usage:
+#   curl -fsSL https://raw.githubusercontent.com/tellijo/dotfiles/main/install.sh | bash
+#
+# Override the source repo/branch (e.g. to test a local checkout or a
+# feature branch before merging):
+#   DOTFILES_REPO=/path/to/local/checkout DOTFILES_BRANCH=my-branch ./install.sh
 
-set -o errexit
-set -o nounset
-set -o pipefail
+set -euo pipefail
+
+DOTFILES_REPO="${DOTFILES_REPO:-https://github.com/tellijo/dotfiles.git}"
+DOTFILES_BRANCH="${DOTFILES_BRANCH:-main}"
+DOTFILES_SOURCE_DIR="${DOTFILES_SOURCE_DIR:-$HOME/.dotfiles}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m' # No style
+NC='\033[0m'
 
-DOTFILES_PATH=$HOME/.dotfiles
-
-DOTFILES_DEBUG=""
-INSTALL_CASKS=""
-ACCEPT_ALL=""
-INSTALL_STEP=""
-
-printError() {
-	echo ""
-	echo -e "\t${RED}✕${NC} $1" >&2
-	echo ""
+info() { echo -e "${GREEN}==>${NC} $1"; }
+fail() {
+  echo -e "${RED}✕${NC} $1" >&2
+  exit 1
 }
 
-printDone() {
-	echo ""
-	echo -e "\t${GREEN}✓${NC} Done\n"
-	echo ""
-}
+OS="$(uname -s)"
 
-printSuccess() {
-	echo -e "${GREEN}✓${NC} $1"
-}
+case "$OS" in
+Darwin)
+  PLATFORM="macos"
+  ;;
+Linux)
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  case "${ID:-}${ID_LIKE:-}" in
+  *arch*)
+    PLATFORM="arch"
+    ;;
+  *debian*)
+    PLATFORM="debian"
+    ;;
+  *)
+    fail "Unsupported Linux distro (ID=${ID:-unknown}). This script supports Arch/Omarchy and Debian/Ubuntu."
+    ;;
+  esac
+  ;;
+*)
+  fail "Unsupported OS: $OS"
+  ;;
+esac
 
-################
-# DEPENDENCIES #
-################
+info "Detected platform: $PLATFORM"
 
-setupBrew() {
-	BREW_PACKAGES=(
-		cmake
-		curl
-		docker
-		eza
-		fd
-		fzf
-		git
-		git-delta
-		go
-		golangci-lint
-		gzip
-		jandedobbeleer/oh-my-posh/oh-my-posh
-		jq
-		lazygit
-		lua-language-server
-		luajit
-		luarocks
-		neovim
-		python
-		python3
-		ripgrep
-		ruby
-		rustup
-		stow
-		the_silver_searcher
-		# tmux
-		tree-sitter
-		unzip
-		wget
-		zoxide
-	)
+case "$PLATFORM" in
+macos)
+  if ! command -v git &>/dev/null; then
+    info "Installing Xcode Command Line Tools (provides git)..."
+    xcode-select --install
+    fail "Re-run this script after the Xcode Command Line Tools install finishes."
+  fi
 
-	BREW_CASKS=(
-		# alacritty
-		# notion
-		# obsidian
-		alt-tab
-		discord
-		firefox
-		google-chrome
-		google-drive
-		keycastr
-		kitty
-		postman
-		raycast
-		rectangle
-		slack
-		visual-studio-code
-		whatsapp
-	)
+  if ! command -v brew &>/dev/null; then
+    info "Installing Homebrew..."
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  fi
 
-	if ! command -v brew &>/dev/null; then
-		echo "- Installing macOS dependency manager Brew..."
-		ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-		printDone
-	else
-		echo "Homebrew is already installed, moving on..."
-	fi
+  info "Installing chezmoi..."
+  brew install -q chezmoi
+  ;;
 
-	echo "- Updating brew..."
-	brew update
-	printDone
+arch)
+  if ! command -v git &>/dev/null; then
+    info "Installing git..."
+    sudo pacman -Sy --noconfirm --needed git
+  fi
 
-	echo "- Installing GNU coreutils..."
-	brew install -q coreutils
-	printDone
+  info "Installing chezmoi..."
+  sudo pacman -Sy --noconfirm --needed chezmoi
+  ;;
 
-	echo "- Installing GNU findutils..."
-	brew install -q findutils
-	printDone
+debian)
+  if ! command -v git &>/dev/null; then
+    info "Installing git..."
+    sudo apt-get update
+    sudo apt-get install -y git curl
+  fi
 
-	echo "- Installing zsh..."
-	brew install -q zsh
-	printDone
+  info "Installing chezmoi..."
+  sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+  export PATH="$HOME/.local/bin:$PATH"
+  ;;
+esac
 
-	echo "- Installing brew packages ${BREW_PACKAGES[*]}..."
-	brew install -q ${BREW_PACKAGES[@]}
-	printDone
+info "Running chezmoi init --apply ($DOTFILES_REPO @ $DOTFILES_BRANCH -> $DOTFILES_SOURCE_DIR)..."
+chezmoi init --apply --branch "$DOTFILES_BRANCH" --source "$DOTFILES_SOURCE_DIR" "$DOTFILES_REPO"
 
-	echo "- Cleanup brew..."
-	brew cleanup
-	printDone
-
-	if [[ $OSTYPE == 'darwin'* ]]; then
-		echo "- Installing brew casks ${BREW_CASKS[*]}..."
-		brew install -q --cask ${BREW_CASKS[@]} --force
-		printDone
-	else
-		echo "Can't install Casks on other OS than MacOS"
-	fi
-}
-
-#######
-# ZSH #
-#######
-
-setupZsh() {
-	ZSHD=$HOME/.zsh.d
-
-	if [[ ! -d "$ZSHD" ]]; then
-		echo "- Creating ${ZSHD} directory"
-		mkdir -p $ZSHD
-		printDone
-	else
-		echo "- Directory ${ZSHD} already exists, removing and recreating it now"
-		rm -rf $ZSHD
-		mkdir -p $ZSHD
-		printDone
-	fi
-}
-
-setupNode() {
-	NVM_PATH=$HOME/.nvm
-
-	NODE_PACKAGES=(
-		@fsouza/prettierd
-		@tailwindcss/language-server
-		bash-language-server
-		eas-cli
-		eslint
-		eslint_d
-		prettier
-		typescript
-		typescript-language-server
-		yarn
-	)
-
-	[[ ! -d "$NVM_PATH" ]] && echo "- Downloading NVM" && git clone https://github.com/nvm-sh/nvm.git $NVM_PATH && printDone
-
-	lts="$(. $NVM_PATH/nvm.sh && nvm ls-remote --lts | grep -i latest | sed -e 's/.*v//g' | sed -e 's/\..*//g' | tail -n 2)"
-
-	echo "- Installing node latest 2 LTS versions"
-	for version in $lts; do
-		echo "Installing node version $version"
-		# sh -e ". $NVM_PATH/nvm.sh && nvm ls-remote --lts=$lts"
-		. $NVM_PATH/nvm.sh && nvm install "$version"
-	done
-	printDone
-
-	echo "- Select latest LTS version of node to use"
-	. $NVM_PATH/nvm.sh && nvm use --lts
-	printDone
-
-	echo "- Installing node global packages ${NODE_PACKAGES[*]}"
-	npm install -g "${NODE_PACKAGES[@]}"
-	printDone
-}
-
-#########
-# Terminal #
-#########
-
-setupTerminal() {
-	[[ ! -d "$HOME/fonts" ]] && mkdir -p "$HOME/fonts"
-	[[ ! -d "$HOME/fonts/nerd-fonts" ]] && echo "- Downloading Nerd Fonts" && git clone https://github.com/ryanoasis/nerd-fonts.git $HOME/fonts/nerd-fonts && printDone
-
-	echo "- Installing required Nerd Fonts"
-	# $HOME/fonts/nerd-fonts/install.sh meslo
-	"$HOME"/fonts/nerd-fonts/install.sh Hack
-	printDone
-}
-
-########
-# MISC #
-########
-
-setupMisc() {
-	read gitemail
-
-	echo "- Setting up git email"
-	git config --global user.email $gitemail
-}
-
-#######
-# VIM #
-#######
-
-setupNeovim() {
-	NVIM_PATH=$HOME/.config/nvim
-
-	echo "- Clear previous config at '${NVIM_PATH}'"
-	rm -rf $NVIM_PATH
-	rm -rf $HOME/.local/share/nvim
-	printDone
-}
-
-main() {
-	if [[ "${DOTFILES_DEBUG:-0}" == "1" ]]; then
-		echo "[Running on debug mode]"
-		echo ""
-		set -o xtrace
-	fi
-
-	if [[ "$OSTYPE" != "darwin"* ]]; then
-		printError "This script only works on MacOS right now..."
-		exit 1
-	fi
-
-	setupBrew
-	setupZsh
-	setupNode
-	setupTerminal
-	setupMisc
-	setupNeovim
-}
-
-while getopts "dch" OPTION; do
-	case "$OPTION" in
-	d) DOTFILES_DEBUG=1 ;;
-	c) INSTALL_CASKS=1 ;;
-	h)
-		printHelp
-		exit 1
-		;;
-	?)
-		printHelp
-		exit 1
-		;;
-	esac
-done
-
-main
+info "Done. Restart your shell."

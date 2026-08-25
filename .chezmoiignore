@@ -1,0 +1,13 @@
+# Bootstrap/helper scripts live in the repo but are not applied into $HOME.
+install.sh
+setup-secrets.sh
+docker-smoke-test.sh
+docker-smoke-test/
+README.md
+
+# TPM manages its own plugins (clones them on demand via prefix+I) - not
+# chezmoi's job, and several of these are nested git checkouts.
+.config/tmux/plugins/**
+
+# npm-managed, regenerated from package-lock.json.
+.config/opencode/node_modules/**

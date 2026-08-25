@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS: CLI toolchain via Homebrew, GUI apps via casks.
+# This list is generated from `brew leaves` + `brew list --cask` on the
+# primary machine (not hand-maintained from memory - that's what caused the
+# original stale list this replaced). ruby/python/rustup/go/node are
+# intentionally absent - mise manages those. stow is intentionally absent -
+# chezmoi replaces it. neovim itself is intentionally absent - bob (below)
+# installs/manages the actual nvim binary instead of a plain brew formula.
+BREW_PACKAGES=(
+  anomalyco/tap/opencode
+  arttime
+  automake
+  bat
+  bob
+  cmake
+  cocoapods
+  countdown
+  curl
+  docker
+  eza
+  fastlane
+  fd
+  ffmpeg
+  fswatch
+  fzf
+  gh
+  git
+  git-delta
+  glow
+  golangci-lint
+  golines
+  goreleaser
+  gzip
+  hashicorp/tap/terraform
+  imagemagick
+  jandedobbeleer/oh-my-posh/oh-my-posh
+  jq
+  k6
+  lazygit
+  lua-language-server
+  luarocks
+  mdv
+  mise
+  modem-dev/tap/hunk
+  mole
+  pandoc
+  pass
+  pgformatter
+  poppler
+  postgresql@17
+  prettierd
+  ripgrep
+  sevenzip
+  sops
+  sqlfluff
+  sshpass
+  taproom
+  tectonic
+  the_silver_searcher
+  tmux
+  tree-sitter
+  trivy
+  unzip
+  watchman
+  weasyprint
+  wget
+  yazi
+  yq
+  zoxide
+  zsh
+)
+
+BREW_CASKS=(
+  android-studio
+  circleci-public/circleci/circleci@next
+  claude-code@latest
+  cmake-app
+  docker-desktop
+  firefox
+  font-dejavu
+  font-fira-mono-nerd-font
+  font-noto-color-emoji
+  font-noto-sans
+  font-noto-sans-mono
+  gcloud-cli
+  git-credential-manager
+  google-chrome
+  kitty
+  markdown-preview
+  ngrok
+  raycast
+  rectangle
+  slack
+  slack-cli
+  terraform-linters/tap/tflint
+)
+
+brew update
+
+# Install one at a time and keep going on failure - a single flaky/conflicting
+# package (network blip, an app that predates Homebrew's tracking, a cask
+# whose upgrade needs an interactive sudo prompt) must never block the rest
+# of setup (mise, neovim-via-bob run in later scripts).
+FAILED=()
+for pkg in "${BREW_PACKAGES[@]}"; do
+  brew install -q "$pkg" || FAILED+=("$pkg")
+done
+for cask in "${BREW_CASKS[@]}"; do
+  brew install -q --cask "$cask" || FAILED+=("$cask (cask)")
+done
+
+if [ "${#FAILED[@]}" -gt 0 ]; then
+  echo "Warning: failed to install: ${FAILED[*]}" >&2
+fi
+
+{{ else if eq .chezmoi.osRelease.id "arch" -}}
+# Arch/Omarchy: native pacman for the CLI toolchain, yay (AUR) for the
+# handful of packages not in the official repos. No GUI apps here -
+# Omarchy already ships its own curated desktop set.
+PACMAN_PACKAGES=(
+  cmake
+  curl
+  docker
+  eza
+  fd
+  fzf
+  git
+  git-delta
+  golangci-lint
+  jq
+  lazygit
+  mise
+  neovim
+  ripgrep
+  the_silver_searcher
+  tree-sitter
+  unzip
+  wget
+  zoxide
+)
+
+AUR_PACKAGES=(
+  oh-my-posh-bin
+)
+
+sudo pacman -Syu --noconfirm
+
+FAILED=()
+for pkg in "${PACMAN_PACKAGES[@]}"; do
+  sudo pacman -S --noconfirm --needed "$pkg" || FAILED+=("$pkg")
+done
+
+if ! command -v yay &>/dev/null; then
+  tmpdir=$(mktemp -d)
+  git clone --depth 1 https://aur.archlinux.org/yay-bin.git "$tmpdir/yay-bin"
+  (cd "$tmpdir/yay-bin" && makepkg -si --noconfirm)
+  rm -rf "$tmpdir"
+fi
+for pkg in "${AUR_PACKAGES[@]}"; do
+  yay -S --noconfirm --needed "$pkg" || FAILED+=("$pkg (AUR)")
+done
+
+if [ "${#FAILED[@]}" -gt 0 ]; then
+  echo "Warning: failed to install: ${FAILED[*]}" >&2
+fi
+
+{{ else -}}
+# Debian/Ubuntu: headless/CLI-only profile (VPS, Raspberry Pi dev server).
+# No desktop packages at all.
+APT_PACKAGES=(
+  build-essential
+  curl
+  fd-find
+  fzf
+  git
+  jq
+  neovim
+  ripgrep
+  silversearcher-ag
+  tmux
+  unzip
+  wget
+  zsh
+)
+
+sudo apt-get update
+
+FAILED=()
+for pkg in "${APT_PACKAGES[@]}"; do
+  sudo apt-get install -y "$pkg" || FAILED+=("$pkg")
+done
+
+if [ "${#FAILED[@]}" -gt 0 ]; then
+  echo "Warning: failed to install: ${FAILED[*]}" >&2
+fi
+
+# Debian/Ubuntu ship fd as fd-find/fdfind - alias it to the fd name
+# everything else (fzf, scripts) expects.
+if ! command -v fd &>/dev/null && command -v fdfind &>/dev/null; then
+  sudo ln -sf "$(command -v fdfind)" /usr/local/bin/fd
+fi
+
+if ! command -v mise &>/dev/null; then
+  curl -fsSL https://mise.run | sh
+fi
+
+if ! command -v zoxide &>/dev/null; then
+  curl -fsSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
+fi
+
+if ! command -v lazygit &>/dev/null; then
+  LAZYGIT_VERSION=$(curl -fsSL "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": *"v\K[^"]*')
+  curl -fsSL -o /tmp/lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
+  tar xf /tmp/lazygit.tar.gz -C /tmp lazygit
+  sudo install /tmp/lazygit /usr/local/bin
+fi
+{{ end -}}
