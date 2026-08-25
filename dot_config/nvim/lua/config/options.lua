@@ -26,6 +26,12 @@ opt.confirm = true
 opt.termguicolors = true
 opt.swapfile = false
 
+-- Folds are computed (treesitter foldexpr, see treesitter.lua) but start
+-- open - foldlevelstart is what Nvim sets 'foldlevel' to whenever a buffer
+-- is loaded into a window, so this doesn't disable folding, it just stops
+-- everything from starting closed. Manual zc/za/zM etc. still work as usual.
+opt.foldlevelstart = 99
+
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
