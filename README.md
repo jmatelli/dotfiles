@@ -41,6 +41,24 @@ Package lists and OS-specific install logic live in
 Rust, Python, Ruby) are managed by [mise](https://mise.jdx.dev/), configured
 in `.chezmoiscripts/run_once_after_20-setup-mise.sh`.
 
+## Neovim
+
+`dot_config/nvim` is a minimal, from-scratch config (no distro) built on
+Neovim ≥0.12's native `vim.pack` plugin manager and native LSP
+(`vim.lsp.config`/`vim.lsp.enable`) - see the file itself for the full
+plugin list. Language servers (`gopls`, `vtsls`, `eslint`) are installed by
+Mason from inside Neovim, not by this repo's provisioning scripts.
+
+`vim.pack`'s lockfile, `nvim-pack-lock.json`, lives inside
+`~/.config/nvim/` - i.e. inside the chezmoi-managed target - and is tracked
+in this repo so a fresh machine installs plugins at the exact pinned
+revisions. **After running `:lua vim.pack.update()` inside Neovim, run
+`chezmoi add ~/.config/nvim/nvim-pack-lock.json` again before the next
+`chezmoi apply`**, or the apply will silently revert the lockfile (and
+therefore your plugin updates) back to whatever was last committed - the
+same class of footgun as a tracked file that a running program keeps
+rewriting.
+
 ## Secrets
 
 Not managed by chezmoi. Run, any time, to fill in or add to your local
