@@ -37,11 +37,17 @@ alias :l='clear'
 alias :on='if [[ $TERM == tmux* ]]; then tmux kill-pane -a; else echo "Not in a tmux session"; fi;'
 
 function pp() {
+    # A leading ~ embedded inside a variable never expands for [ -e ] or cd
+    # (only unquoted, parse-time ~ does) - expand it once here so both
+    # branches below get a real path either way.
+    local projectsDir="{{ .projectsDir }}"
+    projectsDir="${projectsDir/#\~/$HOME}"
+
     local projectName=$1
-    local projectPath="~/code/$projectName"
+    local projectPath="$projectsDir/$projectName"
 
     if [ -z "$projectName" ]; then
-        projectPath=$(ls -d ~/code/*/ | fzf-tmux -p --header "[Select project]")
+        projectPath=$(ls -d "$projectsDir"/*/ | fzf-tmux -p --header "[Select project]")
     fi
 
     local prePushPath="git-hooks/pre-push"
