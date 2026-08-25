@@ -10,3 +10,7 @@ mise use --global go@latest
 mise use --global rust@latest
 mise use --global python@latest
 mise use --global ruby@latest
+
+# gofumpt: referenced by the Neovim config's Go formatter chain
+# (conform.nvim), not covered by any brew formula.
+mise use --global go:mvdan.cc/gofumpt@latest

@@ -1,0 +1,15 @@
+# Files from the old LazyVim-based nvim config, no longer part of the
+# minimal native-vim.pack rebuild. chezmoi doesn't remove files just
+# because their source entry disappears (they simply become "not
+# managed") - this makes the cleanup explicit so any machine that had the
+# old config gets it removed on the next apply, not just this one.
+.config/nvim/LICENSE
+.config/nvim/README.md
+.config/nvim/lazyvim.json
+.config/nvim/lazy-lock.json
+.config/nvim/stylua.toml
+.config/nvim/.neoconf.json
+.config/nvim/.gitignore
+.config/nvim/lua/config/lazy.lua
+.config/nvim/lua/plugins
+.config/nvim/after/queries
