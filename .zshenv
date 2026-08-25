@@ -1,6 +1,5 @@
 # Path to your oh-my-zsh installation.
 export EDITOR=/opt/homebrew/bin/nvim
-export TERM=xterm-256color
 
 export BAT_THEME="Dracula"
 
@@ -72,3 +71,5 @@ export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 # IP
 export LOCAL_IP=$(ipconfig getifaddr en0)
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
+export VOLTA_HOME="$HOME/.volta"
+export PATH="$VOLTA_HOME/bin:$PATH"

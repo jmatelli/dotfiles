@@ -11,6 +11,7 @@ return {
     "DBUIFindBuffer",
   },
   init = function()
+    vim.o.previewheight = 30
     local local_ip = vim.env.LOCAL_IP
     local urlprefix = "postgresql://postgres:postgres@" .. local_ip .. ":5432/"
 
@@ -30,6 +31,10 @@ return {
       { name = "Yaarz - STG", url = stg_write_url },
       { name = "Yaarz - PROD readonly", url = prod_read_url },
       { name = "Yaarz - PROD", url = prod_write_url },
+      {
+        name = "Metabase",
+        url = "postgresql://***REMOVED***:***REMOVED***@***REMOVED***/***REMOVED***",
+      },
     }
   end,
   keys = {

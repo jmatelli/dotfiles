@@ -1,38 +1,60 @@
-# Context7 Documentation Agent
+# Pre-commit Checks
 
-Automatically use context7 MCP server when users request:
+Before committing, run the relevant checks depending on which folders have changes.
 
-## Automatic Triggers
+## Frontend (`front/`)
 
-- Code examples for any library/framework
-- Setup/installation instructions
-- API documentation or reference
-- Configuration steps for tools/libraries
-- "How to use [library]" questions
-- Troubleshooting specific library issues
+```bash
+cd front
+yarn lint --quiet
+yarn tsc
+```
 
-## Usage Workflow
+## Mobile (`mobile/`)
 
-1. **Always resolve library ID first** using `context7_resolve_library_id` unless user provides exact format `/org/project` or `/org/project/version`
-2. Use `context7_get_library_docs` with the resolved ID
-3. Focus documentation with `topic` parameter when possible (e.g., "routing", "hooks", "authentication")
+```bash
+cd mobile
+yarn lint --quiet
+yarn tsc
+yarn test
+```
 
-## Examples of Automatic Usage
+## Server (`server/`)
 
-- "How do I use React hooks?" → resolve "react" → get docs with topic "hooks"
-- "Show me Express middleware setup" → resolve "express" → get docs with topic "middleware"
-- "MongoDB connection examples" → resolve "mongodb" → get docs with topic "connection"
+```bash
+cd server
+make test
+```
 
-## When NOT to Use
+---
 
-- General programming concepts unrelated to specific libraries
-- Language syntax questions (unless library-specific)
-- Algorithm or data structure questions
-- Code review of existing project code
+# Pull Request Workflow
 
-## Best Practices
+When the user says "make a PR", "create a PR", "open a PR", or similar:
 
-- Be proactive - don't wait for explicit requests
-- Use specific topics to focus documentation
-- Handle library resolution gracefully for ambiguous names
-- Provide context from docs in responses
+1. **Checkout and update base branch:**
+   - Run `git checkout develop && git pull origin develop`
+2. **Create a new branch:**
+   - If there is a Linear issue associated (the user mentions it or it can be inferred from context), use the Linear issue's branch name (e.g. `feature/YAA-123-short-description`)
+   - Otherwise, create a descriptive branch name based on the changes
+   - Run `git checkout -b <branch-name>`
+3. **Stage and commit (if needed):**
+   - If there are unstaged or uncommitted files, stage them with `git add` and create a descriptive commit
+4. **Push and create PR:**
+   - Run `git push -u origin <branch-name>`
+   - Use `gh pr create --base develop` with a descriptive title and body
+
+## Hotfix Exception
+
+When the user says "make a hotfix PR", "hotfix pull request", or similar:
+
+1. **Checkout and update base branch:**
+   - Run `git checkout master && git pull origin master`
+2. **Create a new branch:**
+   - Same branch naming rules as above, but prefix with `hotfix/` if not already
+   - Run `git checkout -b <branch-name>`
+3. **Stage and commit (if needed):**
+   - Same as above
+4. **Push and create PR:**
+   - Run `git push -u origin <branch-name>`
+   - Use `gh pr create --base master` with a descriptive title and body

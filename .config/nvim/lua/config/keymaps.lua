@@ -43,3 +43,10 @@ vim.keymap.set("v", "p", '"_dP', getOpts("Paste Over Selection Without Yanking")
 -- New lines
 vim.keymap.set("n", "<leader>o", "o<ESC>k", getOpts("Open New Line Below"))
 vim.keymap.set("n", "<leader>O", "O<ESC>j", getOpts("Open New Line Above"))
+
+local function insertFullPath()
+  local filepath = vim.fn.expand("%")
+  vim.fn.setreg("+", filepath) -- write to clippoard
+end
+
+vim.keymap.set("n", "<leader>yc", insertFullPath, { noremap = true, silent = true })

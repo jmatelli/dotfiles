@@ -3,7 +3,9 @@ return {
   cmd = "Copilot",
   event = "InsertEnter",
   lazy = true,
+  enabled = false,
   opts = {
+    copilot_node_command = vim.fn.expand("$HOME") .. "/.nvm/versions/node/v22.21.1/bin/node",
     suggestion = {
       auto_trigger = true,
       keymap = {

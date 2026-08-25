@@ -26,6 +26,7 @@ alias gsta='git stash'
 alias gstu='git stash -u'
 alias gpu='git push'
 alias gpf='git push --force-with-lease'
+alias gpfn='git push --force-with-lease --no-verify'
 alias gbr='git br | fzf'
 alias gclean='git branch -d `git branch --merged | ag -v "\\*" | ag -v main | ag -v master | ag -v devel`'
 
@@ -33,6 +34,7 @@ alias di='delta $(fzf-tmux -p) $(fzf-tmux -p)'
 
 alias :q='exit'
 alias :l='clear'
+alias :on='if [[ $TERM == tmux* ]]; then tmux kill-pane -a; else echo "Not in a tmux session"; fi;'
 
 function pp() {
     local projectName=$1

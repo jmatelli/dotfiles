@@ -40,6 +40,12 @@ zinit cdreplay -q
 bindkey '^y' autosuggest-accept
 bindkey '^n' history-search-forward
 bindkey '^p' history-search-backward
+autoload -U up-line-or-beginning-search
+autoload -U down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey "^[[A" up-line-or-beginning-search # Up
+bindkey "^[[B" down-line-or-beginning-search # Down
 
 # history
 HISTSIZE=5000
@@ -73,11 +79,19 @@ eval "$(oh-my-posh init zsh --config $HOME/.config/oh-my-posh/codikos.omp.toml)"
 
 ## [Completion]
 ## Completion scripts setup. Remove the following line to uninstall
-[[ -f /Users/joelmatelli/.dart-cli-completion/zsh-config.zsh ]] && . /Users/joelmatelli/.dart-cli-completion/zsh-config.zsh || true
+[[ -f /Users/techlead/.dart-cli-completion/zsh-config.zsh ]] && . /Users/techlead/.dart-cli-completion/zsh-config.zsh || true
 ## [/Completion]
 
 # The following lines have been added by Docker Desktop to enable Docker CLI completions.
-fpath=(/Users/joelmatelli/.docker/completions $fpath)
+fpath=(/Users/techlead/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
 # End of Docker CLI completions
+
+# Added by Antigravity
+export PATH="/Users/techlead/.antigravity/antigravity/bin:$PATH"
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/techlead/.lmstudio/bin"
+# End of LM Studio CLI section
+

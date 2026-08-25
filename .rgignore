@@ -45,3 +45,5 @@ vendor
 !.env.*.local
 
 !.dotfiles
+!.dotfiles/.config
+!.config
