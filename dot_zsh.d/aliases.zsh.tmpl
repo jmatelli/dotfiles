@@ -167,7 +167,13 @@ tf() {
   # debugging. Vitest has no equivalent and hard-errors on an unknown
   # flag rather than ignoring it, so it must not be passed there.
   [ "$runner" = "jest" ] && flags="-i"
-  newAlias "\.test\.tsx?" "[$pm/$runner: test unique file]" "$pm test -- $flags"
+  # yarn (classic) doesn't need -- to forward args to the script, and its
+  # own deprecation warning says a future version will stop stripping it
+  # and forward the literal "--" to the script instead - that would break
+  # things, so skip it for yarn specifically.
+  local sep="--"
+  [ "$pm" = "yarn" ] && sep=""
+  newAlias "\.test\.tsx?" "[$pm/$runner: test unique file]" "$pm test $sep $flags"
 }
 
 tfs() {
@@ -175,5 +181,7 @@ tfs() {
   local runner=$(test_runner)
   local flags=""
   [ "$runner" = "jest" ] && flags="-i"
-  newAlias "\.test\.tsx?" "[$pm/$runner: test multiple files]" "$pm test -- $flags" 1
+  local sep="--"
+  [ "$pm" = "yarn" ] && sep=""
+  newAlias "\.test\.tsx?" "[$pm/$runner: test multiple files]" "$pm test $sep $flags" 1
 }
