@@ -1,8 +1,33 @@
--- Options are automatically loaded before lazy.nvim startup
--- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
--- Add any additional options here
+local opt = vim.opt
 
-vim.g.lazyvim_picker = "fzf"
+-- Sane baseline (Nvim already ships good defaults for most of this in
+-- 0.9+; only setting what's not already the default or where the personal
+-- preference differs)
+opt.number = true
+opt.relativenumber = true
+opt.mouse = "a"
+opt.mousescroll = "ver:0,hor:0" -- disable mouse scroll
+opt.clipboard = "unnamedplus"
+opt.breakindent = true
+opt.undofile = true
+opt.ignorecase = true
+opt.smartcase = true
+opt.signcolumn = "yes"
+opt.updatetime = 250
+opt.timeoutlen = 300
+opt.splitright = true
+opt.splitbelow = true
+opt.list = true
+opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
+opt.inccommand = "split"
+opt.cursorline = true
+opt.scrolloff = 8
+opt.confirm = true
+opt.termguicolors = true
+opt.swapfile = false
+
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
 
 vim.filetype.add({
   extension = {
@@ -15,11 +40,6 @@ vim.filetype.add({
     ["%.env%.[%w_.-]+"] = "sh",
   },
 })
-
-vim.g.lazyvim_eslint_auto_format = false
-
-vim.opt.swapfile = false -- Disable swap files
-vim.opt.mousescroll = "ver:0,hor:0" -- Disable mouse scroll
 
 vim.api.nvim_create_user_command("Format", function(args)
   local range = nil
