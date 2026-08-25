@@ -32,6 +32,8 @@ vim.g.maplocalleader = " "
 vim.filetype.add({
   extension = {
     env = "sh",
+    tmpl = "gotmpl", -- Nvim core has no built-in rule for .tmpl; gopls and
+    -- the treesitter parser both already expect this filetype name.
   },
   filename = {
     [".env"] = "sh",
