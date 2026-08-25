@@ -194,10 +194,7 @@ vim.g.dbs = {
   { name = "Yaarz - STG", url = vim.env.YAARZ_STG_DB_URL },
   { name = "Yaarz - PROD readonly", url = vim.env.YAARZ_PROD_READONLY_DB_URL },
   { name = "Yaarz - PROD", url = vim.env.YAARZ_PROD_DB_URL },
-  {
-    name = "Metabase",
-    url = "postgresql://***REMOVED***:***REMOVED***@***REMOVED***/***REMOVED***",
-  },
+  { name = "Metabase", url = vim.env.METABASE_DB_URL },
 }
 vim.keymap.set("n", "<leader>D", "<cmd>bd<cr><cmd>DBUIToggle<cr>")
 
