@@ -13,3 +13,7 @@
 .config/nvim/lua/config/lazy.lua
 .config/nvim/lua/plugins
 .config/nvim/after/queries
+
+# alacritty was dropped from the brew casks list - no longer installed,
+# no reason to keep its config around.
+.config/alacritty
