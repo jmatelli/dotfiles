@@ -23,9 +23,20 @@ vim.keymap.set("n", "<leader>o", "o<ESC>k", opts)
 vim.keymap.set("n", "<leader>O", "O<ESC>j", opts)
 
 vim.keymap.set("n", "<leader>bd", "<CMD>bd<CR>", vim.tbl_extend("force", opts, { desc = "Delete buffer" }))
-vim.keymap.set("n", "<leader>bD", "<CMD>bufdo bd!<CR><CMD>Alpha<CR>",
-    vim.tbl_extend("force", opts, { desc = "Delete all buffers" }))
+vim.keymap.set(
+	"n",
+	"<leader>bD",
+	"<CMD>bufdo bd!<CR><CMD>Alpha<CR>",
+	vim.tbl_extend("force", opts, { desc = "Delete all buffers" })
+)
 
 -- uuid generation with <c-r>=trim(system('uuidgen')) in normal or insert mode
 vim.keymap.set("n", "<M-u>", "i<C-r>=trim(system('uuidgen'))<CR><esc>", opts)
 vim.keymap.set("i", "<M-u>", "<C-r>=trim(system('uuidgen'))<CR>", opts)
+
+local function insertFullPath()
+	local filepath = vim.fn.expand("%")
+	vim.fn.setreg("+", filepath) -- write to clippoard
+end
+
+vim.keymap.set("n", "<leader>yc", insertFullPath, { noremap = true, silent = true })

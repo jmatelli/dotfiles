@@ -20,11 +20,24 @@ return {
     end,
   },
 
+  -- lua/plugins/rose-pine.lua
+  {
+    "rose-pine/neovim",
+    name = "rose-pine",
+    opts = {
+      variant = "moon",
+      dark_variant = "moon",
+      styles = {
+        transparency = true,
+      },
+    },
+  },
+
   -- Configure LazyVim to load nord
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "nord",
+      colorscheme = "rose-pine",
     },
   },
 }

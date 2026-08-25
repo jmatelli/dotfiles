@@ -1,6 +1,8 @@
 [alias]
   up = pull
   p = push
+  pf = push --force-with-lease
+  pfn = push --force-with-lease --no-verify
   cp = cherry-pick
   st = status
   cl = clone
@@ -111,11 +113,12 @@
 	rebase = true
 
 [user]
-	email = jo.matelli@gmail.com
+	email = techlead@yaarz.io
 	name = Joël Matelli
 
 [core]
   pager = delta
+	ignorecase = true
 
 [interactive]
   diffFilter = delta --color-only
@@ -146,7 +149,7 @@
 [init]
 	defaultBranch = main
 [credential "https://github.com"]
-	username = jmatelli
+	username = jomatelli
 [credential]
 	helper = 
 	helper = /usr/local/share/gcm-core/git-credential-manager

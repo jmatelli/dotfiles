@@ -4,7 +4,7 @@ return {
   config = function()
     require("lualine").setup({
       options = {
-        theme = "nord",
+        theme = "rose-pine",
         component_separators = { left = "\u{e0b5}", right = "\u{e0b7}" },
         section_separators = { left = "\u{e0b4}", right = "\u{e0b6}" },
         ignore_focus = {
