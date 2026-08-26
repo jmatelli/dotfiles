@@ -41,6 +41,9 @@ vim.pack.add({
   -- Motion discipline
   "https://github.com/MunifTanjim/nui.nvim",
   "https://github.com/m4xshen/hardtime.nvim",
+
+  -- Indent guides
+  "https://github.com/lukas-reineke/indent-blankline.nvim",
 })
 
 require("mini.icons").setup()
@@ -226,6 +229,14 @@ vim.keymap.set({ "n", "x" }, "j", 'v:count == 0 ? "gj" : "j"', { desc = "Down", 
 vim.keymap.set({ "n", "x" }, "<Down>", 'v:count == 0 ? "gj" : "j"', { desc = "Down", expr = true, silent = true })
 vim.keymap.set({ "n", "x" }, "k", 'v:count == 0 ? "gk" : "k"', { desc = "Up", expr = true, silent = true })
 vim.keymap.set({ "n", "x" }, "<Up>", 'v:count == 0 ? "gk" : "k"', { desc = "Up", expr = true, silent = true })
+
+require("ibl").setup({
+  indent = { char = "│", tab_char = "│" },
+  scope = { show_start = false, show_end = false },
+  exclude = {
+    filetypes = { "help", "mason" },
+  },
+})
 
 require("fzf-lua").setup({
   file_ignore_patterns = { "node_modules", "mocks" },
