@@ -26,6 +26,16 @@ opt.confirm = true
 opt.termguicolors = true
 opt.swapfile = false
 
+-- Global indent default (was missing entirely - every filetype without an
+-- explicit after/ftplugin/*.lua override, e.g. dbui/markdown/yaml/json/sql,
+-- was silently falling back to Nvim's raw legacy default of 8). go.lua and
+-- lua.lua override to 4; typescript/javascript*.lua override to 2 - this
+-- only changes behavior for filetypes with no explicit override.
+opt.shiftwidth = 2
+opt.tabstop = 2
+opt.softtabstop = 2
+opt.expandtab = true
+
 -- Folds are computed (treesitter foldexpr, see treesitter.lua) but start
 -- open - foldlevelstart is what Nvim sets 'foldlevel' to whenever a buffer
 -- is loaded into a window, so this doesn't disable folding, it just stops
