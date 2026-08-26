@@ -32,7 +32,9 @@ vim.api.nvim_create_autocmd("LspAttach", {
 -- never bind gd - plain gd stays Vim's non-LSP local-declaration search
 -- unless overridden. These three restore the previous LazyVim bindings.
 vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Goto Definition" })
-vim.keymap.set("n", "gr", vim.lsp.buf.references, { desc = "Goto References" })
+vim.keymap.set("n", "gr", function()
+  require("fzf-lua").lsp_references({ jump_to_single_result = true })
+end, { desc = "Goto References" })
 vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "Goto Implementation" })
 vim.keymap.set("n", "<leader>cr", vim.lsp.buf.rename, { desc = "Rename" })
 
