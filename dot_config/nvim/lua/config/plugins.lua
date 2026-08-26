@@ -10,6 +10,7 @@ vim.pack.add({
 
   -- Treesitter
   { src = "https://github.com/nvim-treesitter/nvim-treesitter", version = "main" },
+  { src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects", version = "main" },
 
   -- Completion (pinned to v1: main is an actively-breaking v2 in progress
   -- per the plugin's own README warning; v1 is the current stable line)
@@ -57,7 +58,7 @@ vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open Oil" })
 
 require("mason").setup()
 require("mason-lspconfig").setup({
-  ensure_installed = { "gopls", "vtsls", "eslint" },
+  ensure_installed = { "gopls", "vtsls", "eslint", "jsonls", "yamlls" },
 })
 
 require("blink.cmp").setup({
