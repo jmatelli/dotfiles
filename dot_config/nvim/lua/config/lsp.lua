@@ -28,6 +28,13 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
+-- Nvim core's own LSP defaults use gr*-prefixed keys (grr/gri/grn/...) and
+-- never bind gd - plain gd stays Vim's non-LSP local-declaration search
+-- unless overridden. These three restore the previous LazyVim bindings.
+vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Goto Definition" })
+vim.keymap.set("n", "gr", vim.lsp.buf.references, { desc = "Goto References" })
+vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "Goto Implementation" })
+
 vim.keymap.set("n", "<S-d>", function()
   vim.diagnostic.jump({ count = 1, float = true })
 end, { desc = "Next diagnostic" })
