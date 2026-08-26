@@ -31,17 +31,20 @@ git add -A
 git commit -q -m "smoke test snapshot"
 '
 
-# .chezmoi.toml.tmpl prompts for git name/email via promptStringOnce, which
-# opens /dev/tty directly - no controlling terminal exists in a headless
-# container. Pre-seed the answer so chezmoi init sees it already set and
-# skips prompting (a real user on a real terminal still gets prompted
-# normally - this only affects the automated smoke test).
+# .chezmoi.toml.tmpl prompts (promptStringOnce) open /dev/tty directly - no
+# controlling terminal exists in a headless container. Pre-seed the answers
+# so chezmoi init sees them already set and skips prompting (a real user on
+# a real terminal still gets prompted normally - this only affects the
+# automated smoke test). MUST be kept in sync with every promptStringOnce
+# key in .chezmoi.toml.tmpl, or a new prompt breaks this the same way
+# projectsDir just did - add its key here whenever one is added there.
 SEED_CONFIG_CMD='
 mkdir -p /home/tester/.config/chezmoi
 cat > /home/tester/.config/chezmoi/chezmoi.toml <<EOF
 [data]
     email = "test@smoketest.local"
     name = "Smoke Test"
+    projectsDir = "~/Projects"
 EOF
 chown -R tester:tester /home/tester/.config
 '
