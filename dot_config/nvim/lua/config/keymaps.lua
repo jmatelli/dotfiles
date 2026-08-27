@@ -32,6 +32,14 @@ vim.keymap.set("v", "<M-h>", "<gv", getOpts("Unindent Selection"))
 -- Paste over currently selected text without yanking it
 vim.keymap.set("v", "p", '"_dP', getOpts("Paste Over Selection Without Yanking"))
 
+-- Move lines up/down with <M-j>/<M-k> (Option+J/K on mac)
+vim.keymap.set("n", "<M-j>", "<cmd>execute 'move .+' . v:count1<cr>==", getOpts("Move Line Down"))
+vim.keymap.set("n", "<M-k>", "<cmd>execute 'move .-' . (v:count1 + 1)<cr>==", getOpts("Move Line Up"))
+vim.keymap.set("i", "<M-j>", "<esc><cmd>m .+1<cr>==gi", getOpts("Move Line Down"))
+vim.keymap.set("i", "<M-k>", "<esc><cmd>m .-2<cr>==gi", getOpts("Move Line Up"))
+vim.keymap.set("v", "<M-j>", ":m '>+1<cr>gv=gv", getOpts("Move Selection Down"))
+vim.keymap.set("v", "<M-k>", ":m '<-2<cr>gv=gv", getOpts("Move Selection Up"))
+
 -- New lines
 vim.keymap.set("n", "<leader>o", "o<ESC>k", getOpts("Open New Line Below"))
 vim.keymap.set("n", "<leader>O", "O<ESC>j", getOpts("Open New Line Above"))
