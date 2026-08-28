@@ -25,6 +25,8 @@ local parsers = {
   "diff",
   "dockerfile",
   "git_config",
+  "terraform",
+  "hcl",
 }
 
 require("nvim-treesitter").install(parsers)
@@ -55,6 +57,9 @@ local ts_filetypes = {
   "gitignore",
   "diff",
   "dockerfile",
+  "terraform",
+  "terraform-vars",
+  "hcl",
 }
 
 vim.api.nvim_create_autocmd("FileType", {
