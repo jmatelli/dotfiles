@@ -58,7 +58,7 @@ vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open Oil" })
 
 require("mason").setup()
 require("mason-lspconfig").setup({
-  ensure_installed = { "gopls", "vtsls", "eslint", "jsonls", "yamlls" },
+  ensure_installed = { "gopls", "vtsls", "eslint", "jsonls", "yamlls", "terraformls" },
 })
 
 require("blink.cmp").setup({
@@ -169,6 +169,8 @@ require("conform").setup({
     javascript = { "prettierd" },
     javascriptreact = { "prettierd" },
     go = { "gofumpt", "golangci-lint", "golines" },
+    terraform = { "terraform_fmt" },
+    ["terraform-vars"] = { "terraform_fmt" },
   },
   format_on_save = function(bufnr)
     -- golangci-lint does real static analysis (not just text formatting),
