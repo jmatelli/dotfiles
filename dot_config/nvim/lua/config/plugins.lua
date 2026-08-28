@@ -191,6 +191,9 @@ require("conform").setup({
 vim.o.previewheight = 30
 vim.g.db_ui_use_nerd_fonts = 1
 vim.g.db_ui_use_nvim_notify = 1
+-- Run table helpers ("Select 10 Rows" etc.) immediately instead of just
+-- inserting the query - default is 0, off by default upstream.
+vim.g.db_ui_auto_execute_table_helpers = 1
 local urlprefix = "postgresql://postgres:postgres@" .. (vim.env.LOCAL_IP or "127.0.0.1") .. ":5432/"
 vim.g.dbs = {
   { name = "Yaarz - DEV", url = urlprefix .. "yaarz" },

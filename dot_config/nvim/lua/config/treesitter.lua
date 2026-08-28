@@ -27,6 +27,7 @@ local parsers = {
   "git_config",
   "terraform",
   "hcl",
+  "sql",
 }
 
 require("nvim-treesitter").install(parsers)
@@ -60,6 +61,7 @@ local ts_filetypes = {
   "terraform",
   "terraform-vars",
   "hcl",
+  "sql",
 }
 
 vim.api.nvim_create_autocmd("FileType", {
