@@ -1,3 +1,9 @@
+gui:
+  switchTabsWithPanelJumpKeys: true
+git:
+  diffRenderers:
+    - colorArg: always
+      command: delta --side-by-side --line-numbers --dark --paging=never
 customCommands:
   # lazygit has no built-in status-panel display for the current git
   # identity, so surface it on demand instead. Reads whatever the repo's
