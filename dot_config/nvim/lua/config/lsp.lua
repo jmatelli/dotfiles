@@ -25,6 +25,27 @@ vim.api.nvim_create_autocmd("LspAttach", {
     if client:supports_method("textDocument/inlayHint") and not inlay_hint_excluded_filetypes[vim.bo[ev.buf].filetype] then
       vim.lsp.inlay_hint.enable(true, { bufnr = ev.buf })
     end
+
+    -- vtsls' textDocument/definition on an imported symbol resolves to the
+    -- import statement (its own local "definition"), not the original
+    -- declaration. typescript.goToSourceDefinition is vtsls' custom command
+    -- for VS Code's "Go to Source Definition", which follows the import
+    -- through to the real declaration, even in another file.
+    if client.name == "vtsls" then
+      vim.keymap.set("n", "gd", function()
+        local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+        client:exec_cmd({
+          command = "typescript.goToSourceDefinition",
+          arguments = { params.textDocument.uri, params.position },
+        }, { bufnr = ev.buf }, function(err, result)
+          if err or not result or vim.tbl_isempty(result) then
+            vim.lsp.buf.definition()
+            return
+          end
+          vim.lsp.util.show_document(result[1], client.offset_encoding, { reuse_win = true, focus = true })
+        end)
+      end, { buffer = ev.buf, desc = "Goto Source Definition" })
+    end
   end,
 })
 
@@ -33,14 +54,20 @@ vim.api.nvim_create_autocmd("LspAttach", {
 -- unless overridden. These three restore the previous LazyVim bindings.
 vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Goto Definition" })
 vim.keymap.set("n", "gr", function()
-  require("fzf-lua").lsp_references({ jump_to_single_result = true })
+  require("fzf-lua").lsp_references({ jump1 = true })
 end, { desc = "Goto References" })
 vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "Goto Implementation" })
 vim.keymap.set("n", "<leader>cr", vim.lsp.buf.rename, { desc = "Rename" })
 
+-- opts.float was deprecated in favor of opts.on_jump (nvim#diagnostic.lua);
+-- this reproduces the same "open a float after jumping" behavior explicitly.
+local function open_float_on_jump(_, bufnr)
+  vim.diagnostic.open_float({ bufnr = bufnr, scope = "cursor", focus = false })
+end
+
 vim.keymap.set("n", "<S-d>", function()
-  vim.diagnostic.jump({ count = 1, float = true })
+  vim.diagnostic.jump({ count = 1, on_jump = open_float_on_jump })
 end, { desc = "Next diagnostic" })
 vim.keymap.set("n", "<S-u>", function()
-  vim.diagnostic.jump({ count = -1, float = true })
+  vim.diagnostic.jump({ count = -1, on_jump = open_float_on_jump })
 end, { desc = "Previous diagnostic" })
