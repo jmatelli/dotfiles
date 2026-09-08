@@ -155,3 +155,9 @@
 	helper = /usr/local/share/gcm-core/git-credential-manager
 [credential "https://dev.azure.com"]
 	useHttpPath = true
+
+# Work identity/account (jomatelli) for anything under projectsDir; must
+# stay last in the file so its [user]/[credential] values win over the
+# defaults above for matching repos.
+[includeIf "gitdir:{{ .projectsDir }}/"]
+	path = ~/.gitconfig-work
