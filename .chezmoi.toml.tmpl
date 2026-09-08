@@ -1,9 +1,11 @@
-{{- $email := promptStringOnce . "email" "Git email" -}}
+{{- $email := promptStringOnce . "email" "Git email (personal, used outside projectsDir)" -}}
 {{- $name := promptStringOnce . "name" "Git name" -}}
+{{- $workEmail := promptStringOnce . "workEmail" "Work git email (used under projectsDir)" -}}
 {{- $projectsDir := promptStringOnce . "projectsDir" "Where do your projects live?" "~/Projects" -}}
 sourceDir = {{ (joinPath .chezmoi.homeDir ".dotfiles") | quote }}
 
 [data]
     email = {{ $email | quote }}
     name = {{ $name | quote }}
+    workEmail = {{ $workEmail | quote }}
     projectsDir = {{ $projectsDir | quote }}
