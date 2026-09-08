@@ -79,6 +79,10 @@ require("nvim-treesitter-textobjects").setup({
   move = { set_jumps = true },
 })
 
+-- Auto-close/rename JSX and HTML tags; needs the html/tsx/jsx parsers
+-- installed above.
+require("nvim-ts-autotag").setup()
+
 local select = require("nvim-treesitter-textobjects.select")
 local move = require("nvim-treesitter-textobjects.move")
 
