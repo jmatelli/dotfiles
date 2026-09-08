@@ -11,10 +11,14 @@ vim.pack.add({
   -- Treesitter
   { src = "https://github.com/nvim-treesitter/nvim-treesitter", version = "main" },
   { src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects", version = "main" },
+  "https://github.com/windwp/nvim-ts-autotag",
 
   -- Completion (pinned to v1: main is an actively-breaking v2 in progress
   -- per the plugin's own README warning; v1 is the current stable line)
   { src = "https://github.com/Saghen/blink.cmp", version = "v1" },
+
+  -- Autopairs
+  "https://github.com/windwp/nvim-autopairs",
 
   -- Fuzzy finder
   "https://github.com/ibhagwan/fzf-lua",
@@ -74,6 +78,44 @@ require("blink.cmp").setup({
   keymap = {
     preset = "default",
   },
+})
+
+-- blink.cmp's "default" keymap preset doesn't bind <CR> (accept is <Tab> /
+-- <C-y>), so it's free for nvim-autopairs' own <CR> bracket-expansion - no
+-- integration/ordering hack needed between the two.
+local npairs = require("nvim-autopairs")
+npairs.setup({
+  check_ts = true,
+  ts_config = {
+    lua = { "string" },
+    javascript = { "template_string" },
+  },
+})
+
+-- Match Prettier/ESLint spacing conventions: padded curly braces
+-- ("{ foo }") but tight parens/brackets ("(foo)", "[foo]") - so only {}
+-- gets the classic nvim-autopairs "expand pair on space" treatment.
+-- https://github.com/windwp/nvim-autopairs/wiki/Custom-rules#add-spaces-between-parentheses
+local Rule = require("nvim-autopairs.rule")
+local cond = require("nvim-autopairs.conds")
+
+npairs.add_rules({
+  Rule(" ", " ")
+    :with_pair(function(rule_opts)
+      return rule_opts.line:sub(rule_opts.col - 1, rule_opts.col) == "{}"
+    end)
+    :with_move(cond.none())
+    :with_cr(cond.none())
+    :with_del(function(rule_opts)
+      local col = vim.api.nvim_win_get_cursor(0)[2]
+      return rule_opts.line:sub(col - 1, col + 2) == "{  }"
+    end),
+  Rule("{ ", " }")
+    :with_pair(cond.none())
+    :with_move(function(rule_opts) return rule_opts.char == "}" end)
+    :with_del(cond.none())
+    :use_key("}")
+    :replace_map_cr(function(_) return "<C-c>2xi<CR><C-c>O" end),
 })
 
 require("gitsigns").setup({
