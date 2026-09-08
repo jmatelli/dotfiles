@@ -1,0 +1,12 @@
+customCommands:
+  # lazygit has no built-in status-panel display for the current git
+  # identity, so surface it on demand instead. Reads whatever the repo's
+  # effective config resolves to (respects the personal/work includeIf
+  # split in ~/.gitconfig), not a hardcoded value.
+  - key: "u"
+    context: "global"
+    description: "Show git identity (name/email/GitHub user)"
+    command: >-
+      printf 'name:   %s\nemail:  %s\ngithub: %s\n' "$(git config user.name)" "$(git config user.email)" "$(git config credential.https://github.com.username)"
+    output: popup
+    outputTitle: "Git Identity"
