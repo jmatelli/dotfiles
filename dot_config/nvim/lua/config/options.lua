@@ -26,6 +26,11 @@ opt.confirm = true
 opt.termguicolors = true
 opt.swapfile = false
 
+-- Rounded border on every floating window that doesn't set its own
+-- (hover, signature help, diagnostic floats, etc.) - LSP hover/signature
+-- help fall back to this automatically when no explicit border is passed.
+opt.winborder = "rounded"
+
 -- Global indent default (was missing entirely - every filetype without an
 -- explicit after/ftplugin/*.lua override, e.g. dbui/markdown/yaml/json/sql,
 -- was silently falling back to Nvim's raw legacy default of 8). go.lua and
