@@ -46,6 +46,44 @@ vim.api.nvim_create_autocmd("LspAttach", {
         end)
       end, { buffer = ev.buf, desc = "Goto Source Definition" })
     end
+
+    -- Go to Implementation surfaces mock implementations (mocks/,
+    -- servicemocks, etc.) alongside the real one, which is rarely what you
+    -- want - filter them out, falling back to the unfiltered list only if
+    -- every result was a mock.
+    if client.name == "gopls" then
+      vim.keymap.set("n", "gI", function()
+        local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+        client:request("textDocument/implementation", params, function(err, result)
+          if err then
+            vim.notify(err.message, vim.log.levels.WARN)
+            return
+          end
+          if not result or vim.tbl_isempty(result) then
+            vim.notify("No locations found", vim.log.levels.INFO)
+            return
+          end
+
+          local locations = vim.islist(result) and result or { result }
+          local filtered = vim.tbl_filter(function(loc)
+            local uri = loc.uri or loc.targetUri or ""
+            return not uri:lower():find("mock", 1, true)
+          end, locations)
+          local items = vim.tbl_isempty(filtered) and locations or filtered
+
+          if #items == 1 then
+            vim.lsp.util.show_document(items[1], client.offset_encoding, { reuse_win = true, focus = true })
+            return
+          end
+
+          vim.fn.setqflist({}, " ", {
+            title = "LSP locations",
+            items = vim.lsp.util.locations_to_items(items, client.offset_encoding),
+          })
+          vim.cmd("botright copen")
+        end, ev.buf)
+      end, { buffer = ev.buf, desc = "Goto Implementation (skip mocks)" })
+    end
   end,
 })
 
