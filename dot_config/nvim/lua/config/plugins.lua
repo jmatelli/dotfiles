@@ -3,6 +3,9 @@ vim.pack.add({
   "https://github.com/stevearc/oil.nvim",
   "https://github.com/nvim-mini/mini.icons",
 
+  -- Keybinding discovery (which-key equivalent)
+  "https://github.com/nvim-mini/mini.clue",
+
   -- LSP: mason installs, nvim-lspconfig supplies configs, mason-lspconfig bridges them
   "https://github.com/mason-org/mason.nvim",
   "https://github.com/neovim/nvim-lspconfig",
@@ -52,6 +55,46 @@ vim.pack.add({
 })
 
 require("mini.icons").setup()
+
+local miniclue = require("mini.clue")
+miniclue.setup({
+  triggers = {
+    { mode = "n", keys = "<Leader>" },
+    { mode = "x", keys = "<Leader>" },
+
+    { mode = "n", keys = "[" },
+    { mode = "n", keys = "]" },
+
+    { mode = "i", keys = "<C-x>" },
+
+    { mode = "n", keys = "g" },
+    { mode = "x", keys = "g" },
+
+    { mode = "n", keys = "'" },
+    { mode = "n", keys = "`" },
+    { mode = "x", keys = "'" },
+    { mode = "x", keys = "`" },
+
+    { mode = "n", keys = '"' },
+    { mode = "x", keys = '"' },
+    { mode = "i", keys = "<C-r>" },
+    { mode = "c", keys = "<C-r>" },
+
+    { mode = "n", keys = "<C-w>" },
+
+    { mode = "n", keys = "z" },
+    { mode = "x", keys = "z" },
+  },
+  clues = {
+    miniclue.gen_clues.square_brackets(),
+    miniclue.gen_clues.builtin_completion(),
+    miniclue.gen_clues.g(),
+    miniclue.gen_clues.marks(),
+    miniclue.gen_clues.registers(),
+    miniclue.gen_clues.windows(),
+    miniclue.gen_clues.z(),
+  },
+})
 
 require("oil").setup({
   view_options = {
