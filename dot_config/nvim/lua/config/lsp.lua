@@ -96,6 +96,7 @@ vim.keymap.set("n", "gr", function()
 end, { desc = "Goto References" })
 vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "Goto Implementation" })
 vim.keymap.set("n", "<leader>cr", vim.lsp.buf.rename, { desc = "Rename" })
+vim.keymap.set("n", "<leader>e", vim.diagnostic.open_float, { desc = "Show line diagnostics" })
 
 -- opts.float was deprecated in favor of opts.on_jump (nvim#diagnostic.lua);
 -- this reproduces the same "open a float after jumping" behavior explicitly.
