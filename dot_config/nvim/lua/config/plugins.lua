@@ -335,3 +335,4 @@ require("fzf-lua").setup({
 vim.keymap.set("n", "<leader><leader>", "<cmd>FzfLua buffers sort_mru=true sort_lastused=true<cr>", { desc = "Switch Buffers" })
 vim.keymap.set("n", "<C-P>", "<cmd>FzfLua files<cr>", { desc = "Find Files" })
 vim.keymap.set("n", "<leader>/", "<cmd>FzfLua live_grep<cr>", { desc = "Grep (cwd)" })
+vim.keymap.set("n", "<leader>q", "<cmd>FzfLua quickfix<cr>", { desc = "Quickfix List" })

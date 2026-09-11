@@ -80,7 +80,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
             title = "LSP locations",
             items = vim.lsp.util.locations_to_items(items, client.offset_encoding),
           })
-          vim.cmd("botright copen")
+          require("fzf-lua").quickfix()
         end, ev.buf)
       end, { buffer = ev.buf, desc = "Goto Implementation (skip mocks)" })
     end
