@@ -6,6 +6,10 @@ vim.pack.add({
   -- Keybinding discovery (which-key equivalent)
   "https://github.com/nvim-mini/mini.clue",
 
+  -- Buffer management + startup dashboard
+  "https://github.com/nvim-mini/mini.bufremove",
+  "https://github.com/nvim-mini/mini.starter",
+
   -- LSP: mason installs, nvim-lspconfig supplies configs, mason-lspconfig bridges them
   "https://github.com/mason-org/mason.nvim",
   "https://github.com/neovim/nvim-lspconfig",
@@ -95,6 +99,29 @@ miniclue.setup({
     miniclue.gen_clues.z(),
   },
 })
+
+require("mini.starter").setup()
+
+local bufremove = require("mini.bufremove")
+vim.keymap.set("n", "<leader>bd", function()
+  bufremove.delete(0, false)
+end, { desc = "Delete Buffer" })
+vim.keymap.set("n", "<leader>bo", function()
+  local current = vim.api.nvim_get_current_buf()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if buf ~= current and vim.bo[buf].buflisted then
+      bufremove.delete(buf, false)
+    end
+  end
+end, { desc = "Delete Other Buffers" })
+vim.keymap.set("n", "<leader>ba", function()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.bo[buf].buflisted then
+      bufremove.delete(buf, false)
+    end
+  end
+  require("mini.starter").open()
+end, { desc = "Delete All Buffers" })
 
 require("oil").setup({
   view_options = {
