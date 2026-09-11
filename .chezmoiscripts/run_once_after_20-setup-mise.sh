@@ -6,7 +6,7 @@ set -euo pipefail
 eval "$(mise activate bash)"
 
 mise use --global node@lts
-mise use --global go@latest
+mise use --global go@1.25
 mise use --global rust@latest
 mise use --global python@latest
 mise use --global ruby@latest

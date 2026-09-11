@@ -1,0 +1,7 @@
+[tools]
+go = "1.25"
+"go:mvdan.cc/gofumpt" = "latest"
+node = "lts"
+python = "latest"
+ruby = "latest"
+rust = "latest"
