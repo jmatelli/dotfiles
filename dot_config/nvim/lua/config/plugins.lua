@@ -102,6 +102,17 @@ miniclue.setup({
 
 require("mini.starter").setup()
 
+-- mini.starter buffer-locally maps "-" (query_updaters) and <C-p> (item nav)
+-- before it fires this event, shadowing Open Oil and fzf-lua Find Files -
+-- restore them here, scoped to the starter buffer only.
+vim.api.nvim_create_autocmd("User", {
+  pattern = "MiniStarterOpened",
+  callback = function()
+    vim.keymap.set("n", "-", "<CMD>Oil<CR>", { buffer = 0, desc = "Open Oil" })
+    vim.keymap.set("n", "<C-P>", "<cmd>FzfLua files<cr>", { buffer = 0, desc = "Find Files" })
+  end,
+})
+
 local bufremove = require("mini.bufremove")
 vim.keymap.set("n", "<leader>bd", function()
   bufremove.delete(0, false)
