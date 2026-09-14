@@ -138,6 +138,17 @@ require("oil").setup({
   view_options = {
     show_hidden = true,
   },
+  keymaps = {
+    -- Default is actions.preview (open a split); use the same fzf-lua
+    -- file picker <C-P> opens everywhere else instead.
+    ["<C-p>"] = {
+      callback = function()
+        require("fzf-lua").files()
+      end,
+      desc = "Find Files",
+      mode = "n",
+    },
+  },
 })
 vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open Oil" })
 
