@@ -87,11 +87,16 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
--- Nvim core's own LSP defaults use gr*-prefixed keys (grr/gri/grn/...) and
--- never bind gd - plain gd stays Vim's non-LSP local-declaration search
--- unless overridden. These three restore the previous LazyVim bindings.
+-- Nvim core's own LSP defaults use gr*-prefixed keys (grr/gri/grn/gra/grt/
+-- grx) and never bind gd - plain gd stays Vim's non-LSP local-declaration
+-- search unless overridden. References overrides grr itself (not a plain
+-- "gr") specifically so it stays unambiguous: "gr" alone is a prefix of
+-- all six gr* defaults, forcing Nvim to wait out the whole mapping-timeout
+-- (and pop up mini.clue's hint) on every single press before it could even
+-- fire, and pressing "r" again while waiting just completes Nvim's own
+-- default grr (quickfix) instead of this one.
 vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Goto Definition" })
-vim.keymap.set("n", "gr", function()
+vim.keymap.set("n", "grr", function()
   require("fzf-lua").lsp_references({ jump1 = true })
 end, { desc = "Goto References" })
 vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "Goto Implementation" })
