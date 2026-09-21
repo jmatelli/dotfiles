@@ -87,16 +87,21 @@ vim.api.nvim_create_autocmd("LspAttach", {
   end,
 })
 
--- Nvim core's own LSP defaults use gr*-prefixed keys (grr/gri/grn/gra/grt/
--- grx) and never bind gd - plain gd stays Vim's non-LSP local-declaration
--- search unless overridden. References overrides grr itself (not a plain
--- "gr") specifically so it stays unambiguous: "gr" alone is a prefix of
--- all six gr* defaults, forcing Nvim to wait out the whole mapping-timeout
--- (and pop up mini.clue's hint) on every single press before it could even
--- fire, and pressing "r" again while waiting just completes Nvim's own
--- default grr (quickfix) instead of this one.
+-- Nvim core sets six gr*-prefixed LSP defaults unconditionally at startup
+-- (grn/gra/grx/grr/gri/grt - see :h grr). "gr" is a prefix of all six, so
+-- as long as any of them exist, every "gr" press has to wait out the
+-- whole ambiguous-mapping timeout (surfaced as mini.clue's hint popup)
+-- before Nvim can even fire it, and pressing "r" again while waiting just
+-- completes Nvim's own default grr (plain quickfix) instead of ours.
+-- Removing all six restores gr/gd/gI to firing immediately, unambiguously,
+-- as the only g-prefixed bindings that matter here.
+for _, key in ipairs({ "grn", "gra", "grx", "grr", "gri", "grt" }) do
+  pcall(vim.keymap.del, "n", key)
+end
+pcall(vim.keymap.del, "x", "gra")
+
 vim.keymap.set("n", "gd", vim.lsp.buf.definition, { desc = "Goto Definition" })
-vim.keymap.set("n", "grr", function()
+vim.keymap.set("n", "gr", function()
   require("fzf-lua").lsp_references({ jump1 = true })
 end, { desc = "Goto References" })
 vim.keymap.set("n", "gI", vim.lsp.buf.implementation, { desc = "Goto Implementation" })
