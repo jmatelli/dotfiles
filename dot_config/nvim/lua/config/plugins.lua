@@ -380,6 +380,8 @@ require("ibl").setup({
 
 require("fzf-lua").setup({
   file_ignore_patterns = { "node_modules", "mocks" },
+  -- Wrap selection at the top/bottom of the list instead of stopping.
+  fzf_opts = { ["--cycle"] = true },
 })
 vim.keymap.set("n", "<leader><leader>", "<cmd>FzfLua buffers sort_mru=true sort_lastused=true<cr>", { desc = "Switch Buffers" })
 vim.keymap.set("n", "<C-P>", "<cmd>FzfLua files<cr>", { desc = "Find Files" })
