@@ -378,10 +378,36 @@ require("ibl").setup({
   },
 })
 
+-- fzf-lua's git-status icons (M/D/A/R/C/T/?) render with plain, non-bold
+-- ANSI colors and nothing else to make them stand out, so they're easy to
+-- miss. Register bold variants (fzf-lua's own extension point for this -
+-- the color name is just a lookup key into this cache) and point the
+-- icons at those instead of the plain ones.
+local fzf_ansi = require("fzf-lua.utils")
+for name, code in pairs({
+  bold_yellow = "\27[1;33m",
+  bold_red = "\27[1;31m",
+  bold_green = "\27[1;32m",
+  bold_magenta = "\27[1;35m",
+}) do
+  fzf_ansi.cache_ansi_escseq(name, code)
+end
+
 require("fzf-lua").setup({
   file_ignore_patterns = { "node_modules", "mocks" },
   -- Wrap selection at the top/bottom of the list instead of stopping.
   fzf_opts = { ["--cycle"] = true },
+  git = {
+    icons = {
+      ["M"] = { icon = "M", color = "bold_yellow" },
+      ["D"] = { icon = "D", color = "bold_red" },
+      ["A"] = { icon = "A", color = "bold_green" },
+      ["R"] = { icon = "R", color = "bold_yellow" },
+      ["C"] = { icon = "C", color = "bold_yellow" },
+      ["T"] = { icon = "T", color = "bold_magenta" },
+      ["?"] = { icon = "?", color = "bold_magenta" },
+    },
+  },
 })
 vim.keymap.set("n", "<leader><leader>", "<cmd>FzfLua buffers sort_mru=true sort_lastused=true<cr>", { desc = "Switch Buffers" })
 vim.keymap.set("n", "<C-P>", "<cmd>FzfLua files<cr>", { desc = "Find Files" })
