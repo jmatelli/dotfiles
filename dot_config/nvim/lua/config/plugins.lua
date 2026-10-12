@@ -397,6 +397,12 @@ require("fzf-lua").setup({
   file_ignore_patterns = { "node_modules", "mocks" },
   -- Wrap selection at the top/bottom of the list instead of stopping.
   fzf_opts = { ["--cycle"] = true },
+  grep = {
+    -- file_ignore_patterns doesn't apply to grep providers, so exclude
+    -- noisy lockfiles via rg's own glob instead.
+    rg_opts = "--column --line-number --no-heading --color=always --smart-case "
+        .. "--max-columns=4096 -g '!yarn.lock' -e",
+  },
   git = {
     icons = {
       ["M"] = { icon = "M", color = "bold_yellow" },
