@@ -17,8 +17,8 @@
     ]
   },
   "statusLine": {
-    "command": "bash /Users/techlead/.claude/statusline-command.sh",
-    "type": "command"
+    "type": "command",
+    "command": "bash /Users/techlead/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
     "chrome-devtools-mcp@claude-plugins-official": true,
@@ -33,7 +33,8 @@
     "figma@claude-plugins-official": true,
     "mattpocock-skills@claude-plugins-official": true,
     "modern-web-guidance@claude-plugins-official": true,
-    "stripe@claude-plugins-official": true
+    "stripe@claude-plugins-official": true,
+    "intercom@anthropic-plugin-directory": true
   },
   "extraKnownMarketplaces": {
     "chrome-devtools-plugins": {
@@ -50,8 +51,14 @@
     }
   },
   "advisorModel": "opus",
+  "effortLevel": "medium",
   "tui": "fullscreen",
   "skipWorkflowUsageWarning": true,
   "editorMode": "vim",
-  "verbose": true
+  "verbose": true,
+  "modelSettings": {
+    "claude-sonnet-5": {
+      "effortLevel": "medium"
+    }
+  }
 }
