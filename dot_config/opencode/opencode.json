@@ -1,5 +1,25 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "permissions": [
+    { "action": "shell", "resource": "*git commit*", "effect": "ask" },
+    { "action": "shell", "resource": "*git * commit*", "effect": "ask" },
+    { "action": "shell", "resource": "*git push*", "effect": "ask" },
+    { "action": "shell", "resource": "*git * push*", "effect": "ask" },
+    { "action": "shell", "resource": "*push --force*", "effect": "deny" },
+    { "action": "shell", "resource": "*git push -f*", "effect": "deny" },
+    { "action": "shell", "resource": "*git * push -f*", "effect": "deny" },
+    { "action": "shell", "resource": "*reset --hard*", "effect": "deny" },
+    { "action": "shell", "resource": "*git clean*", "effect": "deny" },
+    { "action": "shell", "resource": "*git branch -D*", "effect": "ask" },
+    { "action": "shell", "resource": "*git branch --delete --force*", "effect": "ask" },
+    { "action": "shell", "resource": "*git checkout .*", "effect": "deny" },
+    { "action": "shell", "resource": "*git checkout -- .*", "effect": "deny" },
+    { "action": "shell", "resource": "*git restore .*", "effect": "deny" },
+    { "action": "shell", "resource": "*git stash drop*", "effect": "ask" },
+    { "action": "shell", "resource": "*git stash clear*", "effect": "deny" },
+    { "action": "shell", "resource": "*git filter-branch*", "effect": "deny" },
+    { "action": "shell", "resource": "*git filter-repo*", "effect": "deny" }
+  ],
   "mcp": {
     "playwright": {
       "type": "local",
