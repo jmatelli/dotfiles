@@ -93,6 +93,36 @@
       "type": "remote",
       "url": "https://mcp.expo.dev/mcp",
       "oauth": {}
+    },
+    "metabase": {
+      "type": "remote",
+      "url": "{env:METABASE_MCP_URL}",
+      "oauth": {}
+    },
+    "figma": {
+      "type": "remote",
+      "url": "https://mcp.figma.com/mcp",
+      "oauth": {}
+    },
+    "stripe": {
+      "type": "remote",
+      "url": "https://mcp.stripe.com",
+      "oauth": {}
+    },
+    "intercom": {
+      "type": "remote",
+      "url": "https://mcp.intercom.com/mcp",
+      "oauth": {}
+    },
+    "resend": {
+      "type": "remote",
+      "url": "https://mcp.resend.com/mcp",
+      "oauth": {}
+    },
+    "exa": {
+      "type": "remote",
+      "url": "https://mcp.exa.ai/mcp",
+      "enabled": true
     }
   }
 }

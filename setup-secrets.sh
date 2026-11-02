@@ -15,6 +15,7 @@ VARS=(
   "GITHUB_PERSONAL_ACCESS_TOKEN|GitHub personal access token"
   "ANTHROPIC_API_KEY|Anthropic API key"
   "LINEAR_API_KEY|Linear API key"
+  "METABASE_MCP_URL|Metabase MCP URL (https://<instance>/api/metabase-mcp)"
 )
 
 mkdir -p "$(dirname "$SECRETS_FILE")"
