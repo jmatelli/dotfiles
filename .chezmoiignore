@@ -11,3 +11,6 @@ README.md
 
 # npm-managed, regenerated from package-lock.json.
 .config/opencode/node_modules/**
+
+# OpenCode background-service credentials (hardcoded password) - machine-local.
+.config/opencode/service.json
