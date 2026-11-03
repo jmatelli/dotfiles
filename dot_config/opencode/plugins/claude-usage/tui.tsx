@@ -195,8 +195,12 @@ export default Plugin.define({
           <text flexShrink={0} wrapMode="none" fg={context.theme.text.base}>
             {props.compact ? `${props.label} ` : props.label.padEnd(4)}
           </text>
-          <text flexShrink={0} wrapMode="none" fg={c()}>{bar().filled}</text>
-          <text flexShrink={0} wrapMode="none" fg={DIM}>{bar().empty}</text>
+          {/* One text node with spans: a separate empty <text> (0% or 100%)
+              still takes a cell and shifts the row by one column. */}
+          <text flexShrink={0} wrapMode="none">
+            <span style={{ fg: c() }}>{bar().filled}</span>
+            <span style={{ fg: DIM }}>{bar().empty}</span>
+          </text>
           <text flexShrink={0} wrapMode="none" fg={c()}>
             {props.compact ? ` ${pct()}` : pct().padStart(5)}
           </text>
