@@ -164,6 +164,15 @@ const usersWithPosts = await db.query(`
 `);
 ```
 
+### Migrations: `*_at` / `*_by` companions (HIGH, ALWAYS CHECK)
+
+Whenever the change adds or modifies a database migration (in the working-tree diff, or anywhere on the branch or PR: `git diff <base-branch>...HEAD --name-only`), check every `*_at` column the migration creates or adds, and report a **HIGH** finding for each one that has no `*_by` companion. This check bypasses the confidence filter: always run it, and always report what is missing.
+
+- `created_at` → `created_by`, `updated_at` → `updated_by`, `deleted_at` → `deleted_by`. Any other timestamp recording an action someone performs follows the same rule (`validated_at` → `validated_by`, `canceled_at` → `canceled_by`, `accepted_at` → `accepted_by`, …). Timestamps that describe the data rather than an action (`start_at`, `end_at`, `expires_at`) don't need one.
+- Name the companion `<action>_by`. A user column with another name that records the same actor (e.g. `requested_by_id` next to `created_at`) is a finding: ask to rename it to `created_by`.
+- Expected shape: a nullable reference to the users table that survives user deletion, e.g. `<action>_by UUID NULL` plus `FOREIGN KEY(<action>_by) REFERENCES users(id) ON DELETE SET NULL` (adapt the type and table to the project's existing migrations).
+- Also check that the down migration drops the companions, and that the model, the repository or data-access layer (setting `*_by` on insert, update and soft delete) and the tests carry them.
+
 ### Performance (MEDIUM)
 
 - **Inefficient algorithms** — O(n^2) when O(n log n) or O(n) is possible
