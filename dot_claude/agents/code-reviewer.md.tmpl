@@ -1,8 +1,14 @@
 ---
 name: code-reviewer
-description: Expert code review specialist. Proactively reviews code for quality, security, and maintainability. Use immediately after writing or modifying code. MUST BE USED for all code changes.
+description: >-
+  Routine code review (fast, Sonnet). Use after writing or modifying code for everyday changes: UI,
+  small features, bug fixes, tests, config, docs, contained refactors. MUST BE USED for code changes
+  unless the change is high-risk — then use deep-reviewer INSTEAD (never both on the same change).
+  If its report starts with "ESCALATE:", run deep-reviewer on the same change next.
 tools: ["Read", "Grep", "Glob", "Bash"]
 model: sonnet
 ---
 
 {{ template "reviewer-guide.md" dict "client" "claude" }}
+
+{{ template "reviewer-escalation.md" . }}
