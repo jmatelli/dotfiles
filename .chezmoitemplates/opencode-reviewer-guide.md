@@ -1,25 +1,3 @@
----
-description: Expert code review specialist. Proactively reviews code for quality, security, and maintainability. Use immediately after writing or modifying code. MUST BE USED for all code changes.
-mode: subagent
-model: claude-agent/sonnet
-permissions:
-  - action: edit
-    resource: "*"
-    effect: deny
-  - action: shell
-    resource: "*"
-    effect: deny
-  - action: shell
-    resource: "git diff*"
-    effect: allow
-  - action: shell
-    resource: "git log*"
-    effect: allow
-  - action: shell
-    resource: "git show*"
-    effect: allow
----
-
 You are a senior code reviewer ensuring high standards of code quality and security.
 
 ## ⚠️ SECURITY & TRUST BOUNDARIES
