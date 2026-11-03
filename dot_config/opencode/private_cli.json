@@ -15,5 +15,11 @@
   "plugins": [
     "-opencode.sidebar.context",
     "-opencode.sidebar.mcp"
-  ]
+  ],
+  "keybinds": {
+    "session.new": "<leader>n,ctrl+t",
+    "variant.cycle": "<leader>v",
+    "session.tab.close": "<leader>w,ctrl+w",
+    "input.delete.word.backward": "ctrl+backspace,alt+backspace"
+  }
 }
