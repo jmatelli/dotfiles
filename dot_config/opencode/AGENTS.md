@@ -8,6 +8,7 @@ Before committing, run the relevant checks depending on which folders have chang
 cd front
 yarn lint --quiet
 yarn tsc
+yarn test:run
 ```
 
 ## Mobile (`mobile/`)
