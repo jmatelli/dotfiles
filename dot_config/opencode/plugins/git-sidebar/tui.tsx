@@ -3,24 +3,29 @@
 // the branch itself is shown only once:
 //
 //   ◆ TECH-123 Some issue title       In Progress
-//   ● #123 feat: some change            approved
+//   ● #123 feat: some change  2 unresolved  approved
+//   EAS ● android preview ● ios preview
 //   ↑2 ↓1 vs develop · 3 changed
 //   ~/project:feature/YAA-123-some-change        ← built-in footer
 //
 // The Linear issue (key read from the branch name, see fetchIssue) links to
 // Linear; the diamond and the state are in the issue state's color.
 // The disk is the PR's CI state: green passed, yellow in progress, red failed,
-// purple merged (muted when there are no checks or the PR is closed). Clicking
-// the PR line opens it in the browser. Ahead/behind uses local refs only (no
-// fetch), against the PR's base, else master for hotfix/*, else develop, else
-// origin/HEAD.
+// purple merged (muted when there are no checks or the PR is closed), followed
+// by the number of unresolved review threads. Clicking the PR line opens it in
+// the browser. The EAS line (repos with mobile/eas.json or eas.json) shows the
+// latest Expo build of the branch per platform, same colors; click to open.
+// Ahead/behind uses local refs only (no fetch), against the PR's base, else
+// master for hotfix/*, else develop, else origin/HEAD.
 //
 // Fine-grained PATs may be unable to read checks/commit statuses, which makes
 // gh's whole statusCheckRollup query fail; CI then falls back to the GitHub
 // Actions runs of the PR head commit.
 import { Plugin } from "@opencode/plugin/tui"
-import { Show, createEffect, createSignal, on, onCleanup } from "solid-js"
+import { For, Show, createEffect, createSignal, on, onCleanup } from "solid-js"
 import { execFile } from "node:child_process"
+import { stat } from "node:fs/promises"
+import { dirname, join } from "node:path"
 
 const GIT_POLL_MS = 10 * 1000
 const PR_POLL_MS = 60 * 1000
@@ -28,12 +33,16 @@ const PR_FORCE_MIN_MS = 10 * 1000 // floor for forced (turn end / palette) PR re
 const ROLLUP_DENIED_MS = 30 * 60 * 1000 // retry the full query after this long
 const ISSUE_POLL_MS = 2 * 60 * 1000
 const ISSUE_FORCE_MIN_MS = 10 * 1000
+const BUILD_POLL_MS = 2 * 60 * 1000
+const BUILD_FORCE_MIN_MS = 30 * 1000
+const BUILD_FAIL_POLL_MS = 15 * 60 * 1000
 const REFRESH_ID = "dotfiles.git-sidebar.refresh"
 const PURPLE = "#bb9af7" // tokyonight magenta; the theme has no "merged" token
 const DEFAULT_BRANCHES = ["main", "master", "develop"]
 
 type CI = "passed" | "pending" | "failed" | "merged" | "closed" | "none"
-type PR = { number: number; title: string; url: string; ci: CI; label?: string; base: string }
+type PR = { number: number; title: string; url: string; ci: CI; label?: string; base: string; unresolved?: number }
+type Build = { platform: string; profile: string; status: CI; url: string; current: boolean }
 type Info = {
   branch?: string
   isDefault?: boolean
@@ -45,6 +54,8 @@ type Info = {
   pr?: PR
   prBranch?: string // branch the PR lookup was done for
   issue?: Issue
+  builds?: Build[]
+  buildsBranch?: string // branch the EAS lookup was done for
   issueBranch?: string // branch the Linear lookup was done for
 }
 type Issue = { identifier: string; title: string; url: string; state: string; color: string }
@@ -191,8 +202,87 @@ async function fetchPR(dir: string, branch: string, remote: string): Promise<PR 
     ci: ci ?? "none",
     label: reviewLabel(pr),
     base: pr.baseRefName,
+    unresolved: pr.state === "OPEN" ? await unresolvedThreads(dir, pr.url) : undefined,
   }
 }
+
+// Review threads not yet marked resolved (outdated ones included: GitHub
+// still lists them as open). undefined when the query fails.
+async function unresolvedThreads(dir: string, url: string): Promise<number | undefined> {
+  const m = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/)
+  if (!m) return undefined
+  const out = await run(
+    "gh",
+    [
+      "api", "graphql",
+      "-f", "query=query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100){nodes{isResolved}}}}}",
+      "-f", `o=${m[1]}`, "-f", `r=${m[2]}`, "-F", `n=${m[3]}`,
+      "--jq", "[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length",
+    ],
+    dir,
+    20000,
+  )
+  const n = out === undefined ? NaN : Number(out)
+  return Number.isFinite(n) ? n : undefined
+}
+
+// EAS builds of this branch: builds carry only a commit hash, so they're
+// matched against the branch's own commits (base..HEAD). Shows the latest
+// build per platform among the 50 newest builds of the project (eas's cap).
+// null: no EAS project or no build for the branch;
+// undefined: eas failed (offline, logged out…).
+const EAS_STATUS: Record<string, CI> = { FINISHED: "passed", ERRORED: "failed", CANCELED: "closed" }
+async function fetchBuilds(dir: string, base?: string): Promise<Build[] | null | undefined> {
+  // Run eas from the main checkout when possible: the build list doesn't
+  // depend on what's checked out, and worktrees usually lack the node_modules
+  // eas needs to load app.config.ts.
+  const common = await run("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], dir)
+  const root = await run("git", ["rev-parse", "--show-toplevel"], dir)
+  if (!root) return undefined // git hiccup: keep the last known builds
+  let easDir: string | undefined
+  for (const r of [common && dirname(common), root]) {
+    if (!r) continue
+    if (await hasFile(join(r, "mobile", "eas.json"))) easDir = join(r, "mobile")
+    else if (await hasFile(join(r, "eas.json"))) easDir = r
+    if (easDir) break
+  }
+  if (!easDir) return null
+  const head = await run("git", ["rev-parse", "HEAD"], dir)
+  if (!head) return undefined
+  const range = base && (await hasRef(dir, `refs/remotes/origin/${base}`)) ? [`origin/${base}..HEAD`] : ["-1", "HEAD"]
+  const commits = new Set(((await run("git", ["rev-list", "--max-count=300", ...range], dir)) ?? "").split("\n"))
+  commits.add(head)
+  const out = await run("eas", ["build:list", "--limit", "50", "--json", "--non-interactive"], easDir, 30000)
+  if (out === undefined) return undefined
+  // stdout may carry notices around the JSON: take the array that starts at
+  // the beginning of a line and ends at the last line-ending "]".
+  const start = out.search(/^\[/m)
+  const end = out.lastIndexOf("]")
+  if (start === -1 || end < start) return undefined
+  let builds: any[]
+  try {
+    builds = JSON.parse(out.slice(start, end + 1))
+  } catch {
+    return undefined
+  }
+  const latest = new Map<string, Build>()
+  for (const b of builds) {
+    if (!commits.has(b.gitCommitHash) || latest.has(b.platform)) continue // newest first
+    latest.set(b.platform, {
+      platform: String(b.platform).toLowerCase(),
+      profile: b.buildProfile,
+      status: EAS_STATUS[b.status] ?? "pending",
+      url:
+        b.project?.ownerAccount?.name && b.project?.slug
+          ? `https://expo.dev/accounts/${b.project.ownerAccount.name}/projects/${b.project.slug}/builds/${b.id}`
+          : "https://expo.dev",
+      current: b.gitCommitHash === head,
+    })
+  }
+  return latest.size ? [...latest.values()].sort((a, b) => a.platform.localeCompare(b.platform)) : null
+}
+
+const hasFile = (path: string) => stat(path).then(() => true, () => false)
 
 // Linear: the issue key is read from the branch name (e.g. idir/tech-1739-…
 // → TECH-1739), matched against the workspace's real team keys so words like
@@ -314,6 +404,7 @@ export default Plugin.define({
         // Branch switched: look up its PR and Linear issue now.
         if (current?.prBranch !== branch) refreshPR(dir)
         if (current?.issueBranch !== branch) refreshIssue(dir)
+        if (current?.buildsBranch !== branch || current?.base !== base) refreshBuilds(dir)
       } finally {
         gitBusy.delete(dir)
         if (gitAgain.delete(dir) && !disposed) refreshGit(dir)
@@ -328,29 +419,36 @@ export default Plugin.define({
     // counting failures, so an outage never turns into a 10s retry loop. A
     // branch switch is looked up right away; a request arriving while one is
     // in flight is queued (once) instead of dropped.
+    // `keyOf` is what the lookup depends on (the branch by default); a new key
+    // is looked up right away. A lookup returning false (failed) backs off to
+    // `failPoll` instead of `poll` unless forced.
     const throttled = (
       poll: number,
       forceMin: number,
-      lookup: (dir: string, info: Info, branch: string) => Promise<void>,
+      lookup: (dir: string, info: Info, branch: string) => Promise<void | boolean>,
+      keyOf: (info: Info) => string = (info) => info.branch!,
+      failPoll = poll,
     ) => {
-      const tried = new Map<string, { branch: string; at: number }>()
-      const busy = new Map<string, string>() // dir → branch being looked up
+      const tried = new Map<string, { key: string; at: number; failed: boolean }>()
+      const busy = new Map<string, string>() // dir → key being looked up
       const again = new Set<string>()
       const refresh = async (dir: string, force = false): Promise<void> => {
         const info = infos()[dir]
         const branch = info?.branch
         if (!info || !branch) return
+        const key = keyOf(info)
         const inFlight = busy.get(dir)
         if (inFlight !== undefined) {
-          if (force || inFlight !== branch) again.add(dir)
+          if (force || inFlight !== key) again.add(dir)
           return
         }
         const last = tried.get(dir)
-        if (last?.branch === branch && Date.now() - last.at < (force ? forceMin : poll)) return
-        busy.set(dir, branch)
-        tried.set(dir, { branch, at: Date.now() })
+        const wait = force ? forceMin : last?.failed ? failPoll : poll
+        if (last?.key === key && Date.now() - last.at < wait) return
+        busy.set(dir, key)
+        tried.set(dir, { key, at: Date.now(), failed: false })
         try {
-          await lookup(dir, info, branch)
+          if ((await lookup(dir, info, branch)) === false) tried.set(dir, { key, at: Date.now(), failed: true })
         } finally {
           busy.delete(dir)
           if (again.delete(dir) && !disposed) refresh(dir, true)
@@ -364,10 +462,31 @@ export default Plugin.define({
       const fetched = await fetchPR(dir, branch, info.remote)
       // On a gh failure keep the last known PR; retry after the throttle.
       if (fetched === undefined || infos()[dir]?.branch !== branch) return
-      const baseChanged = fetched?.base !== infos()[dir]?.pr?.base
+      const previous = infos()[dir]?.prBranch === branch ? infos()[dir]?.pr : undefined
+      const baseChanged = fetched?.base !== previous?.base
+      // The thread count is a separate query: keep the last one if it failed.
+      if (fetched && fetched.unresolved === undefined && fetched.ci !== "merged" && fetched.ci !== "closed")
+        fetched.unresolved = previous?.number === fetched.number ? previous.unresolved : undefined
       patch(dir, { pr: fetched ?? undefined, prBranch: branch })
       if (baseChanged) refreshGit(dir) // ahead/behind is relative to the PR base
     })
+
+    // Keyed on branch + base: the PR lookup can change the base right after
+    // a branch switch, and the commit range must follow it.
+    const buildsKey = (info: Info) => `${info.branch}\0${info.base ?? ""}`
+    const refreshBuilds = throttled(
+      BUILD_POLL_MS,
+      BUILD_FORCE_MIN_MS,
+      async (dir, info, branch) => {
+        if (info.isDefault) return patch(dir, { builds: undefined, buildsBranch: branch })
+        const fetched = await fetchBuilds(dir, info.base)
+        if (fetched === undefined) return false // eas failed: keep the last builds, back off
+        if (infos()[dir]?.branch !== branch) return
+        patch(dir, { builds: fetched ?? undefined, buildsBranch: branch })
+      },
+      buildsKey,
+      BUILD_FAIL_POLL_MS,
+    )
 
     const refreshIssue = throttled(ISSUE_POLL_MS, ISSUE_FORCE_MIN_MS, async (dir, _info, branch) => {
       const fetched = await fetchIssue(branch)
@@ -384,6 +503,7 @@ export default Plugin.define({
         refreshGit(dir)
         refreshPR(dir)
         refreshIssue(dir)
+        refreshBuilds(dir)
       })
     }, GIT_POLL_MS)
 
@@ -392,6 +512,7 @@ export default Plugin.define({
       refreshGit(dir)
       refreshPR(dir, true)
       refreshIssue(dir, true)
+      refreshBuilds(dir, true)
     }
     // The agent may have committed or pushed: refresh that session's directory.
     const stopEvents = context.data.on("session.execution.succeeded", (event) =>
@@ -447,6 +568,7 @@ export default Plugin.define({
       }
       const pr = () => (info()?.prBranch === info()?.branch ? info()?.pr : undefined)
       const issue = () => (info()?.issueBranch === info()?.branch ? info()?.issue : undefined)
+      const builds = () => (info()?.buildsBranch === info()?.branch ? info()?.builds : undefined)
       const hasCounts = () => info()?.ahead !== undefined || (info()?.changed ?? 0) > 0
 
       return (
@@ -491,11 +613,39 @@ export default Plugin.define({
                   <text wrapMode="none" truncate flexGrow={1} flexShrink={1} minWidth={0} fg={theme.text.base}>
                     <b>#{pr().number}</b> {pr().title}
                   </text>
+                  <Show when={pr().unresolved}>
+                    <text wrapMode="none" flexShrink={0} fg={theme.text.feedback.warning.base}>
+                      {`${pr().unresolved} unresolved`}
+                    </text>
+                  </Show>
                   <Show when={pr().label}>
                     <text wrapMode="none" flexShrink={0} fg={labelColor(pr().label)}>
                       {pr().label}
                     </text>
                   </Show>
+                </box>
+              )}
+            </Show>
+            <Show when={builds()}>
+              {(list) => (
+                // One entry per platform, each opening its build page. A build
+                // of an older commit of the branch is marked "(old)".
+                <box flexDirection="row" gap={1} minWidth={0}>
+                  <text flexShrink={0} fg={theme.text.muted}>
+                    EAS
+                  </text>
+                  <For each={list()}>
+                    {(b) => (
+                      <box flexDirection="row" flexShrink={1} minWidth={0} onMouseUp={openURL(b.url)}>
+                        <text flexShrink={0} fg={disk(b.status)}>
+                          {"● "}
+                        </text>
+                        <text wrapMode="none" truncate flexShrink={1} minWidth={0} fg={b.current ? theme.text.base : theme.text.muted}>
+                          {`${b.platform} ${b.profile}${b.current ? "" : " (old)"}`}
+                        </text>
+                      </box>
+                    )}
+                  </For>
                 </box>
               )}
             </Show>
