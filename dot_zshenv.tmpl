@@ -4,20 +4,19 @@ export EDITOR=/opt/homebrew/bin/nvim
 export EDITOR=nvim
 {{- end }}
 
-export BAT_THEME="Dracula"
+export BAT_THEME="tokyonight_night"
 
 PROMPT_COMMAND="history -a;$PROMPT_COMMAND"
 export HISTSIZE PROMPT_COMMAND
 
-# FZF theme for tokyonight
-# bg:#1a1b26
-# bg+:#1a1b26
+# FZF theme: neon tokyonight (matches herdr-app tokyo-neon)
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS'
   --height 40% --reverse --header "[Search history]"
-	--color=fg:#ffffff,bg:-1,hl:#bb9af7
-	--color=fg+:#c0caf5,bg+:-1,gutter:-1,hl+:#7dcfff
-	--color=info:#7aa2f7,prompt:#7dcfff,pointer:#7dcfff
-	--color=marker:#9ece6a,spinner:#9ece6a,header:#9ece6a'
+	--color=fg:#c0caf5,bg:-1,hl:#ff007c
+	--color=fg+:#e6ecff,bg+:#2a2f4d,gutter:-1,hl+:#ff007c
+	--color=info:#c792ff,prompt:#2ee6ff,pointer:#ff007c
+	--color=marker:#9ff26a,spinner:#2ee6ff,header:#565f89
+	--color=border:#2a2e48,query:#e6ecff'
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --hidden'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_TMUX_OPTS=$FZF_TMUX_OPTS'

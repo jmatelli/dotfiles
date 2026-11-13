@@ -68,6 +68,8 @@ zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
+# colors (neon tokyonight)
+source $HOME/.zsh.d/theme.zsh
 # aliases
 source $HOME/.zsh.d/aliases.zsh
 # secrets
@@ -76,7 +78,7 @@ source $HOME/.zsh.d/secrets.zsh
 # Shell integrations
 eval "$(fzf --zsh)"
 eval "$(zoxide init zsh)"
-eval "$(oh-my-posh init zsh --config $HOME/.config/oh-my-posh/codikos.omp.toml)"
+eval "$(oh-my-posh init zsh --config $HOME/.config/oh-my-posh/tokyo-neon.omp.toml)"
 eval "$(mise activate zsh)"
 
 ## [Completion]

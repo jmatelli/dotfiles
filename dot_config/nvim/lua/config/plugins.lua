@@ -45,7 +45,7 @@ vim.pack.add({
   "https://github.com/kristijanhusak/vim-dadbod-completion",
 
   -- Theme
-  { src = "https://github.com/rose-pine/neovim", name = "rose-pine" },
+  "https://github.com/folke/tokyonight.nvim",
 
   -- AI
   "https://github.com/zbirenbaum/copilot.lua",
@@ -247,7 +247,7 @@ vim.keymap.set("n", "<leader>gR", "<cmd>Gitsigns reset_buffer<cr>", { desc = "Re
 
 require("lualine").setup({
   options = {
-    theme = "rose-pine",
+    theme = "tokyonight",
     component_separators = { left = "\u{e0b5}", right = "\u{e0b7}" },
     section_separators = { left = "\u{e0b4}", right = "\u{e0b6}" },
     globalstatus = true,
@@ -341,14 +341,11 @@ vim.g.dbs = {
 }
 vim.keymap.set("n", "<leader>D", "<cmd>bd<cr><cmd>DBUIToggle<cr>")
 
-require("rose-pine").setup({
-  variant = "moon",
-  dark_variant = "moon",
-  styles = {
-    transparency = true,
-  },
+require("tokyonight").setup({
+  style = "night",
+  transparent = true,
 })
-vim.cmd.colorscheme("rose-pine")
+vim.cmd.colorscheme("tokyonight-night")
 
 require("copilot").setup({
   suggestion = {

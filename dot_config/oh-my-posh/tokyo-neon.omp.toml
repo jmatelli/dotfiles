@@ -1,0 +1,189 @@
+version = 3
+final_space = true
+
+# Neon Tokyo Night, powerlevel10k "rainbow" style with rounded caps.
+# Same palette as the Herdr theme (herdr-app/themes/tokyo-neon.json).
+[palette]
+  bg = '#13141f'
+  ink = '#0d0e16'
+  fg = '#c0caf5'
+  frame = '#3b4261'
+  comment = '#565f89'
+  raised = '#2a2f4d'
+  pink = '#ff007c'
+  red = '#ff4f8b'
+  cyan = '#2ee6ff'
+  ice = '#7df9ff'
+  blue = '#7aa2ff'
+  purple = '#c792ff'
+  green = '#9ff26a'
+  yellow = '#ffc66d'
+
+[secondary_prompt]
+  template = '❯❯ '
+  foreground = 'p:purple'
+  background = 'transparent'
+
+# Older prompts collapse to just the arrow, like p10k's transient prompt
+[transient_prompt]
+  template = '❯ '
+  background = 'transparent'
+  foreground_templates = ['{{if gt .Code 0}}p:red{{end}}', '{{if eq .Code 0}}p:pink{{end}}']
+
+# ── Line 1, left: ╭─ [os] [ssh host] [folder] [git] [node/go] ──
+[[blocks]]
+  type = 'prompt'
+  alignment = 'left'
+  newline = true
+
+  [[blocks.segments]]
+    type = 'text'
+    style = 'plain'
+    background = 'transparent'
+    foreground = 'p:frame'
+    template = '╭─'
+
+  [[blocks.segments]]
+    type = 'os'
+    style = 'diamond'
+    leading_diamond = ""
+    background = 'p:fg'
+    foreground = 'p:ink'
+    template = ' {{ .Icon }} '
+
+  # Only over SSH, so you know which machine you're on
+  [[blocks.segments]]
+    type = 'session'
+    style = 'powerline'
+    powerline_symbol = ""
+    background = 'p:yellow'
+    foreground = 'p:ink'
+    template = "{{ if .SSHSession }} \U000F08C0 {{ .HostName }} {{ end }}"
+
+  [[blocks.segments]]
+    type = 'path'
+    style = 'powerline'
+    powerline_symbol = ""
+    background = 'p:blue'
+    foreground = 'p:ink'
+    template = " \U000F024B <b>{{ .Path }}</b> "
+
+    [blocks.segments.properties]
+      cache_duration = 'none'
+      style = 'full'
+
+  # green = clean, amber = uncommitted changes, ice = only ahead/behind
+  [[blocks.segments]]
+    type = 'git'
+    style = 'powerline'
+    powerline_symbol = ""
+    background = 'p:green'
+    foreground = 'p:ink'
+    background_templates = [
+      '{{ if or (.Working.Changed) (.Staging.Changed) }}p:yellow{{ end }}',
+      '{{ if or (gt .Ahead 0) (gt .Behind 0) }}p:ice{{ end }}',
+    ]
+    template = "  {{ .HEAD }}{{ if .Staging.Changed }} {{ .Staging.String }}{{ end }}{{ if .Working.Changed }} {{ .Working.String }}{{ end }}{{ if gt .StashCount 0 }} \U000F003C {{ .StashCount }}{{ end }}{{ if gt .Behind 0 }} ⇣{{ .Behind }}{{ end }}{{ if gt .Ahead 0 }} ⇡{{ .Ahead }}{{ end }} "
+
+    [blocks.segments.properties]
+      branch_icon = ''
+      cache_duration = 'none'
+      commit_icon = '@'
+      fetch_status = true
+      fetch_stash_count = true
+
+  # Only inside JS/TS projects
+  [[blocks.segments]]
+    type = 'node'
+    style = 'powerline'
+    powerline_symbol = ""
+    background = 'p:purple'
+    foreground = 'p:ink'
+    template = " \U000F0399 {{ .Full }} "
+
+    [blocks.segments.properties]
+      display_mode = 'files'
+
+  # Only inside Go projects
+  [[blocks.segments]]
+    type = 'go'
+    style = 'powerline'
+    powerline_symbol = ""
+    background = 'p:cyan'
+    foreground = 'p:ink'
+    template = " \U000F07D3 {{ .Full }} "
+
+    [blocks.segments.properties]
+      display_mode = 'files'
+
+# ── Line 1, right: ·········· [took 3s] [✘ 1] [22:52] ──
+# The dotted filler joins left and right, like p10k's frame.
+[[blocks]]
+  type = 'prompt'
+  alignment = 'right'
+  overflow = 'hide'
+  filler = "<p:frame,transparent>·</>"
+
+  [[blocks.segments]]
+    type = 'executiontime'
+    style = 'powerline'
+    powerline_symbol = ""
+    invert_powerline = true
+    background = 'p:yellow'
+    foreground = 'p:ink'
+    template = " \U000F051B {{ .FormattedMs }} "
+
+    [blocks.segments.properties]
+      cache_duration = 'none'
+      threshold = 1000
+
+  [[blocks.segments]]
+    type = 'status'
+    style = 'powerline'
+    powerline_symbol = ""
+    invert_powerline = true
+    background = 'p:red'
+    foreground = 'p:ink'
+    template = "{{ if gt .Code 0 }} ✘ {{ .Code }} {{ end }}"
+
+  [[blocks.segments]]
+    type = 'time'
+    style = 'powerline'
+    powerline_symbol = ""
+    invert_powerline = true
+    background = 'p:raised'
+    foreground = 'p:fg'
+    template = " \U000F0150 {{ .CurrentDate | date .Format }} "
+
+    [blocks.segments.properties]
+      time_format = '15:04'
+
+  [[blocks.segments]]
+    type = 'text'
+    style = 'plain'
+    background = 'transparent'
+    foreground = 'p:raised'
+    template = ""
+
+# ── Line 2: ╰─❯ ──
+[[blocks]]
+  type = 'prompt'
+  alignment = 'left'
+  newline = true
+
+  [[blocks.segments]]
+    type = 'text'
+    style = 'plain'
+    background = 'transparent'
+    foreground = 'p:frame'
+    template = '╰─'
+
+  [[blocks.segments]]
+    template = '❯'
+    background = 'transparent'
+    type = 'text'
+    style = 'plain'
+    foreground_templates = ['{{if gt .Code 0}}p:red{{end}}', '{{if eq .Code 0}}p:pink{{end}}']
+
+    [blocks.segments.properties]
+      cache_duration = 'none'
