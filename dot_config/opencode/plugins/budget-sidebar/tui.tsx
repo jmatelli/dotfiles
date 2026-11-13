@@ -1,45 +1,189 @@
-// Shows the OpenCode account (workspace, plan), the session's context usage and
-// the Go subscription's allowances (5-hour, weekly and monthly) in the OpenCode
-// session sidebar:
+// Shows the account, the session's context usage and the subscription usage
+// of whichever provider the prompt's selected model belongs to, in the
+// OpenCode session sidebar. Switching model switches the block:
 //
-//   Account
-//   ws    Default
-//   plan  Go
-//   Usage
-//   ctx  ████░░░░░░░░░░░░  32% 64k/200k
-//   5h   █░░░░░░░░░░░░░░░   4%  →18:20
-//   7d   ░░░░░░░░░░░░░░░░   1%  →Sun 00:00
-//   30d  ░░░░░░░░░░░░░░░░   1%  →8 Dec
+//   Claude agent (claude-agent)          OpenCode (opencode, opencode-go, …)
+//   Account                              Account
+//   user  Jane                           ws    Default
+//   email jane@example.com               plan  Go
+//   org   Acme · admin                   Usage
+//   plan  Pro                            ctx  ████░░░░░░░░░░░░  32% 64k/200k
+//   Usage                                5h   █░░░░░░░░░░░░░░░   4% →18:20
+//   ctx  ████░░░░░░░░░░░░  32% 64k/200k  7d   ░░░░░░░░░░░░░░░░   1% →Sun 00:00
+//   5h   █░░░░░░░░░░░░░░░   4% →18:20    30d  ░░░░░░░░░░░░░░░░   1% →8 Dec
+//   7d   ░░░░░░░░░░░░░░░░   1% →Sun 00:00
 //
-// The numbers come from the OpenCode server's own usage-limits endpoint
-// (context.data.location.usage), so no credentials are read here: the server
-// resolves the active OpenCode integration and reports each window as a
-// percentage of the subscription's allowance. Each allowance is per model, so
-// the percentage is the model closest to its limit. Clicking the account block
-// opens the console page with the full breakdown. Refreshed every 2 minutes and
-// (throttled) when a turn ends.
+// Claude: account info is read from Claude Code's ~/.claude.json; usage comes
+// from the endpoint Claude Code's `/usage` uses, authenticated with Claude
+// Code's OAuth token from the macOS Keychain (read only, never refreshed here —
+// Claude Code keeps it fresh). The endpoint is rate-limited tightly, so every
+// OpenCode window shares one on-disk cache.
 //
-// Unlike the Claude subscription, the Go API has no user profile: it returns the
-// workspace name and its usage URL, so there are no user/email/org rows here.
+// OpenCode: the server's own usage-limits endpoint (context.data.location.usage)
+// reports each Go window as a percentage of the subscription's allowance (per
+// model, so the model closest to its limit). The Go API has no user profile,
+// only the workspace name and its console URL; clicking the account block
+// opens that page.
+//
+// Only the active provider is polled (every 2 minutes, and throttled when a
+// turn ends); switching model refreshes the new one immediately.
 import { Plugin } from "@opencode/plugin/tui"
-import { createSignal, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createMemo, createRoot, createSignal, on, onCleanup, onMount, Show } from "solid-js"
 import { execFile } from "node:child_process"
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
+import { homedir } from "node:os"
+import { dirname, join } from "node:path"
 
 const POLL_MS = 2 * 60 * 1000
 // Floor for refreshes triggered by a finished turn (a burst of subagent turns
-// must not become a burst of console lookups); the poll above catches the rest.
+// must not become a burst of lookups); the poll above catches the rest.
 const TURN_MIN_GAP_MS = 30 * 1000
 
-type Window = { percent: number; limited: boolean; resetsAt: number }
+const CLAUDE_PROVIDER = "claude-agent"
+type Mode = "claude" | "go"
+
+// Both backends are normalised to this shape.
+type Window = { percent: number; limited: boolean; resetsAt?: number }
+
+// ---- OpenCode Go -----------------------------------------------------------
+
 type Go = { rolling?: Window; weekly?: Window; monthly?: Window }
 type Workspace = { id: string; name?: string; usageURL?: string }
 type Limits = { workspace?: Workspace; go?: Go }
-type State = { limits?: Limits; error?: string }
+type GoState = { limits?: Limits; error?: string }
 
 const CONSOLE_URL = "https://opencode.ai/console"
 
 const message = (error: unknown) =>
   error instanceof Error ? error.message : typeof error === "string" ? error : "usage unavailable"
+
+// ---- Claude ----------------------------------------------------------------
+
+const USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
+
+type ClaudeWindow = { utilization: number | null; resets_at: string | null }
+type ClaudeUsage = { five_hour?: ClaudeWindow | null; seven_day?: ClaudeWindow | null }
+type Account = {
+  name?: string
+  email?: string
+  org?: string
+  role?: string
+  plan?: string
+  seat?: string
+}
+type ClaudeState = { usage?: ClaudeUsage; error?: string; account?: Account }
+type Credentials = { accessToken?: string; subscriptionType?: string }
+
+function readCredentials(): Promise<Credentials> {
+  return new Promise((resolve) => {
+    execFile(
+      "security",
+      ["find-generic-password", "-s", "Claude Code-credentials", "-w"],
+      (err, stdout) => {
+        if (err) return resolve({})
+        try {
+          resolve(JSON.parse(stdout).claudeAiOauth ?? {})
+        } catch {
+          resolve({})
+        }
+      },
+    )
+  })
+}
+
+const titleCase = (s?: string) =>
+  s ? s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : undefined
+
+// Profile cached by Claude Code in ~/.claude.json (no network call needed).
+async function readAccount(subscriptionType?: string): Promise<Account | undefined> {
+  try {
+    const raw = await readFile(join(homedir(), ".claude.json"), "utf8")
+    const a = JSON.parse(raw).oauthAccount
+    if (!a) return undefined
+    const plan = subscriptionType ?? a.organizationType?.replace(/^claude_/, "")
+    // seatTier looks like "team_standard" → "Standard"
+    const seat = a.seatTier?.replace(new RegExp(`^${plan}_`), "")
+    return {
+      name: a.fullName ?? a.displayName,
+      email: a.emailAddress,
+      org: a.organizationName,
+      role: a.organizationRole,
+      plan: titleCase(plan),
+      seat: titleCase(seat),
+    }
+  } catch {
+    return undefined
+  }
+}
+
+// Every OpenCode window (and every plugin reload) shares one on-disk cache, so
+// the endpoint is hit at most once per CACHE_TTL_MS overall. On 429 we back
+// off exponentially, up to 30 min.
+const CACHE_FILE = join(homedir(), ".cache", "opencode-claude-usage.json")
+const CACHE_TTL_MS = 2 * 60 * 1000
+const BACKOFF_MIN_MS = 5 * 60 * 1000
+const BACKOFF_MAX_MS = 30 * 60 * 1000
+
+type Cache = { fetchedAt?: number; usage?: ClaudeUsage; backoffUntil?: number; backoffMs?: number }
+
+async function readCache(): Promise<Cache> {
+  try {
+    return JSON.parse(await readFile(CACHE_FILE, "utf8"))
+  } catch {
+    return {}
+  }
+}
+
+async function writeCache(cache: Cache) {
+  try {
+    await mkdir(dirname(CACHE_FILE), { recursive: true })
+    const tmp = `${CACHE_FILE}.${process.pid}.tmp`
+    await writeFile(tmp, JSON.stringify(cache))
+    await rename(tmp, CACHE_FILE) // atomic, so concurrent windows never read a partial file
+  } catch {}
+}
+
+async function fetchClaude(): Promise<ClaudeState> {
+  const creds = await readCredentials()
+  const account = await readAccount(creds.subscriptionType)
+  const token = creds.accessToken
+  if (!token) return { error: "no login", account }
+
+  const now = Date.now()
+  const cache = await readCache()
+  if (cache.usage && cache.fetchedAt && now - cache.fetchedAt < CACHE_TTL_MS) {
+    return { usage: cache.usage, account }
+  }
+  if (cache.backoffUntil && now < cache.backoffUntil) {
+    return cache.usage ? { usage: cache.usage, account } : { error: "rate limited", account }
+  }
+
+  try {
+    const res = await fetch(USAGE_URL, {
+      headers: { Authorization: `Bearer ${token}`, "anthropic-beta": "oauth-2025-04-20" },
+    })
+    if (res.status === 429) {
+      const backoffMs = Math.min(BACKOFF_MAX_MS, cache.backoffMs ? cache.backoffMs * 2 : BACKOFF_MIN_MS)
+      await writeCache({ ...cache, backoffMs, backoffUntil: now + backoffMs })
+      return cache.usage ? { usage: cache.usage, account } : { error: "rate limited", account }
+    }
+    if (res.status === 401) return { error: "token expired", account }
+    if (!res.ok) return cache.usage ? { usage: cache.usage, account } : { error: `http ${res.status}`, account }
+    const usage = (await res.json()) as ClaudeUsage
+    await writeCache({ fetchedAt: now, usage })
+    return { usage, account }
+  } catch {
+    return cache.usage ? { usage: cache.usage, account } : { error: "offline", account }
+  }
+}
+
+// Claude reports no "limited" flag; the design never showed one for it.
+const claudeWindow = (w?: ClaudeWindow | null): Window | undefined =>
+  w?.utilization == null
+    ? undefined
+    : { percent: w.utilization, limited: false, resetsAt: w.resets_at ? Date.parse(w.resets_at) : undefined }
+
+// ---- Rendering helpers -----------------------------------------------------
 
 // Smooth gradient: green (0%) → yellow (60%) → red (90%+), tokyonight palette.
 const GREEN = [0x9e, 0xce, 0x6a]
@@ -61,9 +205,8 @@ const DIM = "#565f89"
 const GREEN_HEX = "#9ece6a"
 const RED_HEX = "#f7768e"
 
-// Bar style: the same █ / ░ pair the old Claude Code status line used, wider
-// for the sidebar. 16 cells keeps the longest row ("30d" + bar + % + reset
-// date) under ~38 cols.
+// Same style as the Claude Code status line (█ / ░), wider for the sidebar.
+// 16 cells keeps the longest row ("30d" + bar + % + reset date) under ~38 cols.
 const BAR_WIDTH = 16
 const COMPACT_BAR_WIDTH = 6
 
@@ -75,11 +218,9 @@ function cells(pct: number, width = BAR_WIDTH) {
 const resetTime = (ts?: number) =>
   ts ? new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }) : ""
 
-// Weekly windows reset at a midnight, so the weekday matters more than the time.
+// Weekly windows: the weekday matters more than the time.
 const resetDay = (ts?: number) =>
-  ts
-    ? `${new Date(ts).toLocaleDateString([], { weekday: "short" })} ${resetTime(ts)}`
-    : ""
+  ts ? `${new Date(ts).toLocaleDateString([], { weekday: "short" })} ${resetTime(ts)}` : ""
 
 // Monthly windows can be weeks away, so the date is what matters.
 const resetDate = (ts?: number) =>
@@ -89,27 +230,56 @@ export default Plugin.define({
   id: "dotfiles.budget-sidebar",
   setup(context) {
     const theme = context.theme
-    const [state, setState] = createSignal<State>({})
-
     const location = () => context.location ?? context.data.location.default()
+
+    // The prompt's selected model decides which subscription is shown. setup
+    // has no reactive owner, so this memo (and the switch effect below) get
+    // their own roots, disposed on cleanup.
+    let disposeRoot = () => {}
+    const mode = createRoot((dispose) => {
+      disposeRoot = dispose
+      return createMemo<Mode>(() =>
+        context.ui.model.current()?.providerID === CLAUDE_PROVIDER ? "claude" : "go",
+      )
+    })
+
+    const [goState, setGoState] = createSignal<GoState>({})
+    const [claudeState, setClaudeState] = createSignal<ClaudeState>({})
 
     // The server answers from its cached credential; a failure (offline, no
     // OpenCode account) keeps the last numbers so the bars don't blink.
-    // Turn ends trigger a refresh too (a finished turn is what moves the
-    // numbers), throttled: a burst of subagent turns is one lookup.
-    let lastSync = 0
-    const refresh = async (minGap = 0) => {
-      if (minGap && Date.now() - lastSync < minGap) return
-      lastSync = Date.now()
+    const refreshGo = async () => {
       try {
         await context.data.location.usage.sync(location())
-        setState({ limits: context.data.location.usage.limits(location()) })
+        setGoState({ limits: context.data.location.usage.limits(location()) })
       } catch (error) {
-        setState((prev) => ({ limits: prev.limits, error: message(error) }))
+        setGoState((prev) => ({ limits: prev.limits, error: message(error) }))
       }
     }
-    refresh()
-    const timer = setInterval(refresh, POLL_MS)
+
+    const refreshClaude = async () => {
+      const next = await fetchClaude()
+      // Keep showing the last good numbers on transient failures.
+      const prev = claudeState()
+      if (next.error && prev.usage && next.error !== "token expired") return
+      setClaudeState(next)
+    }
+
+    // Turn ends trigger a refresh too (a finished turn is what moves the
+    // numbers), throttled per provider: a burst of subagent turns is one lookup.
+    const lastSync: Record<Mode, number> = { claude: 0, go: 0 }
+    const refresh = async (minGap = 0) => {
+      const m = mode()
+      if (minGap && Date.now() - lastSync[m] < minGap) return
+      lastSync[m] = Date.now()
+      await (m === "claude" ? refreshClaude() : refreshGo())
+    }
+    // Runs once now and again on every provider switch.
+    const disposeSwitch = createRoot((dispose) => {
+      createEffect(on(mode, () => void refresh()))
+      return dispose
+    })
+    const timer = setInterval(() => refresh(), POLL_MS)
     const stopTurns = (["succeeded", "failed", "interrupted"] as const).map((outcome) =>
       context.data.on(`session.execution.${outcome}`, () => refresh(TURN_MIN_GAP_MS)),
     )
@@ -119,6 +289,18 @@ export default Plugin.define({
       event.stopPropagation()
       execFile("open", [url], () => {})
     }
+
+    // Normalised windows for the active provider.
+    const windows = () => {
+      if (mode() === "claude") {
+        const u = claudeState().usage
+        return u
+          ? { rolling: claudeWindow(u.five_hour), weekly: claudeWindow(u.seven_day), monthly: undefined }
+          : undefined
+      }
+      return goState().limits?.go
+    }
+    const error = () => (mode() === "claude" ? claudeState().error : goState().error)
 
     // compact: short bar, no column padding, for the one-line status bar.
     const Bar = (props: { label: string; pct: number; suffix?: string; alert?: boolean; compact?: boolean }) => {
@@ -188,8 +370,7 @@ export default Plugin.define({
       if (!last) return undefined
       const t = last.tokens
       const used = t.input + t.output + t.reasoning + t.cache.read + t.cache.write
-      const loc = location()
-      const models = context.data.location.model.list(loc) ?? []
+      const models = context.data.location.model.list(location()) ?? []
       const model = models.find(
         (m) =>
           m.providerID === last.model.providerID &&
@@ -210,11 +391,7 @@ export default Plugin.define({
             label="ctx"
             pct={usage()!.pct}
             compact={props.compact}
-            suffix={
-              props.compact
-                ? undefined
-                : `${kTokens(usage()!.used)}/${kTokens(usage()!.limit)}`
-            }
+            suffix={props.compact ? undefined : `${kTokens(usage()!.used)}/${kTokens(usage()!.limit)}`}
           />
         </Show>
       )
@@ -229,29 +406,43 @@ export default Plugin.define({
       </Show>
     )
 
-    const AccountSection = () => {
-      const ws = () => state().limits?.workspace
-      return (
-        <Show when={ws()}>
-          {(workspace) => {
-            const url = () => workspace().usageURL ?? CONSOLE_URL
-            return (
-              // A plain click anywhere on the block opens the console page
-              // (the workspace's usage overview).
-              <box flexDirection="column" onMouseUp={openURL(url())}>
-                <text fg={theme.text.base}>
-                  <b>Account</b>
-                </text>
-                <Row label="ws" value={workspace().name} />
-                <Show when={state().limits?.go}>
-                  <Row label="plan" value="Go" fg={GREEN_HEX} />
-                </Show>
-              </box>
-            )
-          }}
-        </Show>
-      )
-    }
+    const ClaudeAccount = () => (
+      <Show when={claudeState().account}>
+        {(a) => {
+          const plan = () => [a().plan, a().seat && `${a().seat} seat`].filter(Boolean).join(" · ")
+          const org = () => [a().org, a().role].filter(Boolean).join(" · ")
+          return (
+            <box flexDirection="column">
+              <text fg={theme.text.base}>
+                <b>Account</b>
+              </text>
+              <Row label="user" value={a().name} />
+              <Row label="email" value={a().email} />
+              <Row label="org" value={org()} />
+              <Row label="plan" value={plan()} fg={GREEN_HEX} />
+            </box>
+          )
+        }}
+      </Show>
+    )
+
+    const GoAccount = () => (
+      <Show when={goState().limits?.workspace}>
+        {(workspace) => (
+          // A plain click anywhere on the block opens the console page (the
+          // workspace's usage overview).
+          <box flexDirection="column" onMouseUp={openURL(workspace().usageURL ?? CONSOLE_URL)}>
+            <text fg={theme.text.base}>
+              <b>Account</b>
+            </text>
+            <Row label="ws" value={workspace().name} />
+            <Show when={goState().limits?.go}>
+              <Row label="plan" value="Go" fg={GREEN_HEX} />
+            </Show>
+          </box>
+        )}
+      </Show>
+    )
 
     // The plugin API doesn't expose sidebar visibility, but OpenCode unmounts
     // sidebar content when the sidebar is hidden (narrow pane, toggled off).
@@ -270,49 +461,47 @@ export default Plugin.define({
         <box flexDirection="row" gap={2} flexShrink={0}>
           <Context sessionID={props.sessionID} compact />
           <Show
-            when={state().limits?.go}
+            when={windows()}
             fallback={
-              <Show when={state().error}>
-                <text fg={DIM}>usage: {state().error}</text>
+              <Show when={error()}>
+                <text fg={DIM}>usage: {error()}</text>
               </Show>
             }
           >
-            <Item label="5h" win={state().limits?.go?.rolling} compact />
-            <Item label="7d" win={state().limits?.go?.weekly} compact />
+            <Item label="5h" win={windows()?.rolling} compact />
+            <Item label="7d" win={windows()?.weekly} compact />
           </Show>
         </box>
       </Show>
     )
 
     // Vertical block for the session sidebar: account, then one bar per line.
-    // Every row is a direct child of the gap={1} column (and Show flattens its
-    // children into it), so the blank line between rows matches the Claude
-    // usage block this replaces.
-    const Status = (props: { sessionID?: string }) => {
-      const go = () => state().limits?.go
-      return (
-        <box flexDirection="column" gap={1}>
-          <TrackSidebar />
-          <AccountSection />
-          <text fg={theme.text.base}>
-            <b>Usage</b>
-          </text>
-          <Context sessionID={props.sessionID} />
-          <Show
-            when={go()}
-            fallback={
-              <Show when={state().error}>
-                <text fg={theme.text.base}>usage: {state().error}</text>
-              </Show>
-            }
-          >
-            <Item label="5h" win={go()?.rolling} reset={resetTime(go()?.rolling?.resetsAt)} />
-            <Item label="7d" win={go()?.weekly} reset={resetDay(go()?.weekly?.resetsAt)} />
-            <Item label="30d" win={go()?.monthly} reset={resetDate(go()?.monthly?.resetsAt)} />
-          </Show>
-        </box>
-      )
-    }
+    // Every row is a direct child of the gap={1} column (Show flattens its
+    // children into it), which gives the blank line between rows.
+    const Status = (props: { sessionID?: string }) => (
+      <box flexDirection="column" gap={1}>
+        <TrackSidebar />
+        <Show when={mode() === "claude"} fallback={<GoAccount />}>
+          <ClaudeAccount />
+        </Show>
+        <text fg={theme.text.base}>
+          <b>Usage</b>
+        </text>
+        <Context sessionID={props.sessionID} />
+        <Show
+          when={windows()}
+          fallback={
+            <Show when={error()}>
+              <text fg={theme.text.base}>usage: {error()}</text>
+            </Show>
+          }
+        >
+          <Item label="5h" win={windows()?.rolling} reset={resetTime(windows()?.rolling?.resetsAt)} />
+          <Item label="7d" win={windows()?.weekly} reset={resetDay(windows()?.weekly?.resetsAt)} />
+          <Item label="30d" win={windows()?.monthly} reset={resetDate(windows()?.monthly?.resetsAt)} />
+        </Show>
+      </box>
+    )
 
     const pct = (win?: Window) => Math.round(win?.percent ?? 0)
 
@@ -327,12 +516,15 @@ export default Plugin.define({
           slash: { name: "budget" },
           run: async () => {
             await refresh()
-            const go = state().limits?.go
+            const w = windows()
+            const parts = w && [
+              `5h ${pct(w.rolling)}%`,
+              `7d ${pct(w.weekly)}%`,
+              ...(w.monthly ? [`30d ${pct(w.monthly)}%`] : []),
+            ]
             context.ui.toast.show({
-              title: "Usage",
-              message: go
-                ? `5h ${pct(go.rolling)}% · 7d ${pct(go.weekly)}% · 30d ${pct(go.monthly)}%`
-                : (state().error ?? "no Go subscription"),
+              title: mode() === "claude" ? "Claude usage" : "OpenCode usage",
+              message: parts ? parts.join(" · ") : (error() ?? "unavailable"),
             })
           },
         },
@@ -361,6 +553,8 @@ export default Plugin.define({
 
     return () => {
       clearInterval(timer)
+      disposeSwitch()
+      disposeRoot()
       for (const stop of stopTurns) stop()
       unSidebar?.()
       unPrompt?.()
