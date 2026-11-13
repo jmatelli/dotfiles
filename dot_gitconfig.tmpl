@@ -156,11 +156,22 @@
   colorMoved = default
 [init]
 	defaultBranch = main
-[credential "https://github.com"]
-	username = jmatelli
+# Non-GitHub hosts (e.g. Azure DevOps) use Git Credential Manager. Must stay
+# above the GitHub sections: helpers stack in file order and the empty
+# `helper =` resets the list, so placed below it would wipe out theirs.
 [credential]
 	helper =
 	helper = /usr/local/share/gcm-core/git-credential-manager
+# GitHub logins come from gh's stored accounts, picking the account named by
+# `username` (personal here, overridden to the work account by
+# ~/.gitconfig-work). See ~/.local/bin/git-credential-gh-account.
+[credential "https://github.com"]
+	username = jmatelli
+	helper =
+	helper = !~/.local/bin/git-credential-gh-account
+[credential "https://gist.github.com"]
+	helper =
+	helper = !~/.local/bin/git-credential-gh-account
 [credential "https://dev.azure.com"]
 	useHttpPath = true
 

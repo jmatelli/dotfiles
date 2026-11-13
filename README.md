@@ -19,6 +19,18 @@ be prompted once for your git name/email; that's stored in
 `~/.config/chezmoi/chezmoi.toml` and reused on every future `chezmoi apply`
 on that machine.
 
+Then log in both GitHub accounts to `gh` (the only manual step: it opens a
+browser):
+
+```bash
+gh auth login --hostname github.com   # personal: jmatelli
+gh auth login --hostname github.com   # work: jomatelli
+```
+
+Git and `gh` then pick the account per folder by themselves: work under
+`~/Projects/`, personal everywhere else. The `gh` wrapper and the git
+credential helper that do this live in `dot_local/bin/`.
+
 To test against a local checkout or a branch before merging, override the
 source:
 

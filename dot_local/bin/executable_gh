@@ -1,0 +1,35 @@
+#!/bin/sh
+# gh wrapper: runs the real gh as the GitHub account git uses for this
+# folder, so agents can call plain `gh` and act as the right user.
+#
+# The account comes from `git config credential.https://github.com.username`,
+# which ~/.gitconfig sets per folder (personal by default, work under
+# projectsDir via includeIf). Both accounts must be logged in to gh
+# (`gh auth status`); their tokens come from `gh auth token --user`.
+#
+# Left alone: an explicit GH_TOKEN / GITHUB_TOKEN, and `gh auth ...`
+# (login, switch, status must see gh's own state, not an injected token).
+
+# The real gh: the first one on PATH that isn't this script.
+self_dir=$(cd "$(dirname "$0")" && pwd -P)
+real=
+old_ifs=$IFS
+IFS=:
+for dir in $PATH; do
+  [ -n "$dir" ] || continue
+  [ "$(cd "$dir" 2>/dev/null && pwd -P)" = "$self_dir" ] && continue
+  if [ -x "$dir/gh" ]; then real="$dir/gh"; break; fi
+done
+IFS=$old_ifs
+[ -n "$real" ] || real=/opt/homebrew/bin/gh
+[ -x "$real" ] || { echo "gh wrapper: real gh not found on PATH" >&2; exit 127; }
+
+if [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ] && [ "${1:-}" != auth ]; then
+  user=$(git config --get credential.https://github.com.username 2>/dev/null)
+  if [ -n "$user" ] && token=$("$real" auth token --user "$user" 2>/dev/null) && [ -n "$token" ]; then
+    GH_TOKEN=$token
+    export GH_TOKEN
+  fi
+fi
+
+exec "$real" "$@"

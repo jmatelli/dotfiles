@@ -99,3 +99,8 @@ export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
 export PATH="$PATH:$HOME/.lmstudio/bin"
 # End of LM Studio CLI section
 
+# ~/.local/bin first: the gh wrapper there must shadow Homebrew's gh (it picks
+# the GitHub account per folder), and herdr-core's hc lives there too. Kept
+# last so nothing above (brew shellenv, installers) puts Homebrew back ahead.
+path=("$HOME/.local/bin" ${path:#$HOME/.local/bin})
+
