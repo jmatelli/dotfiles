@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+{{ if eq .chezmoi.os "darwin" -}}
+# Herdr: the desktop app (Homebrew cask) and herdr-core, the server that keeps
+# its terminals running. Homebrew has no formula for herdr-core, so it comes
+# from Herdr's own installer, which verifies the download's checksum and
+# Apple signature and puts herdr-core + hc in ~/.local/bin.
+# Config (keys, tokyo-neon theme) is in dot_config/herdr-app.
+# Kept separate from 10-install-packages so changing it doesn't re-run that.
+
+brew install -q --cask herdr-app || echo "Warning: failed to install herdr-app (cask)" >&2
+
+if ! [ -x "$HOME/.local/bin/herdr-core" ]; then
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL https://releases.herdr.dev/core/install.sh -o "$tmp/install.sh"
+  sh "$tmp/install.sh" || echo "Warning: failed to install herdr-core" >&2
+fi
+{{ end -}}
