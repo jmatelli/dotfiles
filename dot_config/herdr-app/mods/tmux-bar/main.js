@@ -1,0 +1,119 @@
+// tmux-style status bar for the `neon` layout, matching tmux's tokyo-neon.tmux
+// and the zsh prompt: rounded pills on a transparent bar, dark text on neon.
+//
+//   ( 󰆍 Yaarz )  1 app   2 n:front  ( 3 git 󰍉 )  4 ai         ( 󰒋 host )( 󰅐 23:30 )
+//
+// Left: the space, as tmux's session pill. Its color follows the space's
+// agents (cyan idle, purple working, green done, pink needs you), since Herdr
+// has no prefix state to show. Middle: tabs as tmux windows (index + name,
+// the shown one as a blue pill, a magnifying glass when zoomed), with agent
+// state on each. Right: machine and clock.
+//
+// Click a tab to show it, double-click to rename, right-click for its menu,
+// scroll to switch, middle area drags the window.
+import { View, div } from "gpui-kit";
+import { h_flex } from "gpui-base";
+import { spaces, panes, run, openOverlay, exec } from "herdr";
+
+const C = {
+  ink: "#0d0e16",
+  fg: "#c0caf5",
+  dim: "#565f89",
+  raised: "#2a2f4d",
+  cyan: "#2ee6ff",
+  blue: "#7aa2ff",
+  purple: "#c792ff",
+  green: "#9ff26a",
+  yellow: "#ffc66d",
+  pink: "#ff007c",
+};
+const FONT = "FiraMono Nerd Font";
+const ICON = {
+  session: "\u{F018D}",
+  zoom: "\u{F0349}",
+  host: "\u{F048B}",
+  clock: "\u{F0150}",
+  working: "\u{F0996}",
+  blocked: "\u{F0026}",
+  done: "\u{F012C}",
+};
+const STATE_COLOR = { working: C.purple, blocked: C.pink, done: C.green };
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+export default class TmuxBar extends View {
+  init(_props, cx) {
+    this.host = "";
+    this.pressed = null;
+    cx.spawn(async (cx) => {
+      try {
+        const r = await exec("hostname", ["-s"]);
+        this.host = r.stdout.trim();
+      } catch (_) {
+        this.host = "";
+      }
+      cx.notify();
+    });
+    // Clock: tmux's status-interval is 5s; minutes only, so 10s is plenty.
+    cx.timer.every(10000, (cx) => cx.notify());
+  }
+
+  pill(id, color, fg, text, extra) {
+    return h_flex().id(id).h(20).px(10).gap(6).flex_none().items_center().rounded_full()
+      .bg(color).text_color(fg).child(text)
+      .when(Boolean(extra), (el) => extra(el));
+  }
+
+  tab(space, c, i, shown) {
+    const program = panes().find((p) => p.tab === c.id && p.program?.agent)?.program
+      ?? panes().find((p) => p.tab === c.id)?.program;
+    const name = c.named ? c.name : program?.name ?? "zsh";
+    const label = `${c.index} ${name}${c.zoomed ? ` ${ICON.zoom}` : ""}`;
+    const state = c.status && c.status !== "idle" ? c.status : null;
+    const el = h_flex().id(`tab-${c.id}`).h(20).px(c.active ? 10 : 8).gap(5).flex_none().items_center()
+      .rounded_full()
+      .on_mouse_down("left", (e, cx) => {
+        cx.stop_propagation();
+        this.pressed = i;
+        if (e.click_count === 2) run("tab.rename", { id: c.id });
+      })
+      .on_mouse_up("left", () => {
+        const from = this.pressed;
+        this.pressed = null;
+        if (from !== null && from !== i) run("tab.move", { id: shown[from].id, index: c.index });
+        else run("tab.select", { id: c.id });
+      })
+      .on_mouse_down("right", (_e, cx) => {
+        cx.stop_propagation();
+        openOverlay({ mod: "menu", kind: "popup", width: 200, props: { tab: "tab", target: { id: c.id, space: space.id } } });
+      });
+    if (c.active) {
+      return el.bg(C.blue).text_color(C.ink).font_weight(700).child(label)
+        .when(Boolean(state), (e) => e.child(ICON[state]));
+    }
+    return el.text_color(state ? STATE_COLOR[state] : C.dim).hover((s) => s.text_color(C.fg))
+      .child(label)
+      .when(Boolean(state), (e) => e.child(ICON[state]));
+  }
+
+  render() {
+    const space = spaces().find((s) => s.active);
+    const shown = (space?.tabs ?? []).filter((t) => !t.settled || t.active);
+    const now = new Date();
+    const sessionColor = STATE_COLOR[space?.status] ?? C.cyan;
+    const host = space?.machine ?? this.host;
+
+    return h_flex().size_full().min_w(0).px(10).gap(6).items_center()
+      .font_family(FONT).text_size(12.5)
+      .on_mouse_up("left", () => { this.pressed = null; })
+      .on_scroll_wheel((e) => { if (Math.abs(e.delta.y) >= 1) run(e.delta.y > 0 ? "tab.prev" : "tab.next"); })
+      .when(Boolean(space), (el) => el.child(
+        this.pill("session", sessionColor, C.ink, `${ICON.session} ${space.name}`, (p) => p.font_weight(700)
+          .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+          .on_click(() => run("mod.open", { name: "picker" })))))
+      .child(h_flex().id("windows").flex_1().min_w(0).h_full().items_center().gap(2).overflow_x_scrollbar()
+        .children(shown.map((c, i) => this.tab(space, c, i, shown))))
+      .when(Boolean(host), (el) => el.child(this.pill("host", C.purple, C.ink, `${ICON.host} ${host}`)))
+      .child(this.pill("clock", C.raised, C.fg, `${ICON.clock} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`));
+  }
+}
