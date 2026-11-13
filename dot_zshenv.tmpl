@@ -55,9 +55,10 @@ export PATH="$ANDROID_HOME/cmdline-tools/latest/bin/:$PATH"
 export PATH="$ANDROID_HOME/build-tools/33.0.2/:$PATH"
 export PATH="$ANDROID_HOME/emulator/bin64/:$PATH"
 
-# Go
-export PATH="$PATH:/usr/local/go/bin"
-export PATH="$PATH:$(go env GOPATH)/bin"
+# Go: the toolchain comes from mise. Don't run `go` here: at this point the
+# first go on PATH can be a stale system install, and inside a module that
+# needs a newer Go it prints "go: downloading go1.x" on every new shell.
+export PATH="$PATH:${GOPATH:-$HOME/go}/bin"
 
 # Java
 export JAVA_HOME="/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home"
