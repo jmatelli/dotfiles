@@ -148,7 +148,9 @@ export default class TmuxBar extends View {
     const sessionColor = STATE_COLOR[space?.status] ?? C.cyan;
     const host = space?.machine ?? this.host;
 
-    return h_flex().size_full().min_w(0).px(10).gap(6).items_center()
+    // pb(8): the bar is 28px (layouts/neon.json), so the 20px pills sit 8px
+    // above the window edge, the same as work-body's 8px padding above them.
+    return h_flex().size_full().min_w(0).px(10).pb(8).gap(6).items_center()
       .font_family(FONT).text_size(12.5)
       .on_mouse_up("left", () => { this.pressed = null; })
       .on_scroll_wheel((e) => { if (Math.abs(e.delta.y) >= 1) run(e.delta.y > 0 ? "tab.prev" : "tab.next"); })
