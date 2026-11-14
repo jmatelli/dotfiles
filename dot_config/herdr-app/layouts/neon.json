@@ -94,9 +94,9 @@
                     "width": 1,
                     "color": "accent"
                   },
-                  "radius": 0,
-                  "gap": 1,
-                  "lone": false
+                  "radius": 10,
+                  "gap": 8,
+                  "lone": true
                 }
               }
             },
@@ -134,8 +134,8 @@
               "hidden": true
             }
           ],
-          "padding": 0,
-          "gap": 0
+          "padding": 8,
+          "gap": 8
         },
         {
           "id": "status",
@@ -146,18 +146,16 @@
           "size": {
             "px": 24
           },
-          "window_drag": true,
-          "background": "background"
+          "window_drag": true
         }
       ],
-      "resizable": false,
-      "background": "background"
+      "resizable": false
     }
   ],
   "background": "canvas",
   "terminal_padding": [
-    2,
-    4
+    8,
+    10
   ],
   "divider": {
     "width": 1,
