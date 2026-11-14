@@ -13,7 +13,16 @@
 // scroll to switch, middle area drags the window.
 import { View, div } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { spaces, panes, run, openOverlay, exec } from "herdr";
+import { spaces, panes, run, openOverlay, exec, nextCommand, layout } from "herdr";
+
+function find(node, id) {
+  if (node?.id === id) return node;
+  for (const child of node?.children ?? []) {
+    const found = find(child, id);
+    if (found) return found;
+  }
+  return null;
+}
 
 const C = {
   ink: "#0d0e16",
@@ -56,6 +65,42 @@ export default class TmuxBar extends View {
     });
     // Clock: tmux's status-interval is 5s; minutes only, so 10s is plenty.
     cx.timer.every(10000, (cx) => cx.notify());
+    // Commands from keys.json ("tmux-bar.<command>"), for actions Herdr has
+    // no single command for.
+    cx.spawn(async (cx) => {
+      for (;;) {
+        const command = await nextCommand();
+        this.command(command);
+        cx.notify();
+      }
+    });
+  }
+
+  command(command) {
+    const space = spaces().find((s) => s.active);
+    const tab = space?.tabs.find((t) => t.active);
+    switch (command) {
+      // tmux's swap-window -t -1 / +1: move the shown tab one place.
+      case "tab_left":
+      case "tab_right": {
+        if (!tab) return;
+        const to = tab.index + (command === "tab_left" ? -1 : 1);
+        if (to >= 1 && to <= space.tabs.length) run("tab.move", { id: tab.id, index: to });
+        return;
+      }
+      // The right-hand Files / Changes panel: show it on that view, or close it.
+      case "files":
+      case "changes": {
+        const root = layout(), panel = find(root, "panel"), body = find(root, "panel-body");
+        if (!panel) return;
+        if (!panel.hidden && body?.active === command) run("layout.hide", { id: "panel" });
+        else {
+          run("layout.select", { stack: "panel-body", child: command });
+          run("layout.show", { id: "panel" });
+        }
+        return;
+      }
+    }
   }
 
   pill(id, color, fg, text, extra) {

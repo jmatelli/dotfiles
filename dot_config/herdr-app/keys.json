@@ -30,6 +30,12 @@
     "ctrl-b 8": "tab.select:8",
     "ctrl-b 9": "tab.select:9",
 
+    "ctrl-b h": "tmux-bar.tab_left",
+    "ctrl-b l": "tmux-bar.tab_right",
+    "ctrl-b b": "layout.toggle:sidebar",
+    "ctrl-b e": "tmux-bar.files",
+    "ctrl-b g": "tmux-bar.changes",
+
     "ctrl-b k": "space.close",
     "ctrl-b $": "space.rename",
     "ctrl-b (": "space.prev",
