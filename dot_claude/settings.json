@@ -2,7 +2,6 @@
   "env": {
     "CLAUDE_CODE_NO_FLICKER": "1"
   },
-  "model": "claude-sonnet-5",
   "hooks": {
     "PreToolUse": [
       {
@@ -50,15 +49,15 @@
       }
     }
   },
-  "advisorModel": "opus",
   "effortLevel": "medium",
-  "tui": "fullscreen",
-  "skipWorkflowUsageWarning": true,
-  "editorMode": "vim",
-  "verbose": true,
   "modelSettings": {
     "claude-sonnet-5": {
       "effortLevel": "medium"
     }
-  }
+  },
+  "advisorModel": "opus",
+  "tui": "fullscreen",
+  "skipWorkflowUsageWarning": true,
+  "editorMode": "vim",
+  "verbose": true
 }
