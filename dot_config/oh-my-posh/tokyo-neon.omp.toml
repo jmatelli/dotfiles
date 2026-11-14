@@ -30,7 +30,7 @@ final_space = true
   background = 'transparent'
   foreground_templates = ['{{if gt .Code 0}}p:red{{end}}', '{{if eq .Code 0}}p:pink{{end}}']
 
-# ── Line 1, left: ╭─ [os] [ssh host] [folder] [git] [node/go] ──
+# ── Line 1, left: ╭─ [os] [ssh host] [folder] [git] ──
 [[blocks]]
   type = 'prompt'
   alignment = 'left'
@@ -60,43 +60,95 @@ final_space = true
     foreground = 'p:ink'
     template = "{{ if .SSHSession }} \U000F08C0 {{ .HostName }} {{ end }}"
 
+  # Wide panes (115+ columns): full path and branch (cut at 30 characters).
+  # Narrow panes get the compact variants below, so the prompt never wraps.
   [[blocks.segments]]
     type = 'path'
     style = 'powerline'
-    powerline_symbol = ""
+    powerline_symbol = "\ue0b4"
     background = 'p:blue'
     foreground = 'p:ink'
     template = " \U000F024B <b>{{ .Path }}</b> "
+    min_width = 115
 
     [blocks.segments.properties]
       cache_duration = 'none'
       style = 'full'
 
+  [[blocks.segments]]
+    type = 'path'
+    style = 'powerline'
+    powerline_symbol = "\ue0b4"
+    background = 'p:blue'
+    foreground = 'p:ink'
+    template = " \U000F024B <b>{{ .Path }}</b> "
+    max_width = 114
+
+    [blocks.segments.properties]
+      cache_duration = 'none'
+      style = 'agnoster_short'
+      max_depth = 2
+
   # green = clean, amber = uncommitted changes, ice = only ahead/behind
   [[blocks.segments]]
     type = 'git'
     style = 'powerline'
-    powerline_symbol = ""
+    powerline_symbol = "\ue0b4"
     background = 'p:green'
     foreground = 'p:ink'
+    min_width = 115
     background_templates = [
       '{{ if or (.Working.Changed) (.Staging.Changed) }}p:yellow{{ end }}',
       '{{ if or (gt .Ahead 0) (gt .Behind 0) }}p:ice{{ end }}',
     ]
-    template = "  {{ .HEAD }}{{ if .Staging.Changed }} {{ .Staging.String }}{{ end }}{{ if .Working.Changed }} {{ .Working.String }}{{ end }}{{ if gt .StashCount 0 }} \U000F003C {{ .StashCount }}{{ end }}{{ if gt .Behind 0 }} ⇣{{ .Behind }}{{ end }}{{ if gt .Ahead 0 }} ⇡{{ .Ahead }}{{ end }} "
+    template = " \ue725 {{ .HEAD }}{{ if .Staging.Changed }} {{ .Staging.String }}{{ end }}{{ if .Working.Changed }} {{ .Working.String }}{{ end }}{{ if gt .StashCount 0 }} \U000F003C {{ .StashCount }}{{ end }}{{ if gt .Behind 0 }} ⇣{{ .Behind }}{{ end }}{{ if gt .Ahead 0 }} ⇡{{ .Ahead }}{{ end }} "
 
     [blocks.segments.properties]
+      branch_template = '{{ if gt (len .Branch) 30 }}{{ trunc 29 .Branch }}…{{ else }}{{ .Branch }}{{ end }}'
       branch_icon = ''
       cache_duration = 'none'
       commit_icon = '@'
       fetch_status = true
       fetch_stash_count = true
 
-  # Only inside JS/TS projects
+  [[blocks.segments]]
+    type = 'git'
+    style = 'powerline'
+    powerline_symbol = "\ue0b4"
+    background = 'p:green'
+    foreground = 'p:ink'
+    max_width = 114
+    background_templates = [
+      '{{ if or (.Working.Changed) (.Staging.Changed) }}p:yellow{{ end }}',
+      '{{ if or (gt .Ahead 0) (gt .Behind 0) }}p:ice{{ end }}',
+    ]
+    template = " \ue725 {{ .HEAD }}{{ if .Staging.Changed }} {{ .Staging.String }}{{ end }}{{ if .Working.Changed }} {{ .Working.String }}{{ end }}{{ if gt .Behind 0 }} ⇣{{ .Behind }}{{ end }}{{ if gt .Ahead 0 }} ⇡{{ .Ahead }}{{ end }} "
+
+    [blocks.segments.properties]
+      branch_template = '{{ if gt (len .Branch) 20 }}{{ trunc 19 .Branch }}…{{ else }}{{ .Branch }}{{ end }}'
+      branch_icon = ''
+      cache_duration = 'none'
+      commit_icon = '@'
+      fetch_status = true
+      fetch_stash_count = true
+
+
+# ── Line 1, right: ·········· [node/go] [took 3s] [✘ 1] [22:52] ──
+# The dotted filler joins left and right, like p10k's frame.
+[[blocks]]
+  type = 'prompt'
+  alignment = 'right'
+  overflow = 'hide'
+  filler = "<p:frame,transparent>·</>"
+
+  # Language versions, only inside JS/TS and Go projects. On the right like
+  # powerlevel10k, so they go away with the rest of the right side when the
+  # pane is too narrow instead of wrapping the prompt.
   [[blocks.segments]]
     type = 'node'
     style = 'powerline'
-    powerline_symbol = ""
+    powerline_symbol = "\ue0b6"
+    invert_powerline = true
     background = 'p:purple'
     foreground = 'p:ink'
     template = " \U000F0399 {{ .Full }} "
@@ -104,25 +156,17 @@ final_space = true
     [blocks.segments.properties]
       display_mode = 'files'
 
-  # Only inside Go projects
   [[blocks.segments]]
     type = 'go'
     style = 'powerline'
-    powerline_symbol = ""
+    powerline_symbol = "\ue0b6"
+    invert_powerline = true
     background = 'p:cyan'
     foreground = 'p:ink'
     template = " \U000F07D3 {{ .Full }} "
 
     [blocks.segments.properties]
       display_mode = 'files'
-
-# ── Line 1, right: ·········· [took 3s] [✘ 1] [22:52] ──
-# The dotted filler joins left and right, like p10k's frame.
-[[blocks]]
-  type = 'prompt'
-  alignment = 'right'
-  overflow = 'hide'
-  filler = "<p:frame,transparent>·</>"
 
   [[blocks.segments]]
     type = 'executiontime'
