@@ -108,7 +108,22 @@ def tool(leaf):
 
 
 def argv(leaf):
+    """argv for a split pane: pane.split has no folder option, so cd ourselves."""
     return ["/bin/zsh", "-ilc", PANE_SCRIPT, "zsh", leaf["path"], tool(leaf)]
+
+
+def first_pane(leaf):
+    """space.new / tab.new arguments for a tab's first pane.
+
+    Herdr runs a given argv inside its own interactive shell, which starts a
+    new shell when the command ends. Passing our cd-wrapper there would nest
+    two shells, so `exit` would land in a fresh one instead of closing the
+    pane. Use Herdr's folder option instead, and an argv only for a tool.
+    """
+    args = {"folder": leaf["path"]}
+    if tool(leaf):
+        args["argv"] = [tool(leaf)]
+    return args
 
 
 def describe(tree, indent):
@@ -186,12 +201,10 @@ def main(args):
         for name, tree in windows:
             leaf = first_leaf(tree)
             if space is None:
-                out = herdr.do("space.new", name=session, folder=leaf["path"], tab=name,
-                               argv=argv(leaf))
+                out = herdr.do("space.new", name=session, tab=name, **first_pane(leaf))
                 space = out["space"]
             else:
-                out = herdr.do("tab.new", space=space, name=name, folder=leaf["path"],
-                               argv=argv(leaf))
+                out = herdr.do("tab.new", space=space, name=name, **first_pane(leaf))
             herdr.build(tree, herdr.pane_of(out["terminal"]))
 
     if not apply:
