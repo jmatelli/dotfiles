@@ -5,8 +5,9 @@ set -euo pipefail
 # macOS: CLI toolchain via Homebrew, GUI apps via casks.
 # This list is generated from `brew leaves` + `brew list --cask` on the
 # primary machine (not hand-maintained from memory - that's what caused the
-# original stale list this replaced). ruby/python/rustup/go/node are
-# intentionally absent - mise manages those. stow is intentionally absent -
+# original stale list this replaced). ruby/python/rustup/go are
+# intentionally absent - mise manages those; node comes from volta, which
+# follows each project's package.json "volta" pin. stow is intentionally absent -
 # chezmoi replaces it. neovim itself is intentionally absent - bob (below)
 # installs/manages the actual nvim binary instead of a plain brew formula.
 BREW_PACKAGES=(
@@ -66,6 +67,7 @@ BREW_PACKAGES=(
   tree-sitter-cli
   trivy
   unzip
+  volta
   watchman
   weasyprint
   wget
