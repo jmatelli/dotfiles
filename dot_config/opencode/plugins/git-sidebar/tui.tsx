@@ -8,8 +8,15 @@
 //   ↑2 ↓1 vs develop · 3 changed
 //   ~/project:feature/YAA-123-some-change        ← built-in footer
 //
-// The Linear issue (key read from the branch name, see fetchIssue) links to
-// Linear; the diamond and the state are in the issue state's color.
+// The issue (key read from the branch name, see fetchIssue) links to Linear,
+// or for repos without a Linear match to the GitHub issue whose number the
+// branch carries (feature/93-foo → #93); the diamond and the state are in the
+// issue state's color. Under it, a progress bar: the issue's sub-issues done,
+// else its description checklist (- [x]), and its parent's sub-issues:
+//
+//   ◆ #93 Design phase 3: the page     Open
+//   ███████░░░ 7/10 · #89 3/6               ← own progress, then the parent's
+//   ██████░░░░ 3/6 in #89                   ← no own progress: the parent's
 // The disk is the PR's CI state: green passed, yellow in progress, red failed,
 // purple merged (muted when there are no checks or the PR is closed), followed
 // by the number of unresolved review threads. Clicking the PR line opens it in
@@ -39,6 +46,8 @@ const BUILD_FAIL_POLL_MS = 15 * 60 * 1000
 const REFRESH_ID = "dotfiles.git-sidebar.refresh"
 const PURPLE = "#bb9af7" // tokyonight magenta; the theme has no "merged" token
 const DEFAULT_BRANCHES = ["main", "master", "develop"]
+const PROGRESS_WIDTH = 10
+const DIM = "#565f89"
 
 type CI = "passed" | "pending" | "failed" | "merged" | "closed" | "none"
 type PR = { number: number; title: string; url: string; ci: CI; label?: string; base: string; unresolved?: number }
@@ -58,7 +67,30 @@ type Info = {
   buildsBranch?: string // branch the EAS lookup was done for
   issueBranch?: string // branch the Linear lookup was done for
 }
-type Issue = { identifier: string; title: string; url: string; state: string; color: string }
+type Progress = { done: number; total: number }
+type Issue = {
+  identifier: string
+  title: string
+  url: string
+  state: string
+  color: string
+  progress?: Progress // sub-issues, else the description's checklist
+  parent?: Progress & { identifier: string }
+}
+
+// Sub-issues first (the real breakdown), else the checklist of the description.
+function progressOf(subs: Progress | undefined, body?: string): Progress | undefined {
+  if (subs && subs.total > 0) return subs
+  const boxes = (body ?? "").match(/^\s*[-*+] \[[ xX]\]/gm) ?? []
+  if (boxes.length === 0) return undefined
+  return { done: boxes.filter((b) => /\[[xX]\]/.test(b)).length, total: boxes.length }
+}
+
+// GitHub issue states, in tokyonight colors like GitHub's own: open green,
+// completed purple, not planned muted.
+const GH_OPEN = "#9ece6a"
+const GH_DONE = "#bb9af7"
+const GH_NOT_PLANNED = "#565f89"
 
 type Result = { out?: string; err: string }
 
@@ -329,20 +361,87 @@ function issueKey(branch: string, keys: string[]): string | undefined {
 }
 
 // linear.app/<workspace>/issue/<ID>: the slug after it is optional.
+// github.com/<owner>/<repo>/issues/<n> is already short.
 const shortIssueURL = (url: string, identifier: string) => {
   const i = url.indexOf(`/issue/${identifier}`)
   return (i === -1 ? url : url.slice(0, i + `/issue/${identifier}`.length)).replace(/^https:\/\//, "")
 }
 
-// null: no issue for this branch. undefined: Linear unreachable/unconfigured.
-async function fetchIssue(branch: string): Promise<Issue | null | undefined> {
+// The Linear issue of the branch, else its GitHub issue.
+// null: no issue for this branch. undefined: a lookup failed (keep the last).
+async function fetchIssue(dir: string, branch: string): Promise<Issue | null | undefined> {
+  const fromLinear = await fetchLinearIssue(branch)
+  return fromLinear === null ? fetchGitHubIssue(dir, branch) : fromLinear
+}
+
+// GitHub: the issue number is the branch's first segment after the type
+// prefix, alone or before a dash: feature/93-contents → #93, 93-foo → #93,
+// fix/issue-12 → #12. A number that turns out to be a pull request, or no
+// such issue (or issues disabled), is no issue.
+function githubIssueNumber(branch: string): string | undefined {
+  const last = branch.split("/").pop() ?? branch
+  return last.match(/^(?:issue-|gh-)?(\d+)(?:[-_]|$)/i)?.[1]
+}
+
+async function fetchGitHubIssue(dir: string, branch: string): Promise<Issue | null | undefined> {
+  const n = githubIssueNumber(branch)
+  if (!n) return null
+  // The REST issue endpoint (unlike `gh issue view`) marks pull requests.
+  const res = await exec(
+    "gh",
+    ["api", `repos/{owner}/{repo}/issues/${n}`, "--jq", "{number,title,html_url,state,state_reason,body,sub_issues_summary,pr:(.pull_request!=null)}"],
+    dir,
+    20000,
+  )
+  if (res.out === undefined) return /Not Found|HTTP 404|HTTP 410|none of the git remotes/i.test(res.err) ? null : undefined
+  let issue: any
+  try {
+    issue = JSON.parse(res.out)
+  } catch {
+    return undefined
+  }
+  if (issue.pr) return null
+  // The parent (sub-issues API): 404 when there is none; a failure just
+  // leaves it out.
+  const parentRes = await exec(
+    "gh",
+    ["api", `repos/{owner}/{repo}/issues/${n}/parent`, "--jq", "{number,sub_issues_summary}"],
+    dir,
+    20000,
+  )
+  let parent: Issue["parent"]
+  try {
+    const p = parentRes.out ? JSON.parse(parentRes.out) : undefined
+    if (p?.sub_issues_summary?.total) parent = { identifier: `#${p.number}`, done: p.sub_issues_summary.completed, total: p.sub_issues_summary.total }
+  } catch {}
+  const subs = issue.sub_issues_summary
+  const open = issue.state === "open"
+  const notPlanned = issue.state_reason === "not_planned"
+  return {
+    identifier: `#${issue.number}`,
+    title: issue.title,
+    url: issue.html_url,
+    state: open ? "Open" : notPlanned ? "Not planned" : "Closed",
+    color: open ? GH_OPEN : notPlanned ? GH_NOT_PLANNED : GH_DONE,
+    progress: progressOf(subs && { done: subs.completed, total: subs.total }, issue.body),
+    parent,
+  }
+}
+
+// null: no Linear issue for this branch (or no Linear key).
+// undefined: Linear unreachable.
+async function fetchLinearIssue(branch: string): Promise<Issue | null | undefined> {
   if (!process.env.LINEAR_API_KEY) return null
   const keys = await linearTeamKeys()
   if (!keys) return undefined
   const id = issueKey(branch, keys)
   if (!id) return null
   const res = await linear(
-    "query($id: String!) { issue(id: $id) { identifier title url state { name color } } }",
+    `query($id: String!) { issue(id: $id) {
+      identifier title url description state { name color }
+      children(first: 250) { nodes { state { type } } }
+      parent { identifier children(first: 250) { nodes { state { type } } } }
+    } }`,
     { id },
   )
   if (!res) return undefined
@@ -354,7 +453,20 @@ async function fetchIssue(branch: string): Promise<Issue | null | undefined> {
     url: issue.url,
     state: issue.state?.name,
     color: issue.state?.color,
+    progress: progressOf(linearDone(issue.children), issue.description),
+    parent: issue.parent && linearDone(issue.parent.children)
+      ? { identifier: issue.parent.identifier, ...linearDone(issue.parent.children)! }
+      : undefined,
   }
+}
+
+// Linear children as done/total: completed and canceled both count as done,
+// as GitHub counts closed sub-issues.
+function linearDone(children?: { nodes?: { state?: { type?: string } }[] }): Progress | undefined {
+  const nodes = children?.nodes ?? []
+  if (nodes.length === 0) return undefined
+  const done = nodes.filter((c) => c.state?.type === "completed" || c.state?.type === "canceled").length
+  return { done, total: nodes.length }
 }
 
 export default Plugin.define({
@@ -489,8 +601,8 @@ export default Plugin.define({
     )
 
     const refreshIssue = throttled(ISSUE_POLL_MS, ISSUE_FORCE_MIN_MS, async (dir, _info, branch) => {
-      const fetched = await fetchIssue(branch)
-      // On a Linear failure keep the last known issue; retry after the throttle.
+      const fetched = await fetchIssue(dir, branch)
+      // On a Linear/GitHub failure keep the last known issue; retry after the throttle.
       if (fetched === undefined || infos()[dir]?.branch !== branch) return
       patch(dir, { issue: fetched ?? undefined, issueBranch: branch })
     })
@@ -545,6 +657,29 @@ export default Plugin.define({
       execFile("open", [url], () => {})
     }
 
+    // The issue's progress bar (its own, else its parent's), the counts after
+    // it, then the parent's count when the bar is the issue's own.
+    const IssueProgress = (props: { issue: Issue }) => {
+      const main = () => props.issue.progress ?? props.issue.parent!
+      const cells = () => {
+        const filled = Math.round((main().done / main().total) * PROGRESS_WIDTH)
+        return { filled: "█".repeat(filled), empty: "░".repeat(PROGRESS_WIDTH - filled) }
+      }
+      const tail = () => {
+        const { progress, parent } = props.issue
+        const count = `${main().done}/${main().total}`
+        if (!progress) return ` ${count} in ${parent!.identifier}`
+        return parent ? ` ${count} · ${parent.identifier} ${parent.done}/${parent.total}` : ` ${count}`
+      }
+      return (
+        <text wrapMode="none" truncate paddingLeft={2} minWidth={0}>
+          <span style={{ fg: props.issue.color ?? theme.text.muted }}>{cells().filled}</span>
+          <span style={{ fg: DIM }}>{cells().empty}</span>
+          <span style={{ fg: theme.text.muted }}>{tail()}</span>
+        </text>
+      )
+    }
+
     const Section = (props: { sessionID?: string }) => {
       const dir = () =>
         (props.sessionID ? context.data.session.get(props.sessionID)?.location?.directory : undefined) ??
@@ -596,6 +731,9 @@ export default Plugin.define({
                       </text>
                     </Show>
                   </box>
+                  <Show when={issue().progress ?? issue().parent}>
+                    <IssueProgress issue={issue()} />
+                  </Show>
                   <Show when={!hyperlinks()}>
                     <text wrapMode="none" truncate paddingLeft={2} fg={theme.text.muted}>
                       <u>{shortIssueURL(issue().url, issue().identifier)}</u>

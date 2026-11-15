@@ -27,8 +27,17 @@
 //
 // Only the active provider is polled (every 2 minutes, and throttled when a
 // turn ends); switching model refreshes the new one immediately.
+//
+// Between the account and the usage, an effort switch for the selected model:
+// one segment per variant (reasoning effort level), filled up to the active
+// one, which is named after the bar. Clicking a segment selects that level,
+// clicking the active one again goes back to the model's default (no
+// variant). Hidden for models without variants.
+//
+//   Effort                        ctrl+x v
+//   ██ ██ ██ ░░ ░░ medium
 import { Plugin } from "@opencode/plugin/tui"
-import { createEffect, createMemo, createRoot, createSignal, on, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createMemo, createRoot, createSignal, For, on, onCleanup, onMount, Show } from "solid-js"
 import { execFile } from "node:child_process"
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
@@ -202,6 +211,11 @@ function color(pct: number) {
 }
 
 const DIM = "#565f89"
+// Effort levels, lowest to highest: Tokyo Night blue → purple → neon pink.
+const EFFORT_FROM = [0x7a, 0xa2, 0xf7]
+const EFFORT_MID = [0xbb, 0x9a, 0xf7]
+const EFFORT_TO = [0xff, 0x00, 0x7c]
+const effortColor = (t: number) => (t <= 0.5 ? mix(EFFORT_FROM, EFFORT_MID, t * 2) : mix(EFFORT_MID, EFFORT_TO, (t - 0.5) * 2))
 const GREEN_HEX = "#9ece6a"
 const RED_HEX = "#f7768e"
 
@@ -397,20 +411,85 @@ export default Plugin.define({
       )
     }
 
+    // A fixed, unshrinkable label column: otherwise the row's flex layout
+    // resizes the label and the values start in different columns (a long value
+    // that wraps, like the org, pushed its own further right).
     const Row = (props: { label: string; value?: string; fg?: string }) => (
       <Show when={props.value}>
         <box flexDirection="row">
-          <text fg={DIM}>{props.label.padEnd(6)}</text>
-          <text fg={props.fg ?? theme.text.base}>{props.value}</text>
+          <text width={6} flexShrink={0} wrapMode="none" fg={DIM}>
+            {props.label}
+          </text>
+          <text flexGrow={1} flexShrink={1} minWidth={0} fg={props.fg ?? theme.text.base}>
+            {props.value}
+          </text>
         </box>
       </Show>
     )
+
+    // ---- Effort --------------------------------------------------------------
+
+    const variants = () => context.ui.model.variant.list()
+    const activeVariant = () => context.ui.model.current()?.variant
+    const effortShortcut = () => context.keymap.shortcuts("variant.cycle")[0]
+    type Click = { button: number; stopPropagation: () => void }
+    const pickVariant = (value: string) => (event: Click) => {
+      if (event.button !== 0) return
+      event.stopPropagation()
+      // The active level again: back to the model's default.
+      context.ui.model.variant.set(activeVariant() === value ? undefined : value)
+    }
+
+    const Effort = () => {
+      const level = () => variants().indexOf(activeVariant() ?? "")
+      const tint = (i: number) => effortColor(variants().length > 1 ? i / (variants().length - 1) : 1)
+      // As wide as the usage bars: BAR_WIDTH cells split into segments, one apart.
+      const width = () => Math.max(2, Math.floor((BAR_WIDTH - (variants().length - 1)) / variants().length))
+      return (
+        <Show when={variants().length > 0}>
+          <box flexDirection="column">
+            <box flexDirection="row">
+              <text flexGrow={1} fg={theme.text.base}>
+                <b>Effort</b>
+              </text>
+              <Show when={effortShortcut()}>
+                <text wrapMode="none" flexShrink={0} fg={DIM}>
+                  {effortShortcut()}
+                </text>
+              </Show>
+            </box>
+            <box flexDirection="row" flexShrink={0}>
+              <For each={variants()}>
+                {(variant, i) => (
+                  <text
+                    flexShrink={0}
+                    wrapMode="none"
+                    fg={i() <= level() ? tint(level()) : DIM}
+                    onMouseUp={pickVariant(variant)}
+                  >
+                    {(i() > 0 ? " " : "") + (i() <= level() ? "█" : "░").repeat(width())}
+                  </text>
+                )}
+              </For>
+              <text flexShrink={0} wrapMode="none" fg={level() >= 0 ? tint(level()) : DIM}>
+                {" "}
+                {level() >= 0 ? <b>{activeVariant()}</b> : "default"}
+              </text>
+            </box>
+          </box>
+        </Show>
+      )
+    }
 
     const ClaudeAccount = () => (
       <Show when={claudeState().account}>
         {(a) => {
           const plan = () => [a().plan, a().seat && `${a().seat} seat`].filter(Boolean).join(" · ")
-          const org = () => [a().org, a().role].filter(Boolean).join(" · ")
+          // A personal account still has an org, named "<email>'s Organization"
+          // (or after the name), with the user as its admin: no org to show.
+          const personal = () =>
+            [a().email, a().name].some((who) => who && a().org === `${who}'s Organization`)
+          const org = () => (personal() ? "" : [a().org, a().role].filter(Boolean).join(" · "))
           return (
             <box flexDirection="column">
               <text fg={theme.text.base}>
@@ -484,6 +563,7 @@ export default Plugin.define({
         <Show when={mode() === "claude"} fallback={<GoAccount />}>
           <ClaudeAccount />
         </Show>
+        <Effort />
         <text fg={theme.text.base}>
           <b>Usage</b>
         </text>
