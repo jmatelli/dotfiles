@@ -475,7 +475,7 @@ export default class Spaces extends View {
       changed = true;
     }
     if (changed) setShared("space.colors", kept);
-    return v_flex().size_full().min_h(0).font_family(NEON.font).text_size(12.5)
+    return v_flex().size_full().min_h(0).bg("#0d0e1680").font_family(NEON.font).text_size(12.5)
       .child(h_flex().h(31).pl(16).pr(10).items_center().justify_between().text_size(11.5).text_color(NEON.soft)
         .when(collapsed, el => el.pl(0).pr(0).justify_center())
         .when(!collapsed, el => el.child("Spaces"))

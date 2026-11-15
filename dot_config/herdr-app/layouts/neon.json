@@ -69,10 +69,6 @@
       },
       "min": 44,
       "max": 480,
-      "background": {
-        "image": "backgrounds/neon-ring.jpg",
-        "fit": "cover"
-      },
       "resizable": false
     },
     {
@@ -89,7 +85,6 @@
               "content": {
                 "tab": "active",
                 "pane": {
-                  "background": "background",
                   "border": {
                     "width": 1,
                     "color": "border"
@@ -156,7 +151,11 @@
       "resizable": false
     }
   ],
-  "background": "canvas",
+  "background": {
+    "image": "backgrounds/neon-window-2.jpg",
+    "fit": "cover"
+  },
+  "terminal_opacity": 0.6,
   "terminal_padding": [
     8,
     10

@@ -1,3 +1,6 @@
+// Rows name the agent's session (the title it reports, e.g. OpenCode's
+// session title) when it has one, after the space in priority view.
+//
 // Neon look (layouts/neon.json): rows drawn like the tmux-bar tabs, in FiraMono:
 // the focused agent a blue pill with dark bold text, the others colored by state
 // (purple working, pink needs you, green done, dim idle) with tmux-bar's icons,
@@ -290,7 +293,13 @@ export default class Agents extends View {
     // Read the pane snapshot once: every host read copies the whole list into JS.
     const leads = leadPanes(panes());
     const tabs = new Map(spaces().flatMap(s => s.tabs).map(tab => [tab.id, tab]));
+    // The title an agent reports with its status (OpenCode: the session's
+    // title), else the terminal title without OpenCode's "OC | " prefix.
+    const reported = new Map(all.map((t) => [t.address, clean(t.report?.title)]));
+    const sessionTitle = (a) => reported.get(a.address) || (a.app === "opencode" ? clean((a.title ?? "").replace(/^OC \| /, "")) : "");
     const labels = new Map(list.map(a => {
+      const own = sessionTitle(a);
+      if (own) return [a.address, own];
       const tab = tabs.get(a.tab);
       const many = tabCounts.get(a.tab) > 1;
       return [a.address, tab ? title(many ? { ...tab, named: false } : tab, many ? a : leads.get(a.tab)) : (a.title || a.program?.name || "")];
@@ -414,6 +423,7 @@ export default class Agents extends View {
     return v_flex()
       .size_full()
       .min_h(0)
+      .bg("#0d0e1680")
       .border_t(1)
       .border_color(t.border)
       .font_family(NEON.font)

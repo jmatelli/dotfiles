@@ -1,11 +1,11 @@
 // tmux-style status bar for the `neon` layout, matching tmux's tokyo-neon.tmux
 // and the zsh prompt: rounded pills on a transparent bar, dark text on neon.
 //
-//   ( 󰆍 Yaarz )  1 app   2 n:front  ( 3 git 󰍉 )  4 ai         ( 󰒋 host )( 󰅐 23:30 )
+//   ( 󰆍 Yaarz )  app   n:front  ( git 󰍉 )  ai               ( 󰒋 host )( 󰅐 23:30 )
 //
 // Left: the space, as tmux's session pill. Its color follows the space's
 // agents (cyan idle, purple working, green done, pink needs you), since Herdr
-// has no prefix state to show. Middle: tabs as tmux windows (index + name,
+// has no prefix state to show. Middle: tabs as tmux windows (by name, no index,
 // the shown one as a blue pill, a magnifying glass when zoomed), with agent
 // state on each. Right: machine and clock.
 //
@@ -116,7 +116,7 @@ export default class TmuxBar extends View {
     const program = panes().find((p) => p.tab === c.id && p.program?.agent)?.program
       ?? panes().find((p) => p.tab === c.id)?.program;
     const name = c.named ? c.name : program?.name ?? "zsh";
-    const label = `${c.index} ${name}${c.zoomed ? ` ${ICON.zoom}` : ""}`;
+    const label = `${name}${c.zoomed ? ` ${ICON.zoom}` : ""}`;
     const state = c.status && c.status !== "idle" ? c.status : null;
     const el = h_flex().id(`tab-${c.id}`).h(20).px(c.active ? 10 : 8).gap(5).flex_none().items_center()
       .rounded_full()
