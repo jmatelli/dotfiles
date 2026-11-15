@@ -19,7 +19,8 @@
           "size": {
             "px": 46
           },
-          "window_drag": true
+          "window_drag": true,
+          "hidden": true
         },
         {
           "id": "sidebar-lists",
@@ -29,7 +30,7 @@
               "id": "spaces",
               "type": "block",
               "content": {
-                "mod": "spaces"
+                "mod": "neon-spaces"
               },
               "size": {
                 "weight": 1
@@ -40,7 +41,7 @@
               "id": "agents",
               "type": "block",
               "content": {
-                "mod": "agents"
+                "mod": "neon-agents"
               },
               "size": {
                 "weight": 1
@@ -68,7 +69,10 @@
       },
       "min": 44,
       "max": 480,
-      "background": "chrome",
+      "background": {
+        "image": "backgrounds/neon-ring.jpg",
+        "fit": "cover"
+      },
       "resizable": false
     },
     {

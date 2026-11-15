@@ -14,3 +14,7 @@ README.md
 
 # OpenCode background-service credentials (hardcoded password) - machine-local.
 .config/opencode/service.json
+
+# Herdr background images: wallpapers without a clear licence stay
+# machine-local (copy them into ~/.config/herdr-app/backgrounds by hand).
+.config/herdr-app/backgrounds/**

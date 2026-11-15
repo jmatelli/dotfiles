@@ -11,7 +11,7 @@
 //
 // Click a tab to show it, double-click to rename, right-click for its menu,
 // scroll to switch, middle area drags the window.
-import { View, div } from "gpui-kit";
+import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, panes, run, openOverlay, exec, nextCommand, layout } from "herdr";
 
@@ -42,11 +42,14 @@ const ICON = {
   zoom: "\u{F0349}",
   host: "\u{F048B}",
   clock: "\u{F0150}",
-  working: "\u{F0996}",
   blocked: "\u{F0026}",
   done: "\u{F012C}",
 };
 const STATE_COLOR = { working: C.purple, blocked: C.pink, done: C.green };
+// A tab's state mark: Herdr's spinning loader while working, else an icon.
+const mark = (state, color) => state === "working"
+  ? svg("mods/workspace-chrome/spinner.svg").size(12).mx(1).flex_none().text_color(color).spin(900)
+  : ICON[state];
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -134,11 +137,11 @@ export default class TmuxBar extends View {
       });
     if (c.active) {
       return el.bg(C.blue).text_color(C.ink).font_weight(700).child(label)
-        .when(Boolean(state), (e) => e.child(ICON[state]));
+        .when(Boolean(state), (e) => e.child(mark(state, C.ink)));
     }
     return el.text_color(state ? STATE_COLOR[state] : C.dim).hover((s) => s.text_color(C.fg))
       .child(label)
-      .when(Boolean(state), (e) => e.child(ICON[state]));
+      .when(Boolean(state), (e) => e.child(mark(state, STATE_COLOR[state])));
   }
 
   render() {
