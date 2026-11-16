@@ -1,0 +1,99 @@
+# Checks on every push to main and every PR:
+# - secrets: gitleaks over the whole history (the local pre-commit hook misses
+#   --no-verify, edits on github.com, and machines without gitleaks);
+# - chezmoi: every file rendered on Linux and macOS (a dry run, nothing
+#   written), so a template typo fails here and not on a new machine;
+# - shellcheck: the scripts, and the script templates as rendered per OS.
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.30.1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks (checksum verified)
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLO "$base/$tarball"
+          curl -fsSL "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt" | grep " $tarball\$" | sha256sum -c -
+          tar -xzf "$tarball" gitleaks
+          sudo install gitleaks /usr/local/bin/gitleaks
+      - name: Scan the whole history
+        run: gitleaks git --redact --no-banner --verbose
+
+  chezmoi:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CHEZMOI_VERSION: 2.72.0
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The smoke test answers every install question
+        run: |
+          # docker-smoke-test.sh pre-fills the answers to .chezmoi.toml.tmpl's
+          # questions; a question it misses hangs the headless install.
+          asked=$(grep -o 'promptStringOnce \. "[A-Za-z]*"' .chezmoi.toml.tmpl | cut -d'"' -f2 | sort)
+          seeded=$(sed -n '/^SEED_CONFIG_CMD=/,/^EOF/p' docker-smoke-test.sh | grep -oE '^ +[A-Za-z]+ =' | tr -d ' =' | sort)
+          if [ "$asked" != "$seeded" ]; then
+            echo "Install questions: $(echo $asked)"
+            echo "Smoke test answers: $(echo $seeded)"
+            echo "::error file=docker-smoke-test.sh::SEED_CONFIG_CMD must answer every promptStringOnce in .chezmoi.toml.tmpl"
+            exit 1
+          fi
+
+      - name: Install chezmoi
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" -t "v${CHEZMOI_VERSION}"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Render every file (dry run)
+        run: |
+          # .chezmoi.toml.tmpl puts the source in ~/.dotfiles; answer its
+          # questions up front (it can't prompt here), one placeholder each.
+          ln -s "$GITHUB_WORKSPACE" "$HOME/.dotfiles"
+          mkdir -p "$HOME/.config/chezmoi"
+          {
+            echo "[data]"
+            for key in $(grep -o 'promptStringOnce \. "[A-Za-z]*"' .chezmoi.toml.tmpl | cut -d'"' -f2); do
+              if [ "$key" = projectsDir ]; then echo "    $key = \"~/Projects\""; else echo "    $key = \"ci-$key\""; fi
+            done
+          } > "$HOME/.config/chezmoi/chezmoi.toml"
+          chezmoi init --source "$HOME/.dotfiles" --no-tty
+          chezmoi apply --dry-run --force --no-tty
+          echo "Rendered $(chezmoi managed | wc -l | tr -d ' ') files."
+
+      - name: Install shellcheck
+        if: runner.os == 'macOS'
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install -q shellcheck
+
+      - name: shellcheck
+        run: |
+          status=0
+          # Plain shell scripts (sh/bash shebang; tmux-to-herdr is Python).
+          for f in install.sh setup-secrets.sh docker-smoke-test.sh dot_local/bin/* .chezmoiscripts/*.sh; do
+            head -1 "$f" | grep -qE '^#!.*\b(ba)?sh\b' || continue
+            shellcheck -S warning "$f" || status=1
+          done
+          # Script templates, as chezmoi renders them on this OS.
+          for t in .chezmoiscripts/*.sh.tmpl; do
+            chezmoi execute-template < "$t" > "$RUNNER_TEMP/rendered.sh"
+            shellcheck -S warning -s bash "$RUNNER_TEMP/rendered.sh" || { echo "::error file=$t::shellcheck failed on the rendered script"; status=1; }
+          done
+          exit $status
