@@ -1,0 +1,102 @@
+{{ if eq .chezmoi.os "darwin" -}}
+eval "$(/opt/homebrew/bin/brew shellenv)"
+{{ end -}}
+
+# set up zinit directory
+ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+
+# clone zinit if it doesn't exist
+if [ ! -d "$ZINIT_HOME" ]; then
+  mkdir -p "$(dirname "$ZINIT_HOME")"
+  git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+fi
+
+# source zinit
+source "$ZINIT_HOME/zinit.zsh"
+
+# add zinit plugins
+zinit light zsh-users/zsh-syntax-highlighting
+zinit light zsh-users/zsh-completions
+zinit light zsh-users/zsh-autosuggestions
+zinit light Aloxaf/fzf-tab
+zinit light greymd/docker-zsh-completion
+zinit light lukechilds/zsh-better-npm-completion
+
+# add zinit snippets
+zinit snippet OMZP::git
+zinit snippet OMZP::brew
+zinit snippet OMZP::npm
+zinit snippet OMZP::sudo
+zinit snippet OMZP::command-not-found
+
+# load zfunc, and Docker CLI completions (from Docker Desktop)
+fpath=(~/.zfunc $HOME/.docker/completions $fpath)
+
+# load completions
+autoload -U compinit && compinit
+
+zinit cdreplay -q
+
+# key bindings
+bindkey '^y' autosuggest-accept
+bindkey '^n' history-search-forward
+bindkey '^p' history-search-backward
+autoload -U up-line-or-beginning-search
+autoload -U down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey "^[[A" up-line-or-beginning-search # Up
+bindkey "^[[B" down-line-or-beginning-search # Down
+
+# history
+HISTSIZE=5000
+HISTFILE=~/.zsh_history
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
+
+# completion styling
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' menu no
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+
+# colors (neon tokyonight)
+source $HOME/.zsh.d/theme.zsh
+# aliases
+source $HOME/.zsh.d/aliases.zsh
+# secrets (written by ~/.dotfiles/setup-secrets.sh; absent until that runs)
+[ -f "$HOME/.zsh.d/secrets.zsh" ] && source "$HOME/.zsh.d/secrets.zsh"
+
+# Shell integrations
+eval "$(fzf --zsh)"
+eval "$(zoxide init zsh)"
+eval "$(oh-my-posh init zsh --config $HOME/.config/oh-my-posh/tokyo-neon.omp.toml)"
+eval "$(mise activate zsh)"
+
+## [Completion]
+## Completion scripts setup. Remove the following line to uninstall
+[[ -f $HOME/.dart-cli-completion/zsh-config.zsh ]] && . $HOME/.dart-cli-completion/zsh-config.zsh || true
+## [/Completion]
+
+# Added by Antigravity
+export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:$HOME/.lmstudio/bin"
+# End of LM Studio CLI section
+
+# ~/.local/bin first: the gh wrapper there must shadow Homebrew's gh (it picks
+# the GitHub account per folder), and herdr-core's hc lives there too. Then
+# Volta, so `node` follows each project's pinned version instead of Homebrew's
+# node (which only serves prettierd). Kept last so nothing above (brew
+# shellenv, installers) puts Homebrew back ahead.
+path=("$HOME/.local/bin" "$HOME/.volta/bin" ${path:#($HOME/.local/bin|$HOME/.volta/bin)})
+

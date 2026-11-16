@@ -1,0 +1,182 @@
+[alias]
+  up = pull
+  p = push
+  pf = push --force-with-lease
+  pfn = push --force-with-lease --no-verify
+  cp = cherry-pick
+  st = status
+  cl = clone
+  co = checkout
+
+  r = reset
+  r1 = reset HEAD^
+  r2 = reset HEAD^^
+  rh = reset --hard
+  rh1 = reset HEAD^ --hard
+  rh2 = reset HEAD^^ --hard
+
+  sl = stash list
+  sa = stash apply
+  ss = stash save
+
+  br = branch
+  branch = branch -ra
+  bra = branch -ra
+
+  f = "!git ls-files | grep -i"
+
+  ci = commit
+  cm = commit -m
+  cma = commit -a -m
+  ca = commit --amend
+  can = commit --amend --no-edit
+  amend = commit --amend
+
+  # Show the diff between the latest commit and the current state
+  d = !"git diff-index --quiet HEAD -- || clear; git --no-pager diff --patch-with-stat"s
+  df = diff --color --color-words --abbrev
+  dc = diff --cached
+  diff = diff --word-diff
+
+  lg = log --color --graph --pretty=format:"%Cred%h%Creset\\ -%C(yellow)%d%Creset\\ %s\\ %Cgreen(%cr)\\ %C(bold\\ blue)<%an>%Creset" --abbrev-commit --
+  ls = log --pretty=format:"%C(green)%h\\ %C(yellow)[%ad]%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --date=relative
+  ll = log --pretty=format:"%C(yellow)%h%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --numstat
+  lc  = "!f() { git ll "$1"^.."$1"; }; f"
+  lnc = log --pretty=format:"%h\\ %s\\ [%cn]"
+
+# INCLUDES
+# --------
+# Local/Private config goes in the include
+[include]
+  path = ~/.gitconfig.local
+# URL ALIASES
+# -----------
+# Alias for Dracula Org repositories
+[url "https://github.com/dracula/"]
+  insteadOf = dracula://
+# COLORS
+# ------
+# ANSI names, so these follow the terminal's Tokyo Night palette
+[color]
+  ui = auto
+[color "branch"]
+  current = cyan bold reverse
+  local = white
+  plain =
+  remote = cyan
+[color "diff"]
+  commit =
+  func = cyan
+  plain =
+  whitespace = magenta reverse
+  meta = white
+  frag = cyan bold reverse
+  old = red
+  new = green
+[color "grep"]
+  context =
+  filename =
+  function =
+  linenumber = white
+  match =
+  selected =
+  separator =
+[color "interactive"]
+  error =
+  header =
+  help =
+  prompt =
+[color "status"]
+  added = green
+  changed = yellow
+  header =
+  localBranch =
+  nobranch =
+  remoteBranch = cyan bold
+  unmerged = magenta bold reverse
+  untracked = red
+  updated = green bold
+
+[core]
+  excludesfile = ~/.gitignore
+  attributesfile = ~/.gitattributes
+
+[help]
+  autocorrect = 1
+
+# push easily. http://stackoverflow.com/a/23918418/89484
+[push]
+  default = current
+
+[pull]
+  default = current
+	rebase = true
+
+[user]
+	email = {{ .email }}
+	name = {{ .name }}
+
+[core]
+  pager = delta
+	ignorecase = true
+
+[interactive]
+  diffFilter = delta --color-only
+
+[delta]
+  features = side-by-side line-numbers decorations
+  syntax-theme = tokyonight_night
+  # Tokyo Night diff colors (folke/tokyonight.nvim extras/delta)
+  minus-style                   = syntax "#4a272f"
+  minus-non-emph-style          = syntax "#4a272f"
+  minus-emph-style              = syntax "#713137"
+  minus-empty-line-marker-style = syntax "#4a272f"
+  plus-style                    = syntax "#243e4a"
+  plus-non-emph-style           = syntax "#243e4a"
+  plus-emph-style               = syntax "#2c5a66"
+  plus-empty-line-marker-style  = syntax "#243e4a"
+
+[delta "decorations"]
+  commit-decoration-style = bold "#e0af68" box ul
+  file-style = bold "#7aa2f7" ul
+  file-decoration-style = none
+  hunk-header-decoration-style = "#bb9af7" box ul
+
+[delta "line-numbers"]
+  line-numbers-left-style = "#3b4261"
+  line-numbers-right-style = "#3b4261"
+  line-numbers-minus-style = "#914c54"
+  line-numbers-plus-style = "#449dab"
+  line-numbers-zero-style = "#3b4261"
+
+[merge]
+  conflictstyle = diff3
+
+[diff]
+  colorMoved = default
+[init]
+	defaultBranch = main
+# Non-GitHub hosts (e.g. Azure DevOps) use Git Credential Manager. Must stay
+# above the GitHub sections: helpers stack in file order and the empty
+# `helper =` resets the list, so placed below it would wipe out theirs.
+[credential]
+	helper =
+	helper = /usr/local/share/gcm-core/git-credential-manager
+# GitHub logins come from gh's stored accounts, picking the account named by
+# `username` (personal here, overridden to the work account by
+# ~/.gitconfig-work). See ~/.local/bin/git-credential-gh-account.
+[credential "https://github.com"]
+	username = jmatelli
+	helper =
+	helper = !~/.local/bin/git-credential-gh-account
+[credential "https://gist.github.com"]
+	helper =
+	helper = !~/.local/bin/git-credential-gh-account
+[credential "https://dev.azure.com"]
+	useHttpPath = true
+
+# Work identity/account (jomatelli) for anything under projectsDir; must
+# stay last in the file so its [user]/[credential] values win over the
+# defaults above for matching repos.
+[includeIf "gitdir:{{ .projectsDir }}/"]
+	path = ~/.gitconfig-work

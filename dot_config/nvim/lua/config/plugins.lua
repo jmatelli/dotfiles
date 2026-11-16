@@ -1,0 +1,418 @@
+vim.pack.add({
+  -- File navigation
+  "https://github.com/stevearc/oil.nvim",
+  "https://github.com/nvim-mini/mini.icons",
+
+  -- Keybinding discovery (which-key equivalent)
+  "https://github.com/nvim-mini/mini.clue",
+
+  -- Buffer management + startup dashboard
+  "https://github.com/nvim-mini/mini.bufremove",
+  "https://github.com/nvim-mini/mini.starter",
+
+  -- LSP: mason installs, nvim-lspconfig supplies configs, mason-lspconfig bridges them
+  "https://github.com/mason-org/mason.nvim",
+  "https://github.com/neovim/nvim-lspconfig",
+  "https://github.com/mason-org/mason-lspconfig.nvim",
+
+  -- Treesitter
+  { src = "https://github.com/nvim-treesitter/nvim-treesitter", version = "main" },
+  { src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects", version = "main" },
+  "https://github.com/windwp/nvim-ts-autotag",
+
+  -- Completion (pinned to v1: main is an actively-breaking v2 in progress
+  -- per the plugin's own README warning; v1 is the current stable line)
+  { src = "https://github.com/Saghen/blink.cmp", version = "v1" },
+
+  -- Autopairs
+  "https://github.com/windwp/nvim-autopairs",
+
+  -- Fuzzy finder
+  "https://github.com/ibhagwan/fzf-lua",
+
+  -- Git
+  "https://github.com/lewis6991/gitsigns.nvim",
+
+  -- Statusline
+  "https://github.com/nvim-lualine/lualine.nvim",
+
+  -- Formatting
+  "https://github.com/stevearc/conform.nvim",
+
+  -- Database
+  "https://github.com/tpope/vim-dadbod",
+  "https://github.com/kristijanhusak/vim-dadbod-ui",
+  "https://github.com/kristijanhusak/vim-dadbod-completion",
+
+  -- Theme
+  "https://github.com/folke/tokyonight.nvim",
+
+  -- AI
+  "https://github.com/zbirenbaum/copilot.lua",
+
+  -- Motion discipline
+  "https://github.com/MunifTanjim/nui.nvim",
+  "https://github.com/m4xshen/hardtime.nvim",
+
+  -- Indent guides
+  "https://github.com/lukas-reineke/indent-blankline.nvim",
+})
+
+require("mini.icons").setup()
+
+local miniclue = require("mini.clue")
+miniclue.setup({
+  triggers = {
+    { mode = "n", keys = "<Leader>" },
+    { mode = "x", keys = "<Leader>" },
+
+    { mode = "n", keys = "[" },
+    { mode = "n", keys = "]" },
+
+    { mode = "i", keys = "<C-x>" },
+
+    { mode = "n", keys = "g" },
+    { mode = "x", keys = "g" },
+
+    { mode = "n", keys = "'" },
+    { mode = "n", keys = "`" },
+    { mode = "x", keys = "'" },
+    { mode = "x", keys = "`" },
+
+    { mode = "n", keys = '"' },
+    { mode = "x", keys = '"' },
+    { mode = "i", keys = "<C-r>" },
+    { mode = "c", keys = "<C-r>" },
+
+    { mode = "n", keys = "<C-w>" },
+
+    { mode = "n", keys = "z" },
+    { mode = "x", keys = "z" },
+  },
+  clues = {
+    miniclue.gen_clues.square_brackets(),
+    miniclue.gen_clues.builtin_completion(),
+    miniclue.gen_clues.g(),
+    miniclue.gen_clues.marks(),
+    miniclue.gen_clues.registers(),
+    miniclue.gen_clues.windows(),
+    miniclue.gen_clues.z(),
+  },
+})
+
+require("mini.starter").setup()
+
+-- mini.starter buffer-locally maps "-" (query_updaters) and <C-p> (item nav)
+-- before it fires this event, shadowing Open Oil and fzf-lua Find Files -
+-- restore them here, scoped to the starter buffer only.
+vim.api.nvim_create_autocmd("User", {
+  pattern = "MiniStarterOpened",
+  callback = function()
+    vim.keymap.set("n", "-", "<CMD>Oil<CR>", { buffer = 0, desc = "Open Oil" })
+    vim.keymap.set("n", "<C-P>", "<cmd>FzfLua files<cr>", { buffer = 0, desc = "Find Files" })
+  end,
+})
+
+local bufremove = require("mini.bufremove")
+vim.keymap.set("n", "<leader>bd", function()
+  bufremove.delete(0, false)
+end, { desc = "Delete Buffer" })
+vim.keymap.set("n", "<leader>bo", function()
+  local current = vim.api.nvim_get_current_buf()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if buf ~= current and vim.bo[buf].buflisted then
+      bufremove.delete(buf, false)
+    end
+  end
+end, { desc = "Delete Other Buffers" })
+vim.keymap.set("n", "<leader>ba", function()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.bo[buf].buflisted then
+      bufremove.delete(buf, false)
+    end
+  end
+  require("mini.starter").open()
+end, { desc = "Delete All Buffers" })
+
+require("oil").setup({
+  view_options = {
+    show_hidden = true,
+  },
+  keymaps = {
+    -- Default is actions.preview (open a split); use the same fzf-lua
+    -- file picker <C-P> opens everywhere else instead.
+    ["<C-p>"] = {
+      callback = function()
+        require("fzf-lua").files()
+      end,
+      desc = "Find Files",
+      mode = "n",
+    },
+  },
+})
+vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open Oil" })
+
+require("mason").setup()
+require("mason-lspconfig").setup({
+  ensure_installed = { "gopls", "vtsls", "eslint", "jsonls", "yamlls", "terraformls" },
+})
+
+require("blink.cmp").setup({
+  sources = {
+    default = { "lsp", "path", "snippets", "buffer" },
+    per_filetype = {
+      sql = { "snippets", "dadbod", "buffer" },
+    },
+    providers = {
+      dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
+    },
+  },
+  keymap = {
+    preset = "default",
+  },
+})
+
+-- blink.cmp's "default" keymap preset doesn't bind <CR> (accept is <Tab> /
+-- <C-y>), so it's free for nvim-autopairs' own <CR> bracket-expansion - no
+-- integration/ordering hack needed between the two.
+local npairs = require("nvim-autopairs")
+npairs.setup({
+  check_ts = true,
+  ts_config = {
+    lua = { "string" },
+    javascript = { "template_string" },
+  },
+})
+
+-- Match Prettier/ESLint spacing conventions: padded curly braces
+-- ("{ foo }") but tight parens/brackets ("(foo)", "[foo]") - so only {}
+-- gets the classic nvim-autopairs "expand pair on space" treatment.
+-- https://github.com/windwp/nvim-autopairs/wiki/Custom-rules#add-spaces-between-parentheses
+local Rule = require("nvim-autopairs.rule")
+local cond = require("nvim-autopairs.conds")
+
+npairs.add_rules({
+  Rule(" ", " ")
+    :with_pair(function(rule_opts)
+      return rule_opts.line:sub(rule_opts.col - 1, rule_opts.col) == "{}"
+    end)
+    :with_move(cond.none())
+    :with_cr(cond.none())
+    :with_del(function(rule_opts)
+      local col = vim.api.nvim_win_get_cursor(0)[2]
+      return rule_opts.line:sub(col - 1, col + 2) == "{  }"
+    end),
+  Rule("{ ", " }")
+    :with_pair(cond.none())
+    :with_move(function(rule_opts) return rule_opts.char == "}" end)
+    :with_del(cond.none())
+    :use_key("}")
+    :replace_map_cr(function(_) return "<C-c>2xi<CR><C-c>O" end),
+})
+
+require("gitsigns").setup({
+  signs = {
+    add = { text = "│" },
+    change = { text = "│" },
+    delete = { text = "│" },
+    topdelete = { text = "│" },
+    changedelete = { text = "│" },
+    untracked = { text = "┆" },
+  },
+  signcolumn = true,
+  numhl = false,
+  linehl = false,
+  word_diff = false,
+  current_line_blame = true,
+  current_line_blame_opts = {
+    virt_text = true,
+    virt_text_pos = "eol",
+    delay = 1000,
+    ignore_whitespace = false,
+  },
+  current_line_blame_formatter = "  <author>, <author_time:%Y-%m-%d> - <summary>",
+  preview_config = {
+    border = "rounded",
+    style = "minimal",
+    relative = "cursor",
+    row = 0,
+    col = 1,
+  },
+})
+vim.keymap.set("n", "<leader>gs", "<cmd>Gitsigns toggle_signs<cr>", { desc = "Toggle Git Signs" })
+vim.keymap.set("n", "<leader>gn", "<cmd>Gitsigns next_hunk<cr>", { desc = "Next Git Hunk" })
+vim.keymap.set("n", "<leader>gp", "<cmd>Gitsigns prev_hunk<cr>", { desc = "Previous Git Hunk" })
+vim.keymap.set("n", "<leader>gr", "<cmd>Gitsigns reset_hunk<cr>", { desc = "Reset Git Hunk" })
+vim.keymap.set("n", "<leader>gR", "<cmd>Gitsigns reset_buffer<cr>", { desc = "Reset Git Buffer" })
+
+require("lualine").setup({
+  options = {
+    theme = "tokyonight",
+    component_separators = { left = "\u{e0b5}", right = "\u{e0b7}" },
+    section_separators = { left = "\u{e0b4}", right = "\u{e0b6}" },
+    globalstatus = true,
+  },
+  sections = {
+    lualine_a = { "mode" },
+    lualine_b = {
+      "diff",
+      {
+        "diagnostics",
+        symbols = {
+          error = " ",
+          warn = " ",
+          info = " ",
+          hint = " ",
+        },
+      },
+    },
+    lualine_c = {
+      {
+        "filename",
+        path = 1,
+        file_status = true,
+        newfile_status = true,
+      },
+    },
+    lualine_x = {
+      {
+        "macro",
+        fmt = function()
+          local reg = vim.fn.reg_recording()
+          if reg ~= "" then
+            return "Recording: @" .. reg
+          end
+          return nil
+        end,
+        color = { fg = "#ff9e64" },
+        draw_empty = false,
+      },
+      { "searchcount" },
+    },
+    lualine_y = { "filetype" },
+    lualine_z = {},
+  },
+})
+
+require("conform").setup({
+  formatters_by_ft = {
+    sql = { "pg_format" },
+    json = { "jq" },
+    typescript = { "prettierd" },
+    typescriptreact = { "prettierd" },
+    javascript = { "prettierd" },
+    javascriptreact = { "prettierd" },
+    go = { "gofumpt", "golangci-lint", "golines" },
+    terraform = { "terraform_fmt" },
+    ["terraform-vars"] = { "terraform_fmt" },
+  },
+  format_on_save = function(bufnr)
+    -- golangci-lint does real static analysis (not just text formatting),
+    -- confirmed to reliably exceed 500ms even on a small package - tested
+    -- directly, the exact same formatter chain completes correctly at
+    -- ~2-3s. Go gets a longer budget. Everything else also got bumped
+    -- from LazyVim's 500ms default to 1000ms - prettierd's daemon
+    -- cold-start measurably exceeded 500ms in testing too; a higher
+    -- timeout is a ceiling, not a floor, so this costs nothing when a
+    -- formatter finishes fast.
+    if vim.bo[bufnr].filetype == "go" then
+      return { timeout_ms = 5000, lsp_format = "fallback" }
+    end
+    return { timeout_ms = 1000, lsp_format = "fallback" }
+  end,
+})
+
+vim.o.previewheight = 30
+vim.g.db_ui_use_nerd_fonts = 1
+vim.g.db_ui_use_nvim_notify = 1
+-- Run table helpers ("Select 10 Rows" etc.) immediately instead of just
+-- inserting the query - default is 0, off by default upstream.
+vim.g.db_ui_auto_execute_table_helpers = 1
+local urlprefix = "postgresql://postgres:postgres@" .. (vim.env.LOCAL_IP or "127.0.0.1") .. ":5432/"
+vim.g.dbs = {
+  { name = "Yaarz - DEV", url = urlprefix .. "yaarz" },
+  { name = "Yaarz - TEST", url = urlprefix .. "yaarz_test" },
+  { name = "Yaarz - E2E TEST", url = urlprefix .. "yaarz_e2e_test" },
+  { name = "Yaarz - STG readonly", url = vim.env.YAARZ_READONLY_STG_DB_URL },
+  { name = "Yaarz - STG", url = vim.env.YAARZ_STG_DB_URL },
+  { name = "Yaarz - PROD readonly", url = vim.env.YAARZ_PROD_READONLY_DB_URL },
+  { name = "Yaarz - PROD", url = vim.env.YAARZ_PROD_DB_URL },
+  { name = "Metabase", url = vim.env.METABASE_DB_URL },
+}
+vim.keymap.set("n", "<leader>D", "<cmd>bd<cr><cmd>DBUIToggle<cr>")
+
+require("tokyonight").setup({
+  style = "night",
+  transparent = true,
+})
+vim.cmd.colorscheme("tokyonight-night")
+
+require("copilot").setup({
+  suggestion = {
+    auto_trigger = true,
+    keymap = {
+      accept = "<M-y>",
+      next = "<M-l>",
+      prev = "<M-h>",
+      dismiss = "<M-x>",
+    },
+  },
+})
+
+require("hardtime").setup({
+  disabled_filetypes = { "dbui", "dbout", "oil" },
+})
+vim.keymap.set({ "n", "x" }, "j", 'v:count == 0 ? "gj" : "j"', { desc = "Down", expr = true, silent = true })
+vim.keymap.set({ "n", "x" }, "<Down>", 'v:count == 0 ? "gj" : "j"', { desc = "Down", expr = true, silent = true })
+vim.keymap.set({ "n", "x" }, "k", 'v:count == 0 ? "gk" : "k"', { desc = "Up", expr = true, silent = true })
+vim.keymap.set({ "n", "x" }, "<Up>", 'v:count == 0 ? "gk" : "k"', { desc = "Up", expr = true, silent = true })
+
+require("ibl").setup({
+  indent = { char = "│", tab_char = "│" },
+  scope = { show_start = false, show_end = false },
+  exclude = {
+    filetypes = { "help", "mason" },
+  },
+})
+
+-- fzf-lua's git-status icons (M/D/A/R/C/T/?) render with plain, non-bold
+-- ANSI colors and nothing else to make them stand out, so they're easy to
+-- miss. Register bold variants (fzf-lua's own extension point for this -
+-- the color name is just a lookup key into this cache) and point the
+-- icons at those instead of the plain ones.
+local fzf_ansi = require("fzf-lua.utils")
+for name, code in pairs({
+  bold_yellow = "\27[1;33m",
+  bold_red = "\27[1;31m",
+  bold_green = "\27[1;32m",
+  bold_magenta = "\27[1;35m",
+}) do
+  fzf_ansi.cache_ansi_escseq(name, code)
+end
+
+require("fzf-lua").setup({
+  file_ignore_patterns = { "node_modules", "mocks" },
+  -- Wrap selection at the top/bottom of the list instead of stopping.
+  fzf_opts = { ["--cycle"] = true },
+  grep = {
+    -- file_ignore_patterns doesn't apply to grep providers, so exclude
+    -- noisy lockfiles via rg's own glob instead.
+    rg_opts = "--column --line-number --no-heading --color=always --smart-case "
+        .. "--max-columns=4096 -g '!yarn.lock' -e",
+  },
+  git = {
+    icons = {
+      ["M"] = { icon = "M", color = "bold_yellow" },
+      ["D"] = { icon = "D", color = "bold_red" },
+      ["A"] = { icon = "A", color = "bold_green" },
+      ["R"] = { icon = "R", color = "bold_yellow" },
+      ["C"] = { icon = "C", color = "bold_yellow" },
+      ["T"] = { icon = "T", color = "bold_magenta" },
+      ["?"] = { icon = "?", color = "bold_magenta" },
+    },
+  },
+})
+vim.keymap.set("n", "<leader><leader>", "<cmd>FzfLua buffers sort_mru=true sort_lastused=true<cr>", { desc = "Switch Buffers" })
+vim.keymap.set("n", "<C-P>", "<cmd>FzfLua files<cr>", { desc = "Find Files" })
+vim.keymap.set("n", "<leader>/", "<cmd>FzfLua live_grep<cr>", { desc = "Grep (cwd)" })
+vim.keymap.set("n", "<leader>q", "<cmd>FzfLua quickfix<cr>", { desc = "Quickfix List" })

@@ -1,0 +1,30 @@
+---
+description: >-
+  Thorough code review (slower, Opus, uses more quota). Use INSTEAD of code-reviewer when the change
+  is high-risk: authentication/authorization, payments/billing/Stripe, secrets or crypto, database
+  migrations, schema changes or data deletion, concurrency/queues/caching, public API or webhook
+  contracts, permission/security boundaries; or when it is large (roughly 10+ files or 300+ changed
+  lines, or a cross-cutting refactor); or when the user asks for a thorough/deep/careful review.
+mode: subagent
+model: claude-agent/opus
+permissions:
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "git diff*"
+    effect: allow
+  - action: shell
+    resource: "git log*"
+    effect: allow
+  - action: shell
+    resource: "git show*"
+    effect: allow
+---
+
+{{ template "reviewer-guide.md" dict "client" "opencode" }}
+
+{{ template "reviewer-deep.md" . }}

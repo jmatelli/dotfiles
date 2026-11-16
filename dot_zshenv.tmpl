@@ -1,0 +1,60 @@
+{{- if eq .chezmoi.os "darwin" }}
+export EDITOR=/opt/homebrew/bin/nvim
+{{- else }}
+export EDITOR=nvim
+{{- end }}
+
+export BAT_THEME="tokyonight_night"
+
+# FZF theme: neon tokyonight (matches herdr-app tokyo-neon)
+export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS'
+  --height 40% --reverse
+	--color=fg:#c0caf5,bg:-1,hl:#ff007c
+	--color=fg+:#e6ecff,bg+:#2a2f4d,gutter:-1,hl+:#ff007c
+	--color=info:#c792ff,prompt:#2ee6ff,pointer:#ff007c
+	--color=marker:#9ff26a,spinner:#2ee6ff,header:#565f89
+	--color=border:#2a2e48,query:#e6ecff'
+export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --hidden'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_CTRL_R_OPTS='--header "[Search history]"'
+export FZF_TMUX_OPTS=$FZF_TMUX_OPTS'
+  -p'
+
+# NEOVIM
+export NVIM_PATH="~/.config/nvim"
+
+{{ if eq .chezmoi.os "darwin" -}}
+# Python, Ruby, Go, Rust come from mise (activated in .zshrc); Node from
+# Volta (below), which follows the "volta" pins in projects' package.json.
+
+# Rust (cargo-installed binaries)
+export PATH="$HOME/.cargo/bin:/usr/local/bin:$PATH"
+
+# Android studio
+export ANDROID_HOME="$HOME/Library/Android/sdk/"
+export PATH="$ANDROID_HOME/platform-tools:$PATH"
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin/:$PATH"
+export PATH="$ANDROID_HOME/emulator/bin64/:$PATH"
+
+# Go: the toolchain comes from mise. Don't run `go` here: at this point the
+# first go on PATH can be a stale system install, and inside a module that
+# needs a newer Go it prints "go: downloading go1.x" on every new shell.
+export PATH="$PATH:${GOPATH:-$HOME/go}/bin"
+
+# Java
+export JAVA_HOME="/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home"
+
+# Docker
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
+# Postgres
+export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
+
+# IP (used by nvim's database connections and Yaarz mobile's .env files)
+export LOCAL_IP=$(/usr/sbin/ipconfig getifaddr en0)
+
+# Node: Volta owns it (pins from package.json, default elsewhere). .zshrc
+# moves this back in front of Homebrew, whose own node only serves prettierd.
+export VOLTA_HOME="$HOME/.volta"
+export PATH="$VOLTA_HOME/bin:$PATH"
+{{- end }}

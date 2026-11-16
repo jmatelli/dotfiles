@@ -1,0 +1,839 @@
+// Branch status for the session sidebar, prepended to the built-in footer so
+// it sits right above the `~/path:branch` line (opencode.sidebar.footer) and
+// the branch itself is shown only once:
+//
+//   ◆ TECH-123 Some issue title       In Progress
+//   ● #123 feat: some change  2 unresolved  approved
+//   EAS ● android preview ● ios preview
+//   ↑2 ↓1 vs develop · 3 changed
+//   ~/project:feature/YAA-123-some-change        ← built-in footer
+//
+// The issue (key read from the branch name, see fetchIssue) links to Linear,
+// or for repos without a Linear match to the GitHub issue whose number the
+// branch carries (feature/93-foo → #93); the diamond and the state are in the
+// issue state's color. Under it, a progress bar: the issue's sub-issues done,
+// else its description checklist (- [x]), and its parent's sub-issues:
+//
+//   ◆ #93 Design phase 3: the page     Open
+//   ███████░░░ 7/10 · #89 3/6               ← own progress, then the parent's
+//   ██████░░░░ 3/6 in #89                   ← no own progress: the parent's
+// The disk is the PR's CI state: green passed, yellow in progress, red failed,
+// purple merged (muted when there are no checks or the PR is closed), followed
+// by the number of unresolved review threads. Clicking the PR line opens it in
+// the browser. The EAS line (repos with mobile/eas.json or eas.json) shows the
+// latest Expo build of the branch per platform, same colors; click to open.
+// Ahead/behind uses local refs only (no fetch), against the PR's base, else
+// master for hotfix/*, else develop, else origin/HEAD.
+//
+// Fine-grained PATs may be unable to read checks/commit statuses, which makes
+// gh's whole statusCheckRollup query fail; CI then falls back to the GitHub
+// Actions runs of the PR head commit.
+import { Plugin } from "@opencode/plugin/tui"
+import { For, Show, createEffect, createSignal, on, onCleanup } from "solid-js"
+import { execFile } from "node:child_process"
+import { stat } from "node:fs/promises"
+import { dirname, join } from "node:path"
+
+const GIT_POLL_MS = 10 * 1000
+const PR_POLL_MS = 60 * 1000
+const PR_FORCE_MIN_MS = 10 * 1000 // floor for forced (turn end / palette) PR refreshes
+const ROLLUP_DENIED_MS = 30 * 60 * 1000 // retry the full query after this long
+const ISSUE_POLL_MS = 2 * 60 * 1000
+const ISSUE_FORCE_MIN_MS = 10 * 1000
+const BUILD_POLL_MS = 2 * 60 * 1000
+const BUILD_FORCE_MIN_MS = 30 * 1000
+const BUILD_FAIL_POLL_MS = 15 * 60 * 1000
+const REFRESH_ID = "dotfiles.git-sidebar.refresh"
+const PURPLE = "#bb9af7" // tokyonight magenta; the theme has no "merged" token
+const DEFAULT_BRANCHES = ["main", "master", "develop"]
+const PROGRESS_WIDTH = 10
+const DIM = "#565f89"
+
+type CI = "passed" | "pending" | "failed" | "merged" | "closed" | "none"
+type PR = { number: number; title: string; url: string; ci: CI; label?: string; base: string; unresolved?: number }
+type Build = { platform: string; profile: string; status: CI; url: string; current: boolean }
+type Info = {
+  branch?: string
+  isDefault?: boolean
+  remote?: string
+  base?: string
+  ahead?: number
+  behind?: number
+  changed?: number
+  pr?: PR
+  prBranch?: string // branch the PR lookup was done for
+  issue?: Issue
+  builds?: Build[]
+  buildsBranch?: string // branch the EAS lookup was done for
+  issueBranch?: string // branch the Linear lookup was done for
+}
+type Progress = { done: number; total: number }
+type Issue = {
+  identifier: string
+  title: string
+  url: string
+  state: string
+  color: string
+  progress?: Progress // sub-issues, else the description's checklist
+  parent?: Progress & { identifier: string }
+}
+
+// Sub-issues first (the real breakdown), else the checklist of the description.
+function progressOf(subs: Progress | undefined, body?: string): Progress | undefined {
+  if (subs && subs.total > 0) return subs
+  const boxes = (body ?? "").match(/^\s*[-*+] \[[ xX]\]/gm) ?? []
+  if (boxes.length === 0) return undefined
+  return { done: boxes.filter((b) => /\[[xX]\]/.test(b)).length, total: boxes.length }
+}
+
+// GitHub issue states, in tokyonight colors like GitHub's own: open green,
+// completed purple, not planned muted.
+const GH_OPEN = "#9ece6a"
+const GH_DONE = "#bb9af7"
+const GH_NOT_PLANNED = "#565f89"
+
+type Result = { out?: string; err: string }
+
+function exec(cmd: string, args: string[], cwd: string, timeout = 10000): Promise<Result> {
+  return new Promise((resolve) => {
+    execFile(
+      cmd,
+      args,
+      {
+        cwd,
+        timeout,
+        maxBuffer: 32 * 1024 * 1024,
+        env: { ...process.env, GH_PROMPT_DISABLED: "1", GIT_OPTIONAL_LOCKS: "0" },
+      },
+      (err, stdout, stderr) => resolve({ out: err ? undefined : stdout.trim(), err: String(stderr ?? "") }),
+    )
+  })
+}
+const run = async (cmd: string, args: string[], cwd: string, timeout?: number) =>
+  (await exec(cmd, args, cwd, timeout)).out
+
+const hasRef = async (dir: string, ref: string) =>
+  (await run("git", ["rev-parse", "--verify", "--quiet", ref], dir)) !== undefined
+
+async function pickBase(dir: string, branch: string, prBase?: string) {
+  if (prBase) return prBase
+  if (branch.startsWith("hotfix/") && (await hasRef(dir, "refs/remotes/origin/master"))) return "master"
+  if (await hasRef(dir, "refs/remotes/origin/develop")) return "develop"
+  const head = await run("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], dir)
+  return head?.replace(/^origin\//, "")
+}
+
+const FAILED = new Set(["FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE"])
+
+function ciState(pr: any): CI {
+  if (pr.state === "MERGED") return "merged"
+  if (pr.state === "CLOSED") return "closed"
+  const checks: any[] = pr.statusCheckRollup ?? []
+  if (checks.length === 0) return "none"
+  let pending = false
+  for (const c of checks) {
+    if (c.__typename === "StatusContext") {
+      if (FAILED.has(c.state)) return "failed"
+      if (c.state !== "SUCCESS") pending = true
+    } else {
+      if (c.status !== "COMPLETED") pending = true
+      else if (FAILED.has(c.conclusion)) return "failed"
+    }
+  }
+  return pending ? "pending" : "passed"
+}
+
+function reviewLabel(pr: any): string | undefined {
+  if (pr.state === "MERGED") return "merged"
+  if (pr.state === "CLOSED") return "closed"
+  if (pr.isDraft) return "draft"
+  if (pr.reviewDecision === "APPROVED") return "approved"
+  if (pr.reviewDecision === "CHANGES_REQUESTED") return "changes"
+  return undefined
+}
+
+const RUN_FAILED = new Set(["failure", "cancelled", "timed_out", "action_required", "startup_failure"])
+
+async function actionsState(dir: string, sha: string): Promise<CI> {
+  const out = await run(
+    "gh",
+    ["run", "list", "--commit", sha, "--limit", "50", "--json", "workflowDatabaseId,status,conclusion,createdAt"],
+    dir,
+    20000,
+  )
+  if (!out) return "none"
+  let runs: any[]
+  try {
+    runs = JSON.parse(out)
+  } catch {
+    return "none"
+  }
+  // Latest run per workflow, so a re-run replaces an earlier failure.
+  const latest = new Map<number, any>()
+  for (const r of runs) {
+    const prev = latest.get(r.workflowDatabaseId)
+    if (!prev || r.createdAt > prev.createdAt) latest.set(r.workflowDatabaseId, r)
+  }
+  if (latest.size === 0) return "none"
+  let pending = false
+  for (const r of latest.values()) {
+    if (r.status !== "completed") pending = true
+    else if (RUN_FAILED.has(r.conclusion)) return "failed"
+  }
+  return pending ? "pending" : "passed"
+}
+
+const PR_FIELDS = "number,title,url,state,isDraft,baseRefName,reviewDecision,headRefOid"
+// Remote URL → time until which the statusCheckRollup query is skipped.
+const rollupDenied = new Map<string, number>()
+
+async function listPR(dir: string, branch: string, fields: string) {
+  // `pr list --head` (newest first, any state) rather than `pr view`, so a
+  // merged PR still shows once its branch is gone from the open list.
+  const res = await exec(
+    "gh",
+    ["pr", "list", "--head", branch, "--state", "all", "--limit", "1", "--json", fields],
+    dir,
+    20000,
+  )
+  if (res.out === undefined) return { ok: false as const, denied: /not accessible|permission/i.test(res.err) }
+  try {
+    return { ok: true as const, pr: JSON.parse(res.out)[0] }
+  } catch {
+    return { ok: false as const, denied: false }
+  }
+}
+
+// null: the branch has no PR. undefined: gh failed (offline, auth...).
+async function fetchPR(dir: string, branch: string, remote: string): Promise<PR | null | undefined> {
+  let pr: any
+  let ci: CI | undefined
+  if ((rollupDenied.get(remote) ?? 0) < Date.now()) {
+    const full = await listPR(dir, branch, `${PR_FIELDS},statusCheckRollup`)
+    if (full.ok) {
+      if (!full.pr) return null
+      pr = full.pr
+      ci = ciState(pr)
+    } else if (full.denied) {
+      rollupDenied.set(remote, Date.now() + ROLLUP_DENIED_MS)
+    } else {
+      return undefined
+    }
+  }
+  if (!pr) {
+    const basic = await listPR(dir, branch, PR_FIELDS)
+    if (!basic.ok) return undefined
+    if (!basic.pr) return null
+    pr = basic.pr
+    ci = pr.state === "MERGED" ? "merged" : pr.state === "CLOSED" ? "closed" : await actionsState(dir, pr.headRefOid)
+  }
+  return {
+    number: pr.number,
+    title: pr.title,
+    url: pr.url,
+    ci: ci ?? "none",
+    label: reviewLabel(pr),
+    base: pr.baseRefName,
+    unresolved: pr.state === "OPEN" ? await unresolvedThreads(dir, pr.url) : undefined,
+  }
+}
+
+// Review threads not yet marked resolved (outdated ones included: GitHub
+// still lists them as open). undefined when the query fails.
+async function unresolvedThreads(dir: string, url: string): Promise<number | undefined> {
+  const m = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/)
+  if (!m) return undefined
+  const out = await run(
+    "gh",
+    [
+      "api", "graphql",
+      "-f", "query=query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100){nodes{isResolved}}}}}",
+      "-f", `o=${m[1]}`, "-f", `r=${m[2]}`, "-F", `n=${m[3]}`,
+      "--jq", "[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length",
+    ],
+    dir,
+    20000,
+  )
+  const n = out === undefined ? NaN : Number(out)
+  return Number.isFinite(n) ? n : undefined
+}
+
+// EAS builds of this branch: builds carry only a commit hash, so they're
+// matched against the branch's own commits (base..HEAD). Shows the latest
+// build per platform among the 50 newest builds of the project (eas's cap).
+// null: no EAS project or no build for the branch;
+// undefined: eas failed (offline, logged out…).
+const EAS_STATUS: Record<string, CI> = { FINISHED: "passed", ERRORED: "failed", CANCELED: "closed" }
+async function fetchBuilds(dir: string, base?: string): Promise<Build[] | null | undefined> {
+  // Run eas from the main checkout when possible: the build list doesn't
+  // depend on what's checked out, and worktrees usually lack the node_modules
+  // eas needs to load app.config.ts.
+  const common = await run("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], dir)
+  const root = await run("git", ["rev-parse", "--show-toplevel"], dir)
+  if (!root) return undefined // git hiccup: keep the last known builds
+  let easDir: string | undefined
+  for (const r of [common && dirname(common), root]) {
+    if (!r) continue
+    if (await hasFile(join(r, "mobile", "eas.json"))) easDir = join(r, "mobile")
+    else if (await hasFile(join(r, "eas.json"))) easDir = r
+    if (easDir) break
+  }
+  if (!easDir) return null
+  const head = await run("git", ["rev-parse", "HEAD"], dir)
+  if (!head) return undefined
+  const range = base && (await hasRef(dir, `refs/remotes/origin/${base}`)) ? [`origin/${base}..HEAD`] : ["-1", "HEAD"]
+  const commits = new Set(((await run("git", ["rev-list", "--max-count=300", ...range], dir)) ?? "").split("\n"))
+  commits.add(head)
+  const out = await run("eas", ["build:list", "--limit", "50", "--json", "--non-interactive"], easDir, 30000)
+  if (out === undefined) return undefined
+  // stdout may carry notices around the JSON: take the array that starts at
+  // the beginning of a line and ends at the last line-ending "]".
+  const start = out.search(/^\[/m)
+  const end = out.lastIndexOf("]")
+  if (start === -1 || end < start) return undefined
+  let builds: any[]
+  try {
+    builds = JSON.parse(out.slice(start, end + 1))
+  } catch {
+    return undefined
+  }
+  const latest = new Map<string, Build>()
+  for (const b of builds) {
+    if (!commits.has(b.gitCommitHash) || latest.has(b.platform)) continue // newest first
+    latest.set(b.platform, {
+      platform: String(b.platform).toLowerCase(),
+      profile: b.buildProfile,
+      status: EAS_STATUS[b.status] ?? "pending",
+      url:
+        b.project?.ownerAccount?.name && b.project?.slug
+          ? `https://expo.dev/accounts/${b.project.ownerAccount.name}/projects/${b.project.slug}/builds/${b.id}`
+          : "https://expo.dev",
+      current: b.gitCommitHash === head,
+    })
+  }
+  return latest.size ? [...latest.values()].sort((a, b) => a.platform.localeCompare(b.platform)) : null
+}
+
+const hasFile = (path: string) => stat(path).then(() => true, () => false)
+
+// Linear: the issue key is read from the branch name (e.g. idir/tech-1739-…
+// → TECH-1739), matched against the workspace's real team keys so words like
+// "fix-2" aren't mistaken for issues. Needs LINEAR_API_KEY in the environment
+// the TUI was started from; without it the line is simply not shown.
+const LINEAR_URL = "https://api.linear.app/graphql"
+
+async function linear(query: string, variables?: Record<string, unknown>): Promise<any | undefined> {
+  const key = process.env.LINEAR_API_KEY
+  if (!key) return undefined
+  try {
+    const res = await fetch(LINEAR_URL, {
+      method: "POST",
+      headers: { Authorization: key, "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(15000),
+    })
+    return await res.json()
+  } catch {
+    return undefined
+  }
+}
+
+// Team keys are cached for an hour so new or renamed teams get picked up.
+const TEAM_KEYS_TTL_MS = 60 * 60 * 1000
+let teamKeys: { keys: string[]; at: number } | undefined
+async function linearTeamKeys(): Promise<string[] | undefined> {
+  if (teamKeys && Date.now() - teamKeys.at < TEAM_KEYS_TTL_MS) return teamKeys.keys
+  const res = await linear("{ teams(first: 250) { nodes { key } } }")
+  const keys = res?.data?.teams?.nodes?.map((t: { key: string }) => t.key)
+  if (Array.isArray(keys)) teamKeys = { keys, at: Date.now() }
+  return teamKeys?.keys // a stale list beats none when the refetch fails
+}
+
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+// First issue key in the branch name, e.g. idir/tech-1739-foo → TECH-1739.
+function issueKey(branch: string, keys: string[]): string | undefined {
+  if (keys.length === 0) return undefined
+  const m = branch.match(new RegExp(`(?:^|[^a-z0-9])(${keys.map(escapeRegex).join("|")})-(\\d+)`, "i"))
+  if (!m) return undefined
+  const key = keys.find((k) => k.toLowerCase() === m[1].toLowerCase())!
+  return `${key}-${m[2]}`
+}
+
+// linear.app/<workspace>/issue/<ID>: the slug after it is optional.
+// github.com/<owner>/<repo>/issues/<n> is already short.
+const shortIssueURL = (url: string, identifier: string) => {
+  const i = url.indexOf(`/issue/${identifier}`)
+  return (i === -1 ? url : url.slice(0, i + `/issue/${identifier}`.length)).replace(/^https:\/\//, "")
+}
+
+// The Linear issue of the branch, else its GitHub issue.
+// null: no issue for this branch. undefined: a lookup failed (keep the last).
+async function fetchIssue(dir: string, branch: string): Promise<Issue | null | undefined> {
+  const fromLinear = await fetchLinearIssue(branch)
+  return fromLinear === null ? fetchGitHubIssue(dir, branch) : fromLinear
+}
+
+// GitHub: the issue number is the branch's first segment after the type
+// prefix, alone or before a dash: feature/93-contents → #93, 93-foo → #93,
+// fix/issue-12 → #12. A number that turns out to be a pull request, or no
+// such issue (or issues disabled), is no issue.
+function githubIssueNumber(branch: string): string | undefined {
+  const last = branch.split("/").pop() ?? branch
+  return last.match(/^(?:issue-|gh-)?(\d+)(?:[-_]|$)/i)?.[1]
+}
+
+async function fetchGitHubIssue(dir: string, branch: string): Promise<Issue | null | undefined> {
+  const n = githubIssueNumber(branch)
+  if (!n) return null
+  // The REST issue endpoint (unlike `gh issue view`) marks pull requests.
+  const res = await exec(
+    "gh",
+    ["api", `repos/{owner}/{repo}/issues/${n}`, "--jq", "{number,title,html_url,state,state_reason,body,sub_issues_summary,pr:(.pull_request!=null)}"],
+    dir,
+    20000,
+  )
+  if (res.out === undefined) return /Not Found|HTTP 404|HTTP 410|none of the git remotes/i.test(res.err) ? null : undefined
+  let issue: any
+  try {
+    issue = JSON.parse(res.out)
+  } catch {
+    return undefined
+  }
+  if (issue.pr) return null
+  // The parent (sub-issues API): 404 when there is none; a failure just
+  // leaves it out.
+  const parentRes = await exec(
+    "gh",
+    ["api", `repos/{owner}/{repo}/issues/${n}/parent`, "--jq", "{number,sub_issues_summary}"],
+    dir,
+    20000,
+  )
+  let parent: Issue["parent"]
+  try {
+    const p = parentRes.out ? JSON.parse(parentRes.out) : undefined
+    if (p?.sub_issues_summary?.total) parent = { identifier: `#${p.number}`, done: p.sub_issues_summary.completed, total: p.sub_issues_summary.total }
+  } catch {}
+  const subs = issue.sub_issues_summary
+  const open = issue.state === "open"
+  const notPlanned = issue.state_reason === "not_planned"
+  return {
+    identifier: `#${issue.number}`,
+    title: issue.title,
+    url: issue.html_url,
+    state: open ? "Open" : notPlanned ? "Not planned" : "Closed",
+    color: open ? GH_OPEN : notPlanned ? GH_NOT_PLANNED : GH_DONE,
+    progress: progressOf(subs && { done: subs.completed, total: subs.total }, issue.body),
+    parent,
+  }
+}
+
+// null: no Linear issue for this branch (or no Linear key).
+// undefined: Linear unreachable.
+async function fetchLinearIssue(branch: string): Promise<Issue | null | undefined> {
+  if (!process.env.LINEAR_API_KEY) return null
+  const keys = await linearTeamKeys()
+  if (!keys) return undefined
+  const id = issueKey(branch, keys)
+  if (!id) return null
+  const res = await linear(
+    `query($id: String!) { issue(id: $id) {
+      identifier title url description state { name color }
+      children(first: 250) { nodes { state { type } } }
+      parent { identifier children(first: 250) { nodes { state { type } } } }
+    } }`,
+    { id },
+  )
+  if (!res) return undefined
+  const issue = res.data?.issue
+  if (!issue) return res.errors?.some((e: any) => e.extensions?.code === "INPUT_ERROR") ? null : undefined
+  return {
+    identifier: issue.identifier,
+    title: issue.title,
+    url: issue.url,
+    state: issue.state?.name,
+    color: issue.state?.color,
+    progress: progressOf(linearDone(issue.children), issue.description),
+    parent: issue.parent && linearDone(issue.parent.children)
+      ? { identifier: issue.parent.identifier, ...linearDone(issue.parent.children)! }
+      : undefined,
+  }
+}
+
+// Linear children as done/total: completed and canceled both count as done,
+// as GitHub counts closed sub-issues.
+function linearDone(children?: { nodes?: { state?: { type?: string } }[] }): Progress | undefined {
+  const nodes = children?.nodes ?? []
+  if (nodes.length === 0) return undefined
+  const done = nodes.filter((c) => c.state?.type === "completed" || c.state?.type === "canceled").length
+  return { done, total: nodes.length }
+}
+
+export default Plugin.define({
+  id: "dotfiles.git-sidebar",
+  setup(context) {
+    const theme = context.theme
+    let disposed = false
+    const [infos, setInfos] = createSignal<Record<string, Info>>({})
+    const patch = (dir: string, next: Partial<Info>) => {
+      if (disposed) return
+      setInfos((all) => ({ ...all, [dir]: { ...all[dir], ...next } }))
+    }
+
+    // Local git state: cheap, polled every GIT_POLL_MS. A refresh requested
+    // while one is running is queued (once) instead of dropped.
+    const gitBusy = new Set<string>()
+    const gitAgain = new Set<string>()
+    const refreshGit = async (dir: string): Promise<void> => {
+      if (gitBusy.has(dir)) {
+        gitAgain.add(dir)
+        return
+      }
+      gitBusy.add(dir)
+      try {
+        const branch = await run("git", ["symbolic-ref", "--short", "HEAD"], dir)
+        // Detached HEAD, not a repo, or a git error: hide the section but keep
+        // the cached PR for when the branch comes back.
+        if (!branch) return patch(dir, { branch: undefined })
+        const originHead = await run("git", ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], dir)
+        const isDefault = originHead ? originHead === `origin/${branch}` : DEFAULT_BRANCHES.includes(branch)
+        const remote = (await run("git", ["remote", "get-url", "origin"], dir)) ?? dir
+        // `pr` is owned by refreshPR (never written here, to avoid racing it);
+        // a PR fetched for another branch is ignored by the Section.
+        const current = infos()[dir]
+        const pr = current?.prBranch === branch && !isDefault ? current.pr : undefined
+        const base = isDefault ? undefined : await pickBase(dir, branch, pr?.base)
+        let ahead: number | undefined
+        let behind: number | undefined
+        if (base && (await hasRef(dir, `refs/remotes/origin/${base}`))) {
+          const counts = await run("git", ["rev-list", "--left-right", "--count", `origin/${base}...HEAD`], dir)
+          const [b, a] = (counts ?? "").split(/\s+/).map(Number)
+          if (Number.isFinite(a) && Number.isFinite(b)) [ahead, behind] = [a, b]
+        }
+        const status = await run("git", ["status", "--porcelain=v1"], dir)
+        const changed = status === undefined ? undefined : status.split("\n").filter(Boolean).length
+        patch(dir, { branch, isDefault, remote, base, ahead, behind, changed })
+        // Branch switched: look up its PR and Linear issue now.
+        if (current?.prBranch !== branch) refreshPR(dir)
+        if (current?.issueBranch !== branch) refreshIssue(dir)
+        if (current?.buildsBranch !== branch || current?.base !== base) refreshBuilds(dir)
+      } finally {
+        gitBusy.delete(dir)
+        if (gitAgain.delete(dir) && !disposed) refreshGit(dir)
+      }
+    }
+
+    // PR + CI via gh: network, so throttled to PR_POLL_MS (PR_FORCE_MIN_MS
+    // when forced), including after failures. Runs separately from the git
+    // refresh so a slow gh call never freezes the counters.
+    // Network lookups (PR via gh, Linear issue) share one throttle: at most one
+    // attempt per `poll` ms per directory and branch (`forceMin` when forced),
+    // counting failures, so an outage never turns into a 10s retry loop. A
+    // branch switch is looked up right away; a request arriving while one is
+    // in flight is queued (once) instead of dropped.
+    // `keyOf` is what the lookup depends on (the branch by default); a new key
+    // is looked up right away. A lookup returning false (failed) backs off to
+    // `failPoll` instead of `poll` unless forced.
+    const throttled = (
+      poll: number,
+      forceMin: number,
+      lookup: (dir: string, info: Info, branch: string) => Promise<void | boolean>,
+      keyOf: (info: Info) => string = (info) => info.branch!,
+      failPoll = poll,
+    ) => {
+      const tried = new Map<string, { key: string; at: number; failed: boolean }>()
+      const busy = new Map<string, string>() // dir → key being looked up
+      const again = new Set<string>()
+      const refresh = async (dir: string, force = false): Promise<void> => {
+        const info = infos()[dir]
+        const branch = info?.branch
+        if (!info || !branch) return
+        const key = keyOf(info)
+        const inFlight = busy.get(dir)
+        if (inFlight !== undefined) {
+          if (force || inFlight !== key) again.add(dir)
+          return
+        }
+        const last = tried.get(dir)
+        const wait = force ? forceMin : last?.failed ? failPoll : poll
+        if (last?.key === key && Date.now() - last.at < wait) return
+        busy.set(dir, key)
+        tried.set(dir, { key, at: Date.now(), failed: false })
+        try {
+          if ((await lookup(dir, info, branch)) === false) tried.set(dir, { key, at: Date.now(), failed: true })
+        } finally {
+          busy.delete(dir)
+          if (again.delete(dir) && !disposed) refresh(dir, true)
+        }
+      }
+      return refresh
+    }
+
+    const refreshPR = throttled(PR_POLL_MS, PR_FORCE_MIN_MS, async (dir, info, branch) => {
+      if (info.isDefault || !info.remote) return patch(dir, { pr: undefined, prBranch: branch })
+      const fetched = await fetchPR(dir, branch, info.remote)
+      // On a gh failure keep the last known PR; retry after the throttle.
+      if (fetched === undefined || infos()[dir]?.branch !== branch) return
+      const previous = infos()[dir]?.prBranch === branch ? infos()[dir]?.pr : undefined
+      const baseChanged = fetched?.base !== previous?.base
+      // The thread count is a separate query: keep the last one if it failed.
+      if (fetched && fetched.unresolved === undefined && fetched.ci !== "merged" && fetched.ci !== "closed")
+        fetched.unresolved = previous?.number === fetched.number ? previous.unresolved : undefined
+      patch(dir, { pr: fetched ?? undefined, prBranch: branch })
+      if (baseChanged) refreshGit(dir) // ahead/behind is relative to the PR base
+    })
+
+    // Keyed on branch + base: the PR lookup can change the base right after
+    // a branch switch, and the commit range must follow it.
+    const buildsKey = (info: Info) => `${info.branch}\0${info.base ?? ""}`
+    const refreshBuilds = throttled(
+      BUILD_POLL_MS,
+      BUILD_FORCE_MIN_MS,
+      async (dir, info, branch) => {
+        if (info.isDefault) return patch(dir, { builds: undefined, buildsBranch: branch })
+        const fetched = await fetchBuilds(dir, info.base)
+        if (fetched === undefined) return false // eas failed: keep the last builds, back off
+        if (infos()[dir]?.branch !== branch) return
+        patch(dir, { builds: fetched ?? undefined, buildsBranch: branch })
+      },
+      buildsKey,
+      BUILD_FAIL_POLL_MS,
+    )
+
+    const refreshIssue = throttled(ISSUE_POLL_MS, ISSUE_FORCE_MIN_MS, async (dir, _info, branch) => {
+      const fetched = await fetchIssue(dir, branch)
+      // On a Linear/GitHub failure keep the last known issue; retry after the throttle.
+      if (fetched === undefined || infos()[dir]?.branch !== branch) return
+      patch(dir, { issue: fetched ?? undefined, issueBranch: branch })
+    })
+
+    // Only poll directories whose sidebar is currently mounted (OpenCode
+    // unmounts sidebar content when the sidebar is hidden).
+    const mounted = new Map<string, number>()
+    const timer = setInterval(() => {
+      mounted.forEach((_, dir) => {
+        refreshGit(dir)
+        refreshPR(dir)
+        refreshIssue(dir)
+        refreshBuilds(dir)
+      })
+    }, GIT_POLL_MS)
+
+    const refreshDir = (dir?: string) => {
+      if (!dir || !mounted.has(dir)) return
+      refreshGit(dir)
+      refreshPR(dir, true)
+      refreshIssue(dir, true)
+      refreshBuilds(dir, true)
+    }
+    // The agent may have committed or pushed: refresh that session's directory.
+    const stopEvents = context.data.on("session.execution.succeeded", (event) =>
+      refreshDir(context.data.session.get(event.data.sessionID)?.location?.directory),
+    )
+
+    const disk = (ci: CI) => {
+      if (ci === "passed") return theme.text.feedback.success.base
+      if (ci === "pending") return theme.text.feedback.warning.base
+      if (ci === "failed") return theme.text.feedback.error.base
+      if (ci === "merged") return PURPLE
+      return theme.text.muted
+    }
+    const labelColor = (label?: string) => {
+      if (label === "approved") return theme.text.feedback.success.base
+      if (label === "changes") return theme.text.feedback.error.base
+      if (label === "merged") return PURPLE
+      return theme.text.muted
+    }
+
+    // Capabilities arrive asynchronously after startup; null means unknown,
+    // which is treated as "no hyperlinks" (the link line is then shown).
+    const [hyperlinks, setHyperlinks] = createSignal(context.renderer.capabilities?.hyperlinks === true)
+    const onCapabilities = (caps: { hyperlinks?: boolean }) => setHyperlinks(caps?.hyperlinks === true)
+    context.renderer.on?.("capabilities", onCapabilities)
+
+    const openURL = (url: string) => (event: { button: number; stopPropagation: () => void }) => {
+      if (event.button !== 0) return
+      event.stopPropagation()
+      execFile("open", [url], () => {})
+    }
+
+    // The issue's progress bar (its own, else its parent's), the counts after
+    // it, then the parent's count when the bar is the issue's own.
+    const IssueProgress = (props: { issue: Issue }) => {
+      const main = () => props.issue.progress ?? props.issue.parent!
+      const cells = () => {
+        const filled = Math.round((main().done / main().total) * PROGRESS_WIDTH)
+        return { filled: "█".repeat(filled), empty: "░".repeat(PROGRESS_WIDTH - filled) }
+      }
+      const tail = () => {
+        const { progress, parent } = props.issue
+        const count = `${main().done}/${main().total}`
+        if (!progress) return ` ${count} in ${parent!.identifier}`
+        return parent ? ` ${count} · ${parent.identifier} ${parent.done}/${parent.total}` : ` ${count}`
+      }
+      return (
+        <text wrapMode="none" truncate paddingLeft={2} minWidth={0}>
+          <span style={{ fg: props.issue.color ?? theme.text.muted }}>{cells().filled}</span>
+          <span style={{ fg: DIM }}>{cells().empty}</span>
+          <span style={{ fg: theme.text.muted }}>{tail()}</span>
+        </text>
+      )
+    }
+
+    const Section = (props: { sessionID?: string }) => {
+      const dir = () =>
+        (props.sessionID ? context.data.session.get(props.sessionID)?.location?.directory : undefined) ??
+        context.location?.directory
+      // Follow the directory: the session may load after mount, or move.
+      createEffect(
+        on(dir, (d) => {
+          if (!d) return
+          mounted.set(d, (mounted.get(d) ?? 0) + 1)
+          refreshGit(d)
+          onCleanup(() => {
+            const n = (mounted.get(d) ?? 1) - 1
+            if (n <= 0) mounted.delete(d)
+            else mounted.set(d, n)
+          })
+        }),
+      )
+      const info = () => {
+        const d = dir()
+        return d ? infos()[d] : undefined
+      }
+      const pr = () => (info()?.prBranch === info()?.branch ? info()?.pr : undefined)
+      const issue = () => (info()?.issueBranch === info()?.branch ? info()?.issue : undefined)
+      const builds = () => (info()?.buildsBranch === info()?.branch ? info()?.builds : undefined)
+      const hasCounts = () => info()?.ahead !== undefined || (info()?.changed ?? 0) > 0
+
+      return (
+        <Show when={info()?.branch}>
+          <box flexDirection="column">
+            <Show when={issue()}>
+              {(issue) => (
+                // The name is an OSC 8 hyperlink when the terminal supports
+                // them; otherwise (e.g. behind tmux, where OpenTUI disables
+                // them) the link is shown beneath it. A plain click on either
+                // line opens the issue, like the PR line.
+                <box flexDirection="column" minWidth={0} onMouseUp={openURL(issue().url)}>
+                  <box flexDirection="row" gap={1} minWidth={0}>
+                    <text flexShrink={0} fg={issue().color ?? theme.text.muted}>
+                      ◆
+                    </text>
+                    <text wrapMode="none" truncate flexGrow={1} flexShrink={1} minWidth={0} fg={theme.text.base}>
+                      <a href={issue().url}>
+                        <b>{issue().identifier}</b> {issue().title}
+                      </a>
+                    </text>
+                    <Show when={issue().state}>
+                      <text wrapMode="none" flexShrink={0} fg={issue().color ?? theme.text.muted}>
+                        {issue().state}
+                      </text>
+                    </Show>
+                  </box>
+                  <Show when={issue().progress ?? issue().parent}>
+                    <IssueProgress issue={issue()} />
+                  </Show>
+                  <Show when={!hyperlinks()}>
+                    <text wrapMode="none" truncate paddingLeft={2} fg={theme.text.muted}>
+                      <u>{shortIssueURL(issue().url, issue().identifier)}</u>
+                    </text>
+                  </Show>
+                </box>
+              )}
+            </Show>
+            <Show when={pr()}>
+              {(pr) => (
+                <box flexDirection="row" gap={1} minWidth={0} onMouseUp={openURL(pr().url)}>
+                  <text flexShrink={0} fg={disk(pr().ci)}>
+                    ●
+                  </text>
+                  <text wrapMode="none" truncate flexGrow={1} flexShrink={1} minWidth={0} fg={theme.text.base}>
+                    <b>#{pr().number}</b> {pr().title}
+                  </text>
+                  <Show when={pr().unresolved}>
+                    <text wrapMode="none" flexShrink={0} fg={theme.text.feedback.warning.base}>
+                      {`${pr().unresolved} unresolved`}
+                    </text>
+                  </Show>
+                  <Show when={pr().label}>
+                    <text wrapMode="none" flexShrink={0} fg={labelColor(pr().label)}>
+                      {pr().label}
+                    </text>
+                  </Show>
+                </box>
+              )}
+            </Show>
+            <Show when={builds()}>
+              {(list) => (
+                // One entry per platform, each opening its build page. A build
+                // of an older commit of the branch is marked "(old)".
+                <box flexDirection="row" gap={1} minWidth={0}>
+                  <text flexShrink={0} fg={theme.text.muted}>
+                    EAS
+                  </text>
+                  <For each={list()}>
+                    {(b) => (
+                      <box flexDirection="row" flexShrink={1} minWidth={0} onMouseUp={openURL(b.url)}>
+                        <text flexShrink={0} fg={disk(b.status)}>
+                          {"● "}
+                        </text>
+                        <text wrapMode="none" truncate flexShrink={1} minWidth={0} fg={b.current ? theme.text.base : theme.text.muted}>
+                          {`${b.platform} ${b.profile}${b.current ? "" : " (old)"}`}
+                        </text>
+                      </box>
+                    )}
+                  </For>
+                </box>
+              )}
+            </Show>
+            <Show when={hasCounts()}>
+              <text wrapMode="none" truncate fg={theme.text.muted}>
+                <Show when={info()?.ahead !== undefined}>
+                  <span style={{ fg: theme.text.muted }}>{`↑${info()!.ahead} `}</span>
+                  <span
+                    style={{ fg: (info()!.behind ?? 0) > 0 ? theme.text.feedback.warning.base : theme.text.muted }}
+                  >
+                    {`↓${info()!.behind}`}
+                  </span>
+                  <span style={{ fg: theme.text.muted }}>{` vs ${info()!.base}`}</span>
+                </Show>
+                <Show when={(info()?.changed ?? 0) > 0}>
+                  <span style={{ fg: theme.text.muted }}>
+                    {`${info()?.ahead !== undefined ? " · " : ""}${info()!.changed} changed`}
+                  </span>
+                </Show>
+              </text>
+            </Show>
+          </box>
+        </Show>
+      )
+    }
+
+    context.keymap.layer(() => ({
+      mode: "global",
+      commands: [
+        {
+          id: REFRESH_ID,
+          title: "Refresh sidebar git/PR status",
+          group: "VCS",
+          palette: true,
+          run: () => mounted.forEach((_, dir) => refreshDir(dir)),
+        },
+      ],
+    }))
+
+    const unSlot = context.ui.slot({
+      prepend: "sidebar.footer",
+      render: (input) => <Section sessionID={input.sessionID} />,
+    })
+
+    return () => {
+      disposed = true
+      context.renderer.off?.("capabilities", onCapabilities)
+      clearInterval(timer)
+      stopEvents()
+      unSlot?.()
+    }
+  },
+})

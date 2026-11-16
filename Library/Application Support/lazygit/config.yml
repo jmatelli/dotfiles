@@ -1,0 +1,45 @@
+gui:
+  # Tokyo Night (folke/tokyonight.nvim extras/lazygit)
+  nerdFontsVersion: "3"
+  theme:
+    activeBorderColor:
+      - "#ff9e64"
+      - "bold"
+    inactiveBorderColor:
+      - "#27a1b9"
+    searchingActiveBorderColor:
+      - "#ff9e64"
+      - "bold"
+    optionsTextColor:
+      - "#7aa2f7"
+    selectedLineBgColor:
+      - "#283457"
+    cherryPickedCommitFgColor:
+      - "#7aa2f7"
+    cherryPickedCommitBgColor:
+      - "#bb9af7"
+    markedBaseCommitFgColor:
+      - "#7aa2f7"
+    markedBaseCommitBgColor:
+      - "#e0af68"
+    unstagedChangesColor:
+      - "#db4b4b"
+    defaultFgColor:
+      - "#c0caf5"
+  switchTabsWithPanelJumpKeys: true
+git:
+  diffRenderers:
+    - colorArg: always
+      command: delta --side-by-side --line-numbers --dark --paging=never
+customCommands:
+  # lazygit has no built-in status-panel display for the current git
+  # identity, so surface it on demand instead. Reads whatever the repo's
+  # effective config resolves to (respects the personal/work includeIf
+  # split in ~/.gitconfig), not a hardcoded value.
+  - key: "u"
+    context: "global"
+    description: "Show git identity (name/email/GitHub user)"
+    command: >-
+      printf 'name:   %s\nemail:  %s\ngithub: %s\n' "$(git config user.name)" "$(git config user.email)" "$(git config credential.https://github.com.username)"
+    output: popup
+    outputTitle: "Git Identity"

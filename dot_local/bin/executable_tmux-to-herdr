@@ -1,0 +1,216 @@
+#!/usr/bin/env -S python3 -I
+"""Recreate tmux sessions, windows and panes in the Herdr app.
+
+    tmux-to-herdr              show the plan (dry run, changes nothing)
+    tmux-to-herdr --apply      build it in Herdr
+    tmux-to-herdr --apply SESSION...   only these tmux sessions
+
+tmux session -> Herdr space (same name), window -> tab (same name, same
+order), pane -> split in the same folder and arrangement, rebuilt from tmux's
+own layout tree. tmux itself is left untouched.
+
+Running programs can't move between the two (they belong to the tmux
+server), so panes come back as fresh terminals. Only interactive tools
+(TOOLS below) are started again; dev servers and other commands open as a
+shell in their folder so nothing runs twice while tmux still has them.
+Herdr's split has no size option, so splits come out evenly divided.
+
+Sessions whose name is already a Herdr space are skipped, so it is safe to
+re-run after adding sessions.
+"""
+import json
+import re
+import shutil
+import subprocess
+import sys
+
+# Programs restarted in their pane; anything else opens a plain shell.
+TOOLS = {"nvim", "lazygit", "opencode", "claude"}
+
+# Each pane runs: cd into its folder, start its tool (if any), then stay as an
+# interactive login shell, like a normal Herdr terminal. -il so .zshrc sets
+# PATH (mise, ~/.local/bin) before the tool starts.
+PANE_SCRIPT = 'cd -- "$1" || exit 1; [ -n "$2" ] && $2; exec /bin/zsh -il'
+
+
+def run(*args):
+    return subprocess.run(args, capture_output=True, text=True, check=True).stdout
+
+
+def tmux_windows():
+    """[(session, [(window_name, layout_tree)])] in tmux order."""
+    panes = {}
+    for line in run("tmux", "list-panes", "-a", "-F",
+                    "#{pane_id}\t#{pane_current_command}\t#{pane_current_path}").splitlines():
+        pane_id, command, path = line.split("\t")
+        panes[pane_id.lstrip("%")] = {"command": command, "path": path}
+
+    sessions = {}
+    for line in run("tmux", "list-windows", "-a", "-F",
+                    "#{session_name}\t#{window_name}\t#{window_layout}").splitlines():
+        session, name, layout = line.split("\t")
+        tree = parse_layout(layout.split(",", 1)[1])  # drop the checksum
+        attach(tree, panes)
+        sessions.setdefault(session, []).append((name, tree))
+    return list(sessions.items())
+
+
+def parse_layout(text):
+    """tmux layout -> {"leaf": id} or {"dir": "right"|"down", "children": [...]}.
+
+    Grammar: node = WxH,X,Y then either ,ID (a pane) or {nodes} (side by side)
+    or [nodes] (stacked), nodes separated by commas.
+    """
+    header = re.compile(r"\d+x\d+,\d+,\d+")
+    pane_id = re.compile(r",(\d+)")
+    pos = 0
+
+    def node():
+        nonlocal pos
+        m = header.match(text, pos)
+        assert m, f"bad layout near {text[pos:pos + 20]!r}"
+        pos = m.end()
+        if pos >= len(text) or text[pos] not in "{[":
+            m = pane_id.match(text, pos)
+            assert m, f"bad layout near {text[pos:pos + 20]!r}"
+            pos = m.end()
+            return {"leaf": m.group(1)}
+        opener = text[pos]
+        closer = "}" if opener == "{" else "]"
+        pos += 1
+        children = [node()]
+        while text[pos] == ",":
+            pos += 1
+            children.append(node())
+        assert text[pos] == closer, f"bad layout near {text[pos:pos + 20]!r}"
+        pos += 1
+        return {"dir": "right" if opener == "{" else "down", "children": children}
+
+    return node()
+
+
+def attach(tree, panes):
+    if "leaf" in tree:
+        tree.update(panes.get(tree["leaf"], {"command": "zsh", "path": "~"}))
+    else:
+        for child in tree["children"]:
+            attach(child, panes)
+
+
+def first_leaf(tree):
+    while "children" in tree:
+        tree = tree["children"][0]
+    return tree
+
+
+def tool(leaf):
+    return leaf["command"] if leaf["command"] in TOOLS else ""
+
+
+def argv(leaf):
+    """argv for a split pane: pane.split has no folder option, so cd ourselves."""
+    return ["/bin/zsh", "-ilc", PANE_SCRIPT, "zsh", leaf["path"], tool(leaf)]
+
+
+def first_pane(leaf):
+    """space.new / tab.new arguments for a tab's first pane.
+
+    Herdr runs a given argv inside its own interactive shell, which starts a
+    new shell when the command ends. Passing our cd-wrapper there would nest
+    two shells, so `exit` would land in a fresh one instead of closing the
+    pane. Use Herdr's folder option instead, and an argv only for a tool.
+    """
+    args = {"folder": leaf["path"]}
+    if tool(leaf):
+        args["argv"] = [tool(leaf)]
+    return args
+
+
+def describe(tree, indent):
+    pad = "  " * indent
+    if "leaf" in tree:
+        what = tool(tree) or "shell"
+        if not tool(tree) and tree["command"] not in ("zsh", "bash", "sh"):
+            what += f" (was {tree['command']})"
+        return [f"{pad}- {tree['path']}  [{what}]"]
+    lines = [f"{pad}{'side by side' if tree['dir'] == 'right' else 'stacked'}:"]
+    for child in tree["children"]:
+        lines += describe(child, indent + 1)
+    return lines
+
+
+class Herdr:
+    def __init__(self):
+        self.bin = shutil.which("herdr-app") or "/opt/homebrew/bin/herdr-app"
+
+    def do(self, command, **args):
+        cli = [self.bin, "do", command]
+        for key, value in args.items():
+            cli += [f"--{key}", json.dumps(value) if isinstance(value, list) else str(value)]
+        out = json.loads(run(*cli))
+        if "error" in out:
+            raise RuntimeError(f"{command}: {out['error']}")
+        return out
+
+    def spaces(self):
+        return json.loads(run(self.bin, "ls"))["spaces"]
+
+    def pane_of(self, terminal):
+        for space in self.spaces():
+            for tab in space["tabs"]:
+                for term in tab["terminals"]:
+                    if term["terminal"] == terminal:
+                        return term["pane"]
+        raise RuntimeError(f"no pane for terminal {terminal}")
+
+    def build(self, tree, pane):
+        """Split `pane` into tree's shape; `pane` already shows first_leaf(tree)."""
+        if "leaf" in tree:
+            return
+        panes = [pane]
+        for child in tree["children"][1:]:
+            # Split the previous sibling, so they stay in tmux's order.
+            out = self.do("pane.split", pane=panes[-1], direction=tree["dir"],
+                          argv=argv(first_leaf(child)))
+            panes.append(out["pane"])
+        for child, child_pane in zip(tree["children"], panes):
+            self.build(child, child_pane)
+
+
+def main(args):
+    apply = "--apply" in args
+    only = [a for a in args if not a.startswith("-")]
+    if any(a in ("-h", "--help") for a in args):
+        print(__doc__.strip())
+        return 0
+
+    sessions = [(s, w) for s, w in tmux_windows() if not only or s in only]
+    herdr = Herdr()
+    existing = {s["name"] for s in herdr.spaces()}
+
+    for session, windows in sessions:
+        skip = session in existing
+        print(f"space {session}" + ("  (already in Herdr: skipped)" if skip else ""))
+        for name, tree in windows:
+            print(f"  tab {name}")
+            print("\n".join(describe(tree, 2)))
+        if not apply or skip:
+            continue
+
+        space = None
+        for name, tree in windows:
+            leaf = first_leaf(tree)
+            if space is None:
+                out = herdr.do("space.new", name=session, tab=name, **first_pane(leaf))
+                space = out["space"]
+            else:
+                out = herdr.do("tab.new", space=space, name=name, **first_pane(leaf))
+            herdr.build(tree, herdr.pane_of(out["terminal"]))
+
+    if not apply:
+        print("\nDry run: nothing created. Run with --apply to build this in Herdr.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

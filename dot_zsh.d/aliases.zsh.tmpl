@@ -1,0 +1,187 @@
+alias vim='nvim'
+
+alias ls='eza -h --group-directories-first -1'
+alias l='eza -h --group-directories-first --icons'
+alias ll='eza -lah --group-directories-first --icons'
+
+alias dotf='cd ~/.dotfiles'
+
+alias lg='lazygit'
+
+# Git
+alias gp='git pull'
+alias gco='git co $(git br | fzf-tmux -p --header "[Switch branches]")'
+alias gcod='git co develop'
+alias gcom='git co master'
+alias gnew='git co -b'
+alias gst='git st'
+alias gd='git diff'
+alias gl='git lg'
+alias gll='git ll'
+alias gap='git add -p'
+alias gaa='git add -A'
+alias gcm='git cm'
+alias gcan='git can'
+alias gsta='git stash'
+alias gstu='git stash -u'
+alias gpu='git push'
+alias gpf='git push --force-with-lease'
+alias gpfn='git push --force-with-lease --no-verify'
+alias gbr='git br | fzf'
+alias gclean='git branch -d `git branch --merged | ag -v "\\*" | ag -v main | ag -v master | ag -v devel`'
+
+alias di='delta $(fzf-tmux -p) $(fzf-tmux -p)'
+
+alias :q='exit'
+alias :l='clear'
+alias :on='if [[ $TERM == tmux* ]]; then tmux kill-pane -a; else echo "Not in a tmux session"; fi;'
+
+function pp() {
+    # A leading ~ embedded inside a variable never expands for [ -e ] or cd
+    # (only unquoted, parse-time ~ does) - expand it once here so both
+    # branches below get a real path either way.
+    local projectsDir="{{ .projectsDir }}"
+    projectsDir="${projectsDir/#\~/$HOME}"
+
+    local projectName=$1
+    local projectPath="$projectsDir/$projectName"
+
+    if [ -z "$projectName" ]; then
+        projectPath=$(ls -d "$projectsDir"/*/ | fzf-tmux -p --header "[Select project]")
+    fi
+
+    local prePushPath="git-hooks/pre-push"
+    local prePushFullPath="$projectPath/$prePushPath"
+
+    echo "Executing $prePushFullPath\n\n"
+
+    if [ ! -e $prePushFullPath ]; then
+        echo "Project does not have pre-push hook\n\n"
+        return
+    fi
+
+    cd $projectPath && /bin/bash $prePushPath
+}
+
+function gdb() {
+  git branch --merged | ag --invert-match '\*' | fzf-tmux -p --header "[Delete git branches]" --multi --preview="git log {} --" | xargs -r git branch --delete --force
+}
+
+# @description:
+#   This function allows the creation of aliases that push a filtered list of files to fzf and run a command on the selected files
+#
+# @params:
+#   @regex - string, a regex to filter the list of files
+#   @header - string, a description of what the command will do
+#   @cmd - string, the command to run on the selected files
+#   @multiple - 0 | 1, default 0, if the multiple file option should be passed to fzf
+#   @style - string, default "50%,50%", the height and width of the modal
+#   @preview - string, default "", if a preview should be displayed
+newAlias() {
+  local regex=$1
+  local header=$2
+  local cmd=$3
+  local multiple=${4:-0}
+  local preview=${5:-"bat --style=numbers --color=always --line-range :500 {}"}
+
+  # if it is a multiple selection use `-m` flag on `fzf-tmux`,
+  # then use `sed` and `tr` to format the list of filename
+  # we get into a single line separated by a space
+  if [[ $multiple == 1 ]]; then
+    FILES=$((rg --files | ag $regex | fzf-tmux -p "90%" -m --header $header --preview $preview | sed 's/$/ /' | tr -d '\n') 2>&1)
+  else;
+    FILES=$((rg --files | ag $regex | fzf-tmux -p "90%" --header $header --preview $preview) 2>&1)
+  fi;
+
+  # combine the command with the list of files and store the result into a variable
+  COMMAND="$cmd $FILES"
+  # execute the command
+  bash -c "$COMMAND"
+  # add the command to bash/zsh history
+  print -s "$COMMAND"
+}
+
+# Detects the package manager for the current project by walking up from
+# $PWD to the nearest lockfile - same convention LSP tooling (vtsls/eslint
+# root_dir) already uses. Falls back to npm if none found.
+pkg_manager() {
+  local dir=$PWD
+  while [ "$dir" != "/" ]; do
+    if [ -f "$dir/pnpm-lock.yaml" ]; then
+      echo pnpm
+      return
+    elif [ -f "$dir/yarn.lock" ]; then
+      echo yarn
+      return
+    elif [ -f "$dir/bun.lockb" ] || [ -f "$dir/bun.lock" ]; then
+      echo bun
+      return
+    elif [ -f "$dir/package-lock.json" ]; then
+      echo npm
+      return
+    fi
+    dir=$(dirname "$dir")
+  done
+  echo npm
+}
+
+# Detects the test runner (vitest vs jest) from the nearest package.json:
+# first checks what the "test" script actually invokes (most accurate -
+# reflects what really runs), falling back to devDependencies/dependencies
+# if the script text doesn't say. Stops at the first package.json found
+# (doesn't walk past it into an unrelated ancestor project - relevant in a
+# monorepo where each workspace has its own test setup). Falls back to
+# jest if neither is detected.
+test_runner() {
+  local dir=$PWD
+  while [ "$dir" != "/" ] && [ ! -f "$dir/package.json" ]; do
+    dir=$(dirname "$dir")
+  done
+  if [ -f "$dir/package.json" ]; then
+    local hit=$(jq -r '
+      (.scripts.test // "") as $t
+      | if ($t | test("vitest")) then "vitest"
+        elif ($t | test("jest")) then "jest"
+        elif (.devDependencies.vitest // .dependencies.vitest) then "vitest"
+        elif (.devDependencies.jest // .dependencies.jest) then "jest"
+        else "" end
+    ' "$dir/package.json" 2>/dev/null)
+    if [ -n "$hit" ]; then
+      echo "$hit"
+      return
+    fi
+  fi
+  echo jest
+}
+
+# Mission specific aliases
+v() {
+  newAlias ".*" "[NeoVim: Open file]" "nvim" 0
+}
+
+tf() {
+  local pm=$(pkg_manager)
+  local runner=$(test_runner)
+  local flags=""
+  # -i (--runInBand) is Jest-specific - serial execution, useful for
+  # debugging. Vitest has no equivalent and hard-errors on an unknown
+  # flag rather than ignoring it, so it must not be passed there.
+  [ "$runner" = "jest" ] && flags="-i"
+  # yarn (classic) doesn't need -- to forward args to the script, and its
+  # own deprecation warning says a future version will stop stripping it
+  # and forward the literal "--" to the script instead - that would break
+  # things, so skip it for yarn specifically.
+  local sep="--"
+  [ "$pm" = "yarn" ] && sep=""
+  newAlias "\.test\.tsx?" "[$pm/$runner: test unique file]" "$pm test $sep $flags"
+}
+
+tfs() {
+  local pm=$(pkg_manager)
+  local runner=$(test_runner)
+  local flags=""
+  [ "$runner" = "jest" ] && flags="-i"
+  local sep="--"
+  [ "$pm" = "yarn" ] && sep=""
+  newAlias "\.test\.tsx?" "[$pm/$runner: test multiple files]" "$pm test $sep $flags" 1
+}

@@ -1,0 +1,29 @@
+---
+description: >-
+  Routine code review (fast, Sonnet). Use after writing or modifying code for everyday changes: UI,
+  small features, bug fixes, tests, config, docs, contained refactors. MUST BE USED for code changes
+  unless the change is high-risk — then use deep-reviewer INSTEAD (never both on the same change).
+  If its report starts with "ESCALATE:", run deep-reviewer on the same change next.
+mode: subagent
+model: claude-agent/sonnet
+permissions:
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "git diff*"
+    effect: allow
+  - action: shell
+    resource: "git log*"
+    effect: allow
+  - action: shell
+    resource: "git show*"
+    effect: allow
+---
+
+{{ template "reviewer-guide.md" dict "client" "opencode" }}
+
+{{ template "reviewer-escalation.md" . }}

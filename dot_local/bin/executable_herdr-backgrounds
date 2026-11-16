@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Prepare images for Herdr's rotating window background (neon layout).
+#
+#   herdr-backgrounds [--rebuild] [IMAGE...]
+#
+# IMAGEs are moved into ~/.config/herdr-app/backgrounds/originals. Then every
+# original without a prepared copy in backgrounds/rotation gets one (all of
+# them with --rebuild): cropped to the window's shape, blurred, darkened
+# toward the theme background and faded at the bottom, behind the tab bar.
+# The tmux-bar mod shows the next image of backgrounds/rotation every two hours
+# on the clock (00:00, 02:00…; ctrl-b i: next now). New prepared images are
+# added to the dotfiles (chezmoi add); the originals stay on this machine
+# (.chezmoiignore). To drop an image, delete it from both
+# ~/.config/herdr-app/backgrounds/rotation and the repo's
+# dot_config/herdr-app/backgrounds/rotation.
+#
+# Needs ImageMagick (magick).
+set -euo pipefail
+
+dir="$HOME/.config/herdr-app/backgrounds"
+originals="$dir/originals"
+rotation="$dir/rotation"
+mkdir -p "$originals" "$rotation"
+
+rebuild=false
+if [ "${1:-}" = "--rebuild" ]; then
+  rebuild=true
+  shift
+fi
+
+for f in "$@"; do
+  mv -n "$f" "$originals/"
+done
+
+# The window's shape (~1.65:1); the bottom 10% fades to 75% theme background
+# behind the tabs, so their dim names stay readable.
+W=2400 H=1450
+fade_from=$((H * 90 / 100)) fade_to=$((H * 955 / 1000))
+bg="#13141f" bg_rgb="19,20,31"
+
+shopt -s nullglob nocaseglob
+made=()
+for src in "$originals"/*.{jpg,jpeg,png,webp}; do
+  name="$(basename "${src%.*}")"
+  name="${name%-unsplash}"
+  out="$rotation/$name.jpg"
+  if [ -e "$out" ] && ! $rebuild; then continue; fi
+  magick "$src" \
+    -resize "${W}x${H}^" -gravity center -extent "${W}x${H}" \
+    -blur 0x14 -modulate 100,120 \
+    -fill "$bg" -colorize 45% \
+    \( -size "${W}x${fade_from}" xc:none \
+       -size "${W}x$((fade_to - fade_from))" "gradient:rgba($bg_rgb,0)-rgba($bg_rgb,0.75)" \
+       -size "${W}x$((H - fade_to))" "xc:rgba($bg_rgb,0.75)" -append \) \
+    -compose over -composite -quality 85 "$out"
+  echo "rotation/$name.jpg"
+  made+=("$out")
+done
+
+if [ "${#made[@]}" -gt 0 ] && command -v chezmoi >/dev/null; then
+  chezmoi add "${made[@]}"
+fi
