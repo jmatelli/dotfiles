@@ -85,8 +85,19 @@ step stands on its own: do them in any order, or come back to one later.
    opencode service restart
    ```
 
-3. **Claude Code**: run `claude` and log in. OpenCode's Claude Agent models
-   and its usage sidebar use that login.
+3. **Claude Code**: two accounts, by folder like git: work under the projects
+   folder, personal everywhere else (`~/.zsh.d/claude-accounts.zsh` points
+   `CLAUDE_CONFIG_DIR` at `~/.claude-work` there; settings, agents, hooks and
+   plugins are shared). Log in once from each kind of folder:
+
+   ```bash
+   cd ~ && claude auth login             # personal
+   cd ~/Projects && claude auth login    # work
+   ```
+
+   OpenCode's Claude Agent models and its usage sidebar use the folder's
+   account; in a work folder `opencode` runs its own server (`--standalone`)
+   so it can use the work login.
 
 4. **OpenCode**: run `opencode`, then
    - `/connect` → OpenCode Go (or another provider), to use those models;
