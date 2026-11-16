@@ -5,6 +5,8 @@ docker-smoke-test.sh
 docker-smoke-test/
 README.md
 CHANGELOG.md
+docs
+docs/**
 
 # TPM manages its own plugins (clones them on demand via prefix+I) - not
 # chezmoi's job, and several of these are nested git checkouts.

@@ -1,42 +1,95 @@
-# dotfiles
+<h1 align="center">dotfiles</h1>
 
-Managed with [chezmoi](https://www.chezmoi.io/). `install.sh` is a thin
-bootstrapper: it installs git, a native package manager, and chezmoi, then
-hands off to `chezmoi init --apply` which does everything else (package
-installs, dotfile templating, per-machine prompts).
+<p align="center">
+  A neon Tokyo Night setup for macOS, Arch and Debian/Ubuntu, managed with <a href="https://www.chezmoi.io/">chezmoi</a>.<br>
+  zsh · Neovim · tmux · <a href="https://herdr.dev">Herdr</a> · OpenCode · Claude Code
+</p>
 
-Supports macOS (primary), Arch/Omarchy, and Debian/Ubuntu (headless -
-VPS/Raspberry Pi profile, CLI tools only, no desktop packages).
+<p align="center">
+  <a href="https://github.com/jmatelli/dotfiles/actions/workflows/checks.yml"><img alt="checks" src="https://github.com/jmatelli/dotfiles/actions/workflows/checks.yml/badge.svg"></a>
+  <a href="https://github.com/jmatelli/dotfiles/releases/latest"><img alt="latest release" src="https://img.shields.io/github/v/release/jmatelli/dotfiles?label=release&color=7aa2ff"></a>
+</p>
+
+<p align="center">
+  <img src="docs/images/herdr.png" alt="Herdr with the neon layout: Neovim and lazygit side by side, the spaces and agents sidebar, and the tmux-style tab bar, over a blurred neon background">
+</p>
+
+<p align="center"><sub>Herdr's <code>neon</code> layout: Neovim and lazygit in one tab, spaces and agents on the left, the tmux-style tab bar at the bottom. Private names are blurred.</sub></p>
+
+<br>
+
+## Contents
+
+- [What's inside](#whats-inside)
+- [Install on a new machine](#install-on-a-new-machine)
+- [After the install](#after-the-install)
+- [Herdr](#herdr)
+- [OpenCode and Claude Code](#opencode-and-claude-code)
+- [Day to day](#day-to-day)
+- [Neovim](#neovim)
+- [Secrets](#secrets)
+- [Versions and checks](#versions-and-checks)
+
+<br>
+
+## What's inside
+
+| Area | What you get | Where |
+| --- | --- | --- |
+| **Shell** | zsh with an [oh-my-posh](https://ohmyposh.dev) prompt that fits the pane width, fzf, zoxide, eza, bat | `dot_zshrc.tmpl`, `dot_zsh.d/`, `dot_config/oh-my-posh/` |
+| **Editor** | Neovim on the native `vim.pack` and native LSP, no distro | `dot_config/nvim/` |
+| **Terminal** | Herdr (macOS) with tmux-style keys, a tmux-style bar and rotating backgrounds; tmux elsewhere | `dot_config/herdr-app/`, `dot_config/tmux/` |
+| **AI agents** | OpenCode with sidebar plugins and reviewer agents; Claude Code with hooks; a work account by folder | `dot_config/opencode/`, `dot_claude/` |
+| **Git** | personal and work identities picked by folder, for git and `gh` | `dot_gitconfig*.tmpl`, `dot_local/bin/` |
+| **Toolchains** | Node through Volta; Go, Rust, Python, Ruby through [mise](https://mise.jdx.dev/) | `.chezmoiscripts/` |
+| **Look** | Tokyo Night, neon variant, everywhere | themes in each tool's folder |
+
+| Platform | Profile |
+| --- | --- |
+| **macOS** | the daily driver: CLI tools, apps (Homebrew casks), Herdr |
+| **Arch / Omarchy** | CLI tools (pacman, a few from the AUR); Omarchy brings its own desktop apps |
+| **Debian / Ubuntu** | headless (VPS, Raspberry Pi): CLI tools only |
+
+<br>
 
 ## Install on a new machine
 
-Nothing needs to be installed first: a fresh macOS, Arch or Debian/Ubuntu
-with a user that can `sudo` is enough. In a terminal (on a Mac: Terminal.app):
+Nothing needs to be installed first: a fresh macOS, Arch or Debian/Ubuntu with
+a user that can `sudo` is enough. In a terminal (on a Mac: Terminal.app):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jmatelli/dotfiles/main/install.sh | bash
 ```
 
-It installs Homebrew (macOS; with the Xcode Command Line Tools) or uses the
-native package manager, then chezmoi, which clones this repo to
-`~/.dotfiles` and applies it: packages and apps, dotfiles, mise, Neovim,
-tmux plugins, Herdr. On a Mac this takes a while (100+ packages and apps).
+`install.sh` installs Homebrew (macOS, with the Xcode Command Line Tools) or
+uses the native package manager, then chezmoi, which clones this repo to
+`~/.dotfiles` and applies it: packages and apps, dotfiles, mise, Neovim, tmux
+plugins, Herdr. On a Mac this takes a while (100+ packages and apps).
 
-You'll be asked for:
+**It asks for:**
 
-- your **password** (sudo; on macOS, once at the start);
-- four questions, stored in `~/.config/chezmoi/chezmoi.toml` and never asked
-  again on that machine: personal git email, git name, work git email, and
-  where your work projects live (default `~/Projects`). Git and `gh` use the
-  work identity under that folder and the personal one everywhere else.
+| Question | Used for |
+| --- | --- |
+| Your password | `sudo`; on macOS once, at the start |
+| Personal git email | commits outside the projects folder |
+| Git name | every commit |
+| Work git email | commits under the projects folder |
+| Projects folder (default `~/Projects`) | where the work identity applies: git, `gh`, Claude Code |
 
-Some app installs (casks) can still ask for the password or fail on their own;
-the run keeps going and lists what failed at the end. Re-running the same
-command is safe.
+The four questions are stored in `~/.config/chezmoi/chezmoi.toml` and never
+asked again on that machine. Some app installs can still ask for the password
+or fail on their own: the run keeps going and lists what failed at the end.
+Re-running the same command is safe.
 
-To install a known-good version instead of `main` (if `main` is broken, say),
-use one of the date tags listed in `CHANGELOG.md` and on the GitHub releases
-page, the same way as a branch:
+<details>
+<summary><b>Install a version, a branch or a local checkout instead of <code>main</code></b></summary>
+
+<br>
+
+A known-good version (if `main` is broken, say): any date tag from
+[`CHANGELOG.md`](CHANGELOG.md) or the
+[releases](https://github.com/jmatelli/dotfiles/releases), the same way as a
+branch:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jmatelli/dotfiles/v2026.11.16/install.sh | DOTFILES_BRANCH=v2026.11.16 bash
@@ -46,130 +99,233 @@ The checkout in `~/.dotfiles` is then on that tag, not a branch, so
 `chezmoi update` can't pull: switch it back with `git -C ~/.dotfiles switch main`
 once `main` is fixed.
 
-To install from a branch or a local checkout instead of `main`:
+A branch or a local checkout:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jmatelli/dotfiles/<branch>/install.sh | DOTFILES_BRANCH=<branch> bash
 DOTFILES_REPO=/path/to/checkout DOTFILES_BRANCH=<branch> ./install.sh
 ```
 
+</details>
+
+<br>
+
 ## After the install
 
-These need you (a browser, a password, or a key), so the install can't do
-them. Open a **new terminal** first, so the shell picks up everything. Each
-step stands on its own: do them in any order, or come back to one later.
+These need you (a browser, a password or a key), so the install can't do them.
+Open a **new terminal** first, so the shell picks up everything. Each step
+stands on its own: do them in any order, or come back to one later.
 
-1. **GitHub**: log in both accounts to `gh` (each opens a browser):
+| | Step | Command |
+| :-: | --- | --- |
+| 1 | **GitHub**: log in both accounts | `gh auth login` (twice) |
+| 2 | **Secrets**: whenever you have the keys | `~/.dotfiles/setup-secrets.sh` |
+| 3 | **Claude Code**: personal and work logins | `claude auth login` (twice) |
+| 4 | **OpenCode**: providers and MCP sign-ins | `/connect`, `/mcps` |
+| 5 | **Herdr** (macOS): this repo's layout | `herdr-app do layout.switch '{"name":"neon"}'` |
+| 6 | **Neovim**: plugins and language servers | `nvim` |
 
-   ```bash
-   gh auth login --hostname github.com   # personal: jmatelli
-   gh auth login --hostname github.com   # work: jomatelli
-   ```
+### 1. GitHub
 
-   Git then gets the right account's token per folder through `gh` (the `gh`
-   wrapper and git credential helper in `dot_local/bin/`).
+Each login opens a browser:
 
-2. **Secrets** (can wait): run the prompt script whenever you have the keys.
-   It asks only for what's missing, and leaving one empty skips it, so you can
-   run it again later for the rest. They go to `~/.zsh.d/secrets.zsh` (never
-   committed), which the shell loads when it exists.
+```bash
+gh auth login --hostname github.com   # personal: jmatelli
+gh auth login --hostname github.com   # work: jomatelli
+```
 
-   ```bash
-   ~/.dotfiles/setup-secrets.sh
-   ```
+Git then gets the right account's token per folder through `gh` (the `gh`
+wrapper and git credential helper in `dot_local/bin/`).
 
-   | Variable | Used by | Where to get it |
-   | --- | --- | --- |
-   | `GITHUB_PERSONAL_ACCESS_TOKEN` | OpenCode's GitHub MCP server | github.com → Settings → Developer settings → Personal access tokens |
-   | `ANTHROPIC_API_KEY` | Claude Code without a logged-in account (optional: step 3's login comes first) | console.anthropic.com → API keys |
-   | `LINEAR_API_KEY` | OpenCode's sidebar (the branch's Linear issue) | Linear settings → personal API keys |
-   | `METABASE_MCP_URL` | OpenCode's Metabase MCP server | `https://<metabase instance>/api/metabase-mcp` |
+### 2. Secrets (can wait)
 
-   Until a secret is set, only what uses it is missing: OpenCode lists the
-   GitHub or Metabase MCP server as failed, and its sidebar shows no Linear
-   issue. Everything else works.
+```bash
+~/.dotfiles/setup-secrets.sh
+```
 
-   After adding secrets, open a new terminal and restart OpenCode's background
-   service from it, so OpenCode sees them (it keeps the environment of the
-   terminal that started it):
+It asks only for what's missing, and leaving one empty skips it, so you can run
+it again later for the rest. They go to `~/.zsh.d/secrets.zsh` (never
+committed), which the shell loads when it exists.
 
-   ```bash
-   opencode service restart
-   ```
+| Variable | Used by | Where to get it |
+| --- | --- | --- |
+| `GITHUB_PERSONAL_ACCESS_TOKEN` | OpenCode's GitHub MCP server | github.com → Settings → Developer settings → Personal access tokens |
+| `ANTHROPIC_API_KEY` | Claude Code without a logged-in account (optional: step 3 comes first) | console.anthropic.com → API keys |
+| `LINEAR_API_KEY` | OpenCode's sidebar (the branch's Linear issue) | Linear settings → personal API keys |
+| `METABASE_MCP_URL` | OpenCode's Metabase MCP server | `https://<metabase instance>/api/metabase-mcp` |
 
-3. **Claude Code**: two accounts, by folder like git: work under the projects
-   folder, personal everywhere else (`~/.zsh.d/claude-accounts.zsh` points
-   `CLAUDE_CONFIG_DIR` at `~/.claude-work` there; settings, agents, hooks and
-   plugins are shared). Log in once from each kind of folder:
+Until a secret is set, only what uses it is missing: OpenCode lists the GitHub
+or Metabase MCP server as failed, and its sidebar shows no Linear issue.
+Everything else works. After adding secrets, open a new terminal and restart
+OpenCode's background service from it, so OpenCode sees them (it keeps the
+environment of the terminal that started it):
 
-   ```bash
-   cd ~ && claude auth login             # personal
-   cd ~/Projects && claude auth login    # work
-   ```
+```bash
+opencode service restart
+```
 
-   OpenCode's Claude Agent models and its usage sidebar use the folder's
-   account; in a work folder `opencode` runs its own server (`--standalone`)
-   so it can use the work login.
+### 3. Claude Code
 
-4. **OpenCode**: run `opencode`, then
-   - `/connect` → OpenCode Go (or another provider), to use those models;
-   - `/mcps` → sign in to each remote MCP server that shows as needing it
-     (Linear, Figma, Sentry, PostHog, Stripe, Intercom, Resend, Expo…).
-     GitHub and Metabase use the secrets from step 2 instead.
+Two accounts, by folder like git: work under the projects folder, personal
+everywhere else. Log in once from each kind of folder:
 
-5. **Herdr** (macOS): open the Herdr app, then switch it to this repo's layout (it
-   opens on its default one and remembers the choice afterwards):
+```bash
+cd ~ && claude auth login             # personal
+cd ~/Projects && claude auth login    # work
+```
 
-   ```bash
-   herdr-app do layout.switch '{"name":"neon"}'
-   ```
+See [OpenCode and Claude Code](#opencode-and-claude-code) for how it works.
 
-   or press `cmd-shift-l` until the tmux-style bar appears at the bottom. The
-   background rotates through `backgrounds/rotation` every two hours.
+### 4. OpenCode
 
-6. **Neovim**: the first `nvim` installs its plugins and language servers
-   (Mason); give it a minute, then restart it.
+Run `opencode`, then:
+
+- `/connect` → OpenCode Go (or another provider), to use those models;
+- `/mcps` → sign in to each remote MCP server that shows as needing it
+  (Linear, Figma, Sentry, PostHog, Stripe, Intercom, Resend, Expo…). GitHub
+  and Metabase use the secrets from step 2 instead.
+
+### 5. Herdr (macOS)
+
+Open the Herdr app, then switch it to this repo's layout (it opens on its
+default one and remembers the choice afterwards):
+
+```bash
+herdr-app do layout.switch '{"name":"neon"}'
+```
+
+or press `cmd-shift-l` until the tmux-style bar appears at the bottom.
+
+### 6. Neovim
+
+The first `nvim` installs its plugins and language servers (Mason); give it a
+minute, then restart it.
+
+<br>
+
+## Herdr
+
+[Herdr](https://herdr.dev) is the terminal on macOS: spaces, tabs and split
+panes like tmux, with agents (OpenCode, Claude Code…) tracked in a sidebar.
+This repo gives it a `neon` layout (`dot_config/herdr-app/`):
+
+- a **tmux-style bar**: the space as a pill, tabs by name, a spinner on the
+  ones where an agent is working, the host and the clock;
+- **Spaces and Agents** lists drawn like the tabs, with each agent's session
+  title and state (working, needs you, done);
+- **one see-through background** for the whole window, rotating every two hours.
+
+| Keys | Action |
+| --- | --- |
+| `ctrl-b` `\` / `-` | split right / down |
+| `ctrl-b` arrows, `cmd-alt` arrows | move between panes, wrapping around at the edges like tmux |
+| `ctrl-b c` / `&` / `,` | new tab / close it / rename it |
+| `ctrl-b n` / `p`, `ctrl-b 1`…`9` | next / previous tab, tab by number |
+| `ctrl-b h` / `l` | move the tab left / right |
+| `ctrl-b z` | zoom the pane |
+| `ctrl-b e` / `g` | Files / Changes panel |
+| `ctrl-b b` | sidebar |
+| `ctrl-b i` | next background |
+| `ctrl-b s` | space picker |
+
+All keys are in `dot_config/herdr-app/keys.json`. `tmux-to-herdr` recreates
+tmux sessions, windows and panes as Herdr spaces, tabs and splits.
+
+### Backgrounds
+
+<p align="center">
+  <img src="docs/images/backgrounds.jpg" alt="The twelve rotating backgrounds: blurred neon night streets of Tokyo">
+</p>
+
+Twelve night photos of Tokyo from [Unsplash](https://unsplash.com), one per
+two-hour slot from midnight. `herdr-backgrounds` prepares new ones (cropped to
+the window, blurred, darkened, faded behind the tabs) and adds them to the
+dotfiles:
+
+```bash
+herdr-backgrounds ~/Downloads/*-unsplash.jpg
+```
+
+<sub>Photos by Alex Knight, Alexandre Lallemand, Austin Crow, Frank Okay, issa000, Jean Vella, Jezael Melgoza, mos design, Ozgu Ozden and Tom Podmore on Unsplash.</sub>
+
+<br>
+
+## OpenCode and Claude Code
+
+<img align="right" width="300" src="docs/images/opencode-sidebar.png" alt="OpenCode's sidebar: account (blurred), the effort switch, context and usage bars, and the MCP servers">
+
+**OpenCode's sidebar** (`dot_config/opencode/plugins/`) shows, for the session:
+
+- the branch's **Linear or GitHub issue**, with a progress bar for its
+  sub-issues or checklist, and the parent's;
+- the branch's **PR**, its CI and unresolved review threads, and EAS builds;
+- the **account and usage** of the selected model's provider, with an
+  **effort switch** (click a segment);
+- the **MCP servers**, pre-commit checks and waiting sessions.
+
+OpenCode's own tabs are off: each session runs in its own Herdr tab, so Herdr
+shows each as its own agent.
+
+**Reviewer agents**: a code-reviewer (Sonnet) for routine changes and a
+deep-reviewer (Opus) for risky ones, in both OpenCode and Claude Code.
+
+**Two Claude accounts by folder**: under the projects folder,
+`~/.zsh.d/claude-accounts.zsh` points `CLAUDE_CONFIG_DIR` at `~/.claude-work`,
+with its own login and history; its settings, agents, hooks and plugins are
+links to `~/.claude`. In a work folder `opencode` runs its own server
+(`--standalone`), so its Claude Agent models use the work login, and the
+sidebar shows that account.
+
+<br clear="right">
+
+<br>
 
 ## Day to day
 
-- `chezmoi edit <file>` or edit directly under `chezmoi source-path` (this
-  repo) - it's a normal git repo, commit/push as usual.
-- `chezmoi diff` - preview what would change.
-- `chezmoi apply` - sync local `$HOME` to the current source state.
-- `chezmoi update` - `git pull` + `apply`, for pulling changes made on
-  another machine.
+| Command | What it does |
+| --- | --- |
+| `chezmoi edit <file>` | edit a dotfile's source (or edit `~/.dotfiles` directly: it's a normal git repo) |
+| `chezmoi diff` | preview what would change |
+| `chezmoi apply` | sync `$HOME` to the source |
+| `chezmoi update` | `git pull` + `apply`, for changes made on another machine |
 
-Package lists and OS-specific install logic live in
-`.chezmoiscripts/run_once_before_10-install-packages.sh.tmpl`, branched on
-`.chezmoi.os` / `.chezmoi.osRelease.id`. Language/tool versions (Node, Go,
-Rust, Python, Ruby) are managed by [mise](https://mise.jdx.dev/), configured
-in `.chezmoiscripts/run_once_after_20-setup-mise.sh`.
+| To change | Edit |
+| --- | --- |
+| Packages, per OS | `.chezmoiscripts/run_once_before_10-install-packages.sh.tmpl` |
+| Language versions | `.chezmoiscripts/run_once_after_20-setup-mise.sh` |
+| The Herdr layout | `dot_config/herdr-app/layouts/modify_neon.json` (Herdr rewrites the file itself when the background changes, so it's a chezmoi `modify_` script) |
+
+> [!NOTE]
+> A full `chezmoi apply` re-runs the package script whenever it changed, which
+> on macOS means `brew update` and upgrades. Apply single files
+> (`chezmoi apply ~/.zshrc`) when that's all you changed.
+
+<br>
 
 ## Neovim
 
-`dot_config/nvim` is a minimal, from-scratch config (no distro) built on
-Neovim ≥0.12's native `vim.pack` plugin manager and native LSP
-(`vim.lsp.config`/`vim.lsp.enable`) - see the file itself for the full
-plugin list. Language servers (`gopls`, `vtsls`, `eslint`) are installed by
-Mason from inside Neovim, not by this repo's provisioning scripts.
+`dot_config/nvim` is a minimal, from-scratch config (no distro) on Neovim
+≥ 0.12's native `vim.pack` plugin manager and native LSP
+(`vim.lsp.config` / `vim.lsp.enable`); the file lists the plugins. Language
+servers (`gopls`, `vtsls`, `eslint`…) are installed by Mason from inside
+Neovim.
 
-`vim.pack`'s lockfile, `nvim-pack-lock.json`, lives inside
-`~/.config/nvim/` - i.e. inside the chezmoi-managed target - and is tracked
-in this repo so a fresh machine installs plugins at the exact pinned
-revisions. **After running `:lua vim.pack.update()` inside Neovim, run
-`chezmoi add ~/.config/nvim/nvim-pack-lock.json` again before the next
-`chezmoi apply`**, or the apply will silently revert the lockfile (and
-therefore your plugin updates) back to whatever was last committed - the
-same class of footgun as a tracked file that a running program keeps
-rewriting.
+> [!WARNING]
+> `vim.pack`'s lockfile, `~/.config/nvim/nvim-pack-lock.json`, is tracked here
+> so a new machine gets the same plugin versions. **After
+> `:lua vim.pack.update()`, run
+> `chezmoi add ~/.config/nvim/nvim-pack-lock.json`** before the next
+> `chezmoi apply`, or the apply silently puts the old lockfile, and so the old
+> plugins, back.
+
+<br>
 
 ## Secrets
 
-Not managed by chezmoi (see step 2 above). Run `~/.dotfiles/setup-secrets.sh`
-any time to fill in or add secrets: it checks what's already set and only
-prompts for what's missing. They go to `~/.zsh.d/secrets.zsh`, which `.zshrc`
-sources and which is never committed. To add a new one to the prompts, add a
-line to `VARS` in the script.
+Not managed by chezmoi (see [step 2](#2-secrets-can-wait)). Run
+`~/.dotfiles/setup-secrets.sh` any time to fill in or add secrets: it checks
+what's already set and only asks for what's missing. To add a new one to the
+prompts, add a line to `VARS` in the script.
 
 This repo is public, so a pre-commit hook (`.githooks/pre-commit`) runs
 [gitleaks](https://github.com/gitleaks/gitleaks) on the staged changes and
@@ -178,18 +334,27 @@ refuses a commit containing a key or token. chezmoi enables it on every clone
 false positive, allow-list it in `.gitleaks.toml`, or commit once with
 `--no-verify`.
 
-## Testing OS branches before you actually need them
+<br>
 
-`install.sh`'s Arch and Debian/Ubuntu branches aren't exercised day-to-day
-(macOS is the daily driver). Before provisioning a real VPS/Pi or reinstalling
-Omarchy, smoke-test them in containers:
+## Versions and checks
+
+**Versions** are date tags (`vYYYY.MM.DD`) on known-good states of `main`, made
+at milestones; [`CHANGELOG.md`](CHANGELOG.md) lists what changed in each, and
+the latest also has a [release](https://github.com/jmatelli/dotfiles/releases/latest).
+
+**Checks** run on GitHub Actions:
+
+| Workflow | When | What |
+| --- | --- | --- |
+| `checks` | every PR, every push to `main` | gitleaks over the whole history; every file rendered by chezmoi on Ubuntu and macOS; shellcheck on the scripts |
+| `smoke test` | PRs touching the install path, or by hand | `docker-smoke-test.sh`: the install in fresh Ubuntu and Arch containers |
+
+The smoke test also runs locally, against the current checkout (uncommitted
+changes included). GUI parts of the Arch install can't run in a container, so
+only the CLI install is tested there.
 
 ```bash
 ./docker-smoke-test.sh          # both
 ./docker-smoke-test.sh ubuntu
 ./docker-smoke-test.sh arch
 ```
-
-Runs against your current branch, uncommitted changes included. GUI-dependent
-parts of the Arch branch are unreachable in a headless container - expected,
-only the CLI/base install path is exercised there.
