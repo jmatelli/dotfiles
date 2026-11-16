@@ -691,9 +691,9 @@ export default Plugin.define({
       </Show>
     )
 
-    // Vertical block for the session sidebar: account, then one bar per line.
-    // Every row is a direct child of the gap={1} column (Show flattens its
-    // children into it), which gives the blank line between rows.
+    // Vertical block for the session sidebar: one section per child of the
+    // gap={1} column (a blank line between sections); inside a section the
+    // lines are consecutive.
     const Status = (props: { sessionID?: string }) => (
       <box flexDirection="column" gap={1}>
         <TrackSidebar />
@@ -701,22 +701,25 @@ export default Plugin.define({
           <ClaudeAccount />
         </Show>
         <Effort />
-        <text fg={theme.text.base}>
-          <b>Usage</b>
-        </text>
-        <Context sessionID={props.sessionID} />
-        <Show
-          when={windows()}
-          fallback={
-            <Show when={error()}>
-              <text fg={theme.text.base}>usage: {error()}</text>
-            </Show>
-          }
-        >
-          <Item label="5h" win={windows()?.rolling} reset={resetTime(windows()?.rolling?.resetsAt)} />
-          <Item label="7d" win={windows()?.weekly} reset={resetDay(windows()?.weekly?.resetsAt)} />
-          <Item label="30d" win={windows()?.monthly} reset={resetDate(windows()?.monthly?.resetsAt)} />
-        </Show>
+        {/* Its own gap-less column: the bars sit on consecutive lines. */}
+        <box flexDirection="column">
+          <text fg={theme.text.base}>
+            <b>Usage</b>
+          </text>
+          <Context sessionID={props.sessionID} />
+          <Show
+            when={windows()}
+            fallback={
+              <Show when={error()}>
+                <text fg={theme.text.base}>usage: {error()}</text>
+              </Show>
+            }
+          >
+            <Item label="5h" win={windows()?.rolling} reset={resetTime(windows()?.rolling?.resetsAt)} />
+            <Item label="7d" win={windows()?.weekly} reset={resetDay(windows()?.weekly?.resetsAt)} />
+            <Item label="30d" win={windows()?.monthly} reset={resetDate(windows()?.monthly?.resetsAt)} />
+          </Show>
+        </box>
         <AllAccounts />
       </box>
     )
