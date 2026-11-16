@@ -86,7 +86,7 @@ jobs:
       - name: shellcheck
         run: |
           status=0
-          # Plain shell scripts (sh/bash shebang; tmux-to-herdr is Python).
+          # Plain shell scripts (sh/bash shebang only).
           for f in install.sh setup-secrets.sh docker-smoke-test.sh dot_local/bin/* .chezmoiscripts/*.sh; do
             head -1 "$f" | grep -qE '^#!.*\b(ba)?sh\b' || continue
             shellcheck -S warning "$f" || status=1

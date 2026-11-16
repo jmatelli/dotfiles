@@ -12,6 +12,12 @@ docs/**
 # chezmoi's job, and several of these are nested git checkouts.
 .config/tmux/plugins/**
 
+# tmux is only for the Linux profiles; Herdr is the terminal on macOS.
+{{ if eq .chezmoi.os "darwin" -}}
+.config/tmux
+.config/tmux/**
+{{ end -}}
+
 # npm-managed, regenerated from package-lock.json.
 .config/opencode/node_modules/**
 
