@@ -15,6 +15,7 @@ import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, panes, run, openOverlay, exec, nextCommand, layout } from "herdr";
 import { CHECK_MS, nextBackground, slotBackground } from "./backgrounds.js";
+import { goPane } from "./panes.js";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -77,7 +78,10 @@ export default class TmuxBar extends View {
     cx.spawn(async (cx) => {
       for (;;) {
         const command = await nextCommand();
-        this.command(command);
+        // pane_up/down/left/right: tmux-style focus that wraps around (panes.js).
+        const pane = command.match(/^pane_(up|down|left|right)$/);
+        if (pane) await goPane(pane[1], cx);
+        else this.command(command);
         cx.notify();
       }
     });
