@@ -24,6 +24,10 @@ export FZF_TMUX_OPTS=$FZF_TMUX_OPTS'
 export NVIM_PATH="~/.config/nvim"
 
 {{ if eq .chezmoi.os "darwin" -}}
+# lazygit: read ~/.config/lazygit/config.yml like on Linux, not
+# ~/Library/Application Support/lazygit (its state files stay there).
+export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
+
 # Python, Ruby, Go, Rust come from mise (activated in .zshrc); Node from
 # Volta (below), which follows the "volta" pins in projects' package.json.
 

@@ -29,8 +29,8 @@ docs/**
 .config/herdr-app/backgrounds/originals
 .config/herdr-app/backgrounds/originals/**
 
-# Herdr is macOS-only here: its launchd agent and helper only make sense there.
+# Herdr is macOS-only here: its helper only makes sense there (its launchd
+# agent is written by run_onchange_after_36-herdr-panes, also macOS-only).
 {{ if ne .chezmoi.os "darwin" -}}
-Library/LaunchAgents/local.herdr-panes.plist
 .local/bin/herdr-panes
 {{ end -}}

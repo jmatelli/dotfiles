@@ -18,6 +18,10 @@
 # no reason to keep its config around.
 .config/alacritty
 
+# lazygit's config moved to ~/.config/lazygit (LG_CONFIG_FILE on macOS).
+# Only the old managed copy goes: lazygit's state files stay in that folder.
+Library/Application Support/lazygit/config.yml
+
 # mcphub.nvim was dropped from the nvim rebuild - nothing reads this
 # anymore. Not the same thing as opencode's own, separate MCP config.
 .config/mcphub
