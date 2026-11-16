@@ -148,6 +148,13 @@ prompts for what's missing. They go to `~/.zsh.d/secrets.zsh`, which `.zshrc`
 sources and which is never committed. To add a new one to the prompts, add a
 line to `VARS` in the script.
 
+This repo is public, so a pre-commit hook (`.githooks/pre-commit`) runs
+[gitleaks](https://github.com/gitleaks/gitleaks) on the staged changes and
+refuses a commit containing a key or token. chezmoi enables it on every clone
+(`core.hooksPath`, set by `run_once_after_15-dotfiles-git-hooks.sh`). For a
+false positive, allow-list it in `.gitleaks.toml`, or commit once with
+`--no-verify`.
+
 ## Testing OS branches before you actually need them
 
 `install.sh`'s Arch and Debian/Ubuntu branches aren't exercised day-to-day

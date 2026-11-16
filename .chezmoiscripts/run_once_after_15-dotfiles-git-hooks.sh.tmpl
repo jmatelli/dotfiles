@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# The dotfiles repo's own git hooks live in .githooks (versioned, unlike
+# .git/hooks): a gitleaks pre-commit check, since the repo is public.
+git -C {{ .chezmoi.sourceDir | quote }} config core.hooksPath .githooks

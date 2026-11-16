@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Refuses a commit whose staged changes contain a secret (an API key, a token,
+# a private key…), found by gitleaks. This repo is public: a pushed secret
+# has to be revoked and scrubbed from history, so it's stopped here instead.
+#
+# Enabled per clone by core.hooksPath=.githooks, which
+# .chezmoiscripts/run_once_after_15-dotfiles-git-hooks.sh sets.
+#
+# A false positive: add an allowlist to .gitleaks.toml (see gitleaks' docs),
+# or, once, commit with --no-verify.
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks isn't installed, so this commit wasn't checked for secrets." >&2
+  echo "            Install it (brew install gitleaks) to enable the check." >&2
+  exit 0
+fi
+
+if ! gitleaks git --pre-commit --staged --redact --no-banner --verbose; then
+  echo >&2
+  echo "pre-commit: gitleaks found a secret in the staged changes (above); commit refused." >&2
+  echo "            Move it to ~/.zsh.d/secrets.zsh (setup-secrets.sh) and reference it instead." >&2
+  exit 1
+fi
