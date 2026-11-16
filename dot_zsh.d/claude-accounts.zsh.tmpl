@@ -1,0 +1,35 @@
+# Two Claude accounts, picked by folder like the git identity (.gitconfig):
+# under projectsDir, Claude Code uses ~/.claude-work (the work login), and
+# everywhere else ~/.claude (the personal one). CLAUDE_CONFIG_DIR moves the
+# whole config, login included: on macOS the Keychain entry is keyed to that
+# folder. chezmoi links ~/.claude-work's settings, agents, hooks and plugins
+# to ~/.claude, so only the login and history differ.
+#
+# Log in each once, from a folder of that kind:
+#   cd ~ && claude auth login                  # personal
+#   cd {{ .projectsDir }} && claude auth login         # work
+
+_claude_account() {
+  local work="{{ .projectsDir }}"
+  work="${work/#\~/$HOME}"
+  if [[ "$PWD/" == "$work/"* ]]; then
+    export CLAUDE_CONFIG_DIR="$HOME/.claude-work"
+  else
+    unset CLAUDE_CONFIG_DIR
+  fi
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook chpwd _claude_account
+_claude_account
+
+# OpenCode's Claude Agent models run `claude` from OpenCode's shared background
+# service, which keeps the environment it started with (the personal account).
+# On the work account, run OpenCode on a private server that takes this
+# shell's environment. Subcommands (opencode service …, mcp …) go through as is.
+opencode() {
+  if [[ -n "${CLAUDE_CONFIG_DIR:-}" && ( $# -eq 0 || "$1" == -* || -d "$1" ) ]]; then
+    command opencode --standalone "$@"
+  else
+    command opencode "$@"
+  fi
+}

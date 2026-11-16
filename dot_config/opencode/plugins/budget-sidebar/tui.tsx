@@ -13,7 +13,8 @@
 //   5h   █░░░░░░░░░░░░░░░   4% →18:20    30d  ░░░░░░░░░░░░░░░░   1% →8 Dec
 //   7d   ░░░░░░░░░░░░░░░░   1% →Sun 00:00
 //
-// Claude: account info is read from Claude Code's ~/.claude.json; usage comes
+// Claude: account info is read from Claude Code's ~/.claude.json (or the
+// CLAUDE_CONFIG_DIR account's, see CONFIG_DIR below); usage comes
 // from the endpoint Claude Code's `/usage` uses, authenticated with Claude
 // Code's OAuth token from the macOS Keychain (read only, never refreshed here —
 // Claude Code keeps it fresh). The endpoint is rate-limited tightly, so every
@@ -39,6 +40,7 @@
 import { Plugin } from "@opencode/plugin/tui"
 import { createEffect, createMemo, createRoot, createSignal, For, on, onCleanup, onMount, Show } from "solid-js"
 import { execFile } from "node:child_process"
+import { createHash } from "node:crypto"
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
@@ -83,11 +85,21 @@ type Account = {
 type ClaudeState = { usage?: ClaudeUsage; error?: string; account?: Account }
 type Credentials = { accessToken?: string; subscriptionType?: string }
 
+// The Claude account in use follows CLAUDE_CONFIG_DIR, as Claude Code does
+// (~/.zsh.d/claude-accounts.zsh sets it under the work folder): its profile is
+// in that folder's .claude.json, and its Keychain entry is
+// "Claude Code-credentials-<first 8 hex of sha256(folder)>". Unset: the
+// default ~/.claude.json and "Claude Code-credentials".
+const CONFIG_DIR = process.env.CLAUDE_CONFIG_DIR?.normalize("NFC") || undefined
+const ACCOUNT_SUFFIX = CONFIG_DIR ? `-${createHash("sha256").update(CONFIG_DIR).digest("hex").slice(0, 8)}` : ""
+const KEYCHAIN_SERVICE = `Claude Code-credentials${ACCOUNT_SUFFIX}`
+const PROFILE_FILE = join(CONFIG_DIR ?? homedir(), ".claude.json")
+
 function readCredentials(): Promise<Credentials> {
   return new Promise((resolve) => {
     execFile(
       "security",
-      ["find-generic-password", "-s", "Claude Code-credentials", "-w"],
+      ["find-generic-password", "-s", KEYCHAIN_SERVICE, "-w"],
       (err, stdout) => {
         if (err) return resolve({})
         try {
@@ -106,7 +118,7 @@ const titleCase = (s?: string) =>
 // Profile cached by Claude Code in ~/.claude.json (no network call needed).
 async function readAccount(subscriptionType?: string): Promise<Account | undefined> {
   try {
-    const raw = await readFile(join(homedir(), ".claude.json"), "utf8")
+    const raw = await readFile(PROFILE_FILE, "utf8")
     const a = JSON.parse(raw).oauthAccount
     if (!a) return undefined
     const plan = subscriptionType ?? a.organizationType?.replace(/^claude_/, "")
@@ -128,7 +140,8 @@ async function readAccount(subscriptionType?: string): Promise<Account | undefin
 // Every OpenCode window (and every plugin reload) shares one on-disk cache, so
 // the endpoint is hit at most once per CACHE_TTL_MS overall. On 429 we back
 // off exponentially, up to 30 min.
-const CACHE_FILE = join(homedir(), ".cache", "opencode-claude-usage.json")
+// One cache per account, so the work and personal usage never mix.
+const CACHE_FILE = join(homedir(), ".cache", `opencode-claude-usage${ACCOUNT_SUFFIX}.json`)
 const CACHE_TTL_MS = 2 * 60 * 1000
 const BACKOFF_MIN_MS = 5 * 60 * 1000
 const BACKOFF_MAX_MS = 30 * 60 * 1000
