@@ -38,7 +38,7 @@
 | --- | --- | --- |
 | **Shell** | zsh with an [oh-my-posh](https://ohmyposh.dev) prompt that fits the pane width, fzf, zoxide, eza, bat | `dot_zshrc.tmpl`, `dot_zsh.d/`, `dot_config/oh-my-posh/` |
 | **Editor** | Neovim on the native `vim.pack` and native LSP, no distro | `dot_config/nvim/` |
-| **Terminal** | Herdr (macOS) with tmux-style keys, a tmux-style bar and rotating backgrounds; tmux elsewhere | `dot_config/herdr-app/`, `dot_config/tmux/` |
+| **Terminal** | Herdr (macOS) with tmux-style keys, a tmux-style bar and rotating backgrounds; tmux on Linux | `dot_config/herdr-app/`, `dot_config/tmux/` |
 | **AI agents** | OpenCode with sidebar plugins and reviewer agents; Claude Code with hooks; a work account by folder | `dot_config/opencode/`, `dot_claude/` |
 | **Git** | personal and work identities picked by folder, for git and `gh` | `dot_gitconfig*.tmpl`, `dot_local/bin/` |
 | **Toolchains** | Node through Volta; Go, Rust, Python, Ruby through [mise](https://mise.jdx.dev/) | `.chezmoiscripts/` |
@@ -63,8 +63,8 @@ curl -fsSL https://raw.githubusercontent.com/jmatelli/dotfiles/main/install.sh |
 
 `install.sh` installs Homebrew (macOS, with the Xcode Command Line Tools) or
 uses the native package manager, then chezmoi, which clones this repo to
-`~/.dotfiles` and applies it: packages and apps, dotfiles, mise, Neovim, tmux
-plugins, Herdr. On a Mac this takes a while (100+ packages and apps).
+`~/.dotfiles` and applies it: packages and apps, dotfiles, mise, Neovim, Herdr
+(macOS) or tmux plugins (Linux). On a Mac this takes a while (100+ packages and apps).
 
 **It asks for:**
 
@@ -228,8 +228,7 @@ This repo gives it a `neon` layout (`dot_config/herdr-app/`):
 | `ctrl-b i` | next background |
 | `ctrl-b s` | space picker |
 
-All keys are in `dot_config/herdr-app/keys.json`. `tmux-to-herdr` recreates
-tmux sessions, windows and panes as Herdr spaces, tabs and splits.
+All keys are in `dot_config/herdr-app/keys.json`.
 
 After a reboot Herdr brings back spaces, tabs, splits and folders, but each
 pane only as a shell. `herdr-panes` (a launchd agent, every 30s) records what

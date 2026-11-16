@@ -21,6 +21,12 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   in once the pane is a fresh shell. Interactive tools only (nvim, lazygit,
   OpenCode, Claude Code…), never dev servers; agents resume their session.
 
+### Removed
+
+- **kitty and tmux on macOS**: Herdr is the terminal now. No more kitty cask,
+  kitty config, tmux formula or `tmux-to-herdr`; tmux-continuum no longer
+  starts kitty with tmux at login. tmux stays on Arch and Debian/Ubuntu.
+
 ## 2026-11 · [v2026.11.16]
 
 ### Added

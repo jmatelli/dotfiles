@@ -8,6 +8,11 @@ set -euo pipefail
 # (see its bin/install_plugins), so this can run as a plain bootstrap step.
 TPM_DIR="$HOME/.config/tmux/plugins/tpm"
 
+# tmux is only for the Linux profiles; Herdr is the terminal on macOS.
+if [ "$(uname)" = Darwin ]; then
+  exit 0
+fi
+
 # TPM's installer still calls the tmux binary; without tmux (its package
 # failed or isn't in this OS's list) skip with a warning rather than abort the
 # whole chezmoi apply. A later apply after installing tmux runs this again.
