@@ -1,0 +1,30 @@
+# The installer, run in fresh Ubuntu and Arch containers (docker-smoke-test.sh):
+# the Linux install paths aren't run day to day. Takes several minutes, so
+# only on PRs that touch the install path, or by hand.
+name: smoke test
+
+on:
+  pull_request:
+    paths:
+      - install.sh
+      - .chezmoi.toml.tmpl
+      - .chezmoiscripts/**
+      - docker-smoke-test.sh
+      - .github/workflows/smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [ubuntu, arch]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install from this checkout (${{ matrix.target }})
+        run: ./docker-smoke-test.sh ${{ matrix.target }}

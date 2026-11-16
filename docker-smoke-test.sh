@@ -44,6 +44,7 @@ cat > /home/tester/.config/chezmoi/chezmoi.toml <<EOF
 [data]
     email = "test@smoketest.local"
     name = "Smoke Test"
+    workEmail = "work@smoketest.local"
     projectsDir = "~/Projects"
 EOF
 chown -R tester:tester /home/tester/.config
