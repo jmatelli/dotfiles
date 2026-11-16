@@ -88,13 +88,6 @@ eval "$(mise activate zsh)"
 [[ -f $HOME/.dart-cli-completion/zsh-config.zsh ]] && . $HOME/.dart-cli-completion/zsh-config.zsh || true
 ## [/Completion]
 
-# Added by Antigravity
-export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
-
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:$HOME/.lmstudio/bin"
-# End of LM Studio CLI section
-
 # ~/.local/bin first: the gh wrapper there must shadow Homebrew's gh (it picks
 # the GitHub account per folder), and herdr-core's hc lives there too. Then
 # Volta, so `node` follows each project's pinned version instead of Homebrew's
