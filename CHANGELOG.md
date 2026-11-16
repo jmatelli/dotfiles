@@ -15,17 +15,40 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **`herdr-panes`**: Herdr panes get their programs back after a reboot.
-  Herdr restores tabs, splits and folders but only a shell in each pane; a
-  launchd agent now records each pane's program every 30s and types it back
-  in once the pane is a fresh shell. Interactive tools only (nvim, lazygit,
-  OpenCode, Claude Code…), never dev servers; agents resume their session.
+- **`claude-account`** (alias `clac`, [#30](https://github.com/jmatelli/dotfiles/pull/30)):
+  overrides, in the current shell, the Claude account picked by folder:
+  `clac personal` in a work folder (e.g. when the work account hits its usage
+  limit), `clac work`, `clac auto` to go back to the folder rule.
+- **lazygit** shows pull requests for the folder's GitHub account
+  ([#29](https://github.com/jmatelli/dotfiles/pull/29)), not gh's active one: a
+  `lazygit` wrapper exports `GH_TOKEN` for the account git uses there. An
+  explicit `GH_TOKEN` / `GITHUB_TOKEN` is left alone.
+- **`herdr-panes`** ([#28](https://github.com/jmatelli/dotfiles/pull/28)):
+  Herdr panes get their programs back after a reboot. Herdr restores tabs,
+  splits and folders but only a shell in each pane; a launchd agent now
+  records each pane's program every 30s and types it back in once the pane is
+  a fresh shell. Interactive tools only (nvim, lazygit, OpenCode, Claude
+  Code…), never dev servers; agents resume their session.
+
+### Changed
+
+- **lazygit config** moved to `dot_config/lazygit/` (`~/.config/lazygit`) from
+  `Library/Application Support/`; on macOS `LG_CONFIG_FILE` points lazygit at
+  it. On Linux, where lazygit already reads `~/.config`, the config now
+  applies at all.
+- **`herdr-panes` launchd agent**: its plist is now a template in
+  `.chezmoitemplates/`, written to `~/Library/LaunchAgents` and loaded by its
+  `run_onchange` script rather than managed by chezmoi. The repo has no
+  `Library/` folder anymore.
+- **README** ([#26](https://github.com/jmatelli/dotfiles/pull/26)): screenshots,
+  tables and clearer sections.
 
 ### Removed
 
-- **kitty and tmux on macOS**: Herdr is the terminal now. No more kitty cask,
-  kitty config, tmux formula or `tmux-to-herdr`; tmux-continuum no longer
-  starts kitty with tmux at login. tmux stays on Arch and Debian/Ubuntu.
+- **kitty and tmux on macOS** ([#27](https://github.com/jmatelli/dotfiles/pull/27)):
+  Herdr is the terminal now. No more kitty cask, kitty config, tmux formula or
+  `tmux-to-herdr`; tmux-continuum no longer starts kitty with tmux at login.
+  tmux stays on Arch and Debian/Ubuntu.
 
 ## 2026-11 · [v2026.11.16]
 

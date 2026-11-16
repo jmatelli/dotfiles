@@ -74,7 +74,7 @@ uses the native package manager, then chezmoi, which clones this repo to
 | Personal git email | commits outside the projects folder |
 | Git name | every commit |
 | Work git email | commits under the projects folder |
-| Projects folder (default `~/Projects`) | where the work identity applies: git, `gh`, Claude Code |
+| Projects folder (default `~/Projects`) | where the work identity applies: git, `gh`, lazygit, Claude Code |
 
 The four questions are stored in `~/.config/chezmoi/chezmoi.toml` and never
 asked again on that machine. Some app installs can still ask for the password
@@ -135,7 +135,9 @@ gh auth login --hostname github.com   # work: jomatelli
 ```
 
 Git then gets the right account's token per folder through `gh` (the `gh`
-wrapper and git credential helper in `dot_local/bin/`).
+wrapper and git credential helper in `dot_local/bin/`). A `lazygit` wrapper
+does the same, so its branch list shows pull requests for the folder's account;
+the account is picked from the folder lazygit starts in.
 
 ### 2. Secrets (can wait)
 
@@ -173,6 +175,9 @@ everywhere else. Log in once from each kind of folder:
 cd ~ && claude auth login             # personal
 cd ~/Projects && claude auth login    # work
 ```
+
+To use the other account for a while (the work one hit its usage limit, say),
+see [switching account](#switching-account).
 
 See [OpenCode and Claude Code](#opencode-and-claude-code) for how it works.
 
@@ -280,11 +285,25 @@ deep-reviewer (Opus) for risky ones, in both OpenCode and Claude Code.
 with its own login and history; its settings, agents, hooks and plugins are
 links to `~/.claude`. In a work folder `opencode` runs its own server
 (`--standalone`), so its Claude Agent models use the work login, and the
-sidebar shows that account. `claude-account personal` (alias `clac`; or `work`) overrides
-the folder rule in the current shell, e.g. when the work account hits its usage
-limit; `claude-account auto` goes back to it.
+sidebar shows that account.
 
 <br clear="right">
+
+### Switching account
+
+`claude-account` (alias `clac`) overrides the folder rule, in the current shell
+only:
+
+| Command | Account |
+| --- | --- |
+| `clac personal` | personal, even in a work folder (e.g. the work one hit its usage limit) |
+| `clac work` | work, even outside the projects folder |
+| `clac auto` | back to picking by folder |
+| `clac` | prints the account in use, e.g. `personal (personal)` |
+
+A running OpenCode keeps its account: quit it, run `clac personal`, then
+`opencode -c` to continue the session. The plain `claude` CLI keeps history
+per account, so `claude --continue` doesn't see the other account's sessions.
 
 <br>
 
