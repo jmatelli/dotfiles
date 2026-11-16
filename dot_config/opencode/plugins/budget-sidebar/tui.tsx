@@ -13,8 +13,12 @@
 //   5h   █░░░░░░░░░░░░░░░   4% →18:20    30d  ░░░░░░░░░░░░░░░░   1% →8 Dec
 //   7d   ░░░░░░░░░░░░░░░░   1% →Sun 00:00
 //
+// Below the usage, a "Claude 5h" list gives every Claude account on the
+// machine (personal, work, …) with its 5h window and reset time, whatever
+// model is selected (see AllAccounts).
+//
 // Claude: account info is read from Claude Code's ~/.claude.json (or the
-// CLAUDE_CONFIG_DIR account's, see CONFIG_DIR below); usage comes
+// CLAUDE_CONFIG_DIR account's, see ClaudeRef below); usage comes
 // from the endpoint Claude Code's `/usage` uses, authenticated with Claude
 // Code's OAuth token from the macOS Keychain (read only, never refreshed here —
 // Claude Code keeps it fresh). The endpoint is rate-limited tightly, so every
@@ -26,8 +30,9 @@
 // only the workspace name and its console URL; clicking the account block
 // opens that page.
 //
-// Only the active provider is polled (every 2 minutes, and throttled when a
-// turn ends); switching model refreshes the new one immediately.
+// The active provider is polled every 2 minutes (and, throttled, when a turn
+// ends); switching model refreshes the new one immediately. The Claude
+// accounts are polled every 2 minutes whatever the provider, for the 5h list.
 //
 // Between the account and the usage, an effort switch for the selected model:
 // one segment per variant (reasoning effort level), filled up to the active
@@ -38,12 +43,12 @@
 //   Effort                        ctrl+x v
 //   ██ ██ ██ ░░ ░░ medium
 import { Plugin } from "@opencode/plugin/tui"
-import { createEffect, createMemo, createRoot, createSignal, For, on, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createMemo, createRoot, createSignal, For, Index, on, onCleanup, onMount, Show } from "solid-js"
 import { execFile } from "node:child_process"
 import { createHash } from "node:crypto"
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
+import { access, mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
-import { dirname, join } from "node:path"
+import { basename, dirname, join } from "node:path"
 
 const POLL_MS = 2 * 60 * 1000
 // Floor for refreshes triggered by a finished turn (a burst of subagent turns
@@ -85,21 +90,50 @@ type Account = {
 type ClaudeState = { usage?: ClaudeUsage; error?: string; account?: Account }
 type Credentials = { accessToken?: string; subscriptionType?: string }
 
-// The Claude account in use follows CLAUDE_CONFIG_DIR, as Claude Code does
-// (~/.zsh.d/claude-accounts.zsh sets it under the work folder): its profile is
-// in that folder's .claude.json, and its Keychain entry is
+// A Claude account is a config folder, as in Claude Code: CLAUDE_CONFIG_DIR
+// (~/.zsh.d/claude-accounts.zsh sets it under the work folder) holds its
+// .claude.json profile, and its Keychain entry is
 // "Claude Code-credentials-<first 8 hex of sha256(folder)>". Unset: the
-// default ~/.claude.json and "Claude Code-credentials".
-const CONFIG_DIR = process.env.CLAUDE_CONFIG_DIR?.normalize("NFC") || undefined
-const ACCOUNT_SUFFIX = CONFIG_DIR ? `-${createHash("sha256").update(CONFIG_DIR).digest("hex").slice(0, 8)}` : ""
-const KEYCHAIN_SERVICE = `Claude Code-credentials${ACCOUNT_SUFFIX}`
-const PROFILE_FILE = join(CONFIG_DIR ?? homedir(), ".claude.json")
+// default ~/.claude.json and "Claude Code-credentials" (the personal account).
+// Every account also gets its own usage cache, so their numbers never mix.
+type ClaudeRef = { id: string; label: string; keychain: string; profile: string; cache: string }
 
-function readCredentials(): Promise<Credentials> {
+function claudeRef(configDir?: string): ClaudeRef {
+  const suffix = configDir ? `-${createHash("sha256").update(configDir).digest("hex").slice(0, 8)}` : ""
+  return {
+    id: configDir ?? "",
+    // ~/.claude-work → "work"
+    label: configDir ? basename(configDir).replace(/^\.claude-/, "") : "personal",
+    keychain: `Claude Code-credentials${suffix}`,
+    profile: join(configDir ?? homedir(), ".claude.json"),
+    cache: join(homedir(), ".cache", `opencode-claude-usage${suffix}.json`),
+  }
+}
+
+// The account this OpenCode was started with.
+const ACTIVE = claudeRef(process.env.CLAUDE_CONFIG_DIR?.normalize("NFC") || undefined)
+
+// Every account on this machine: the default one plus each ~/.claude-<name>
+// folder (the same path the zsh hook exports, so the Keychain hash matches).
+// Accounts that were never logged in are dropped later, on "no login".
+async function listClaudeAccounts(): Promise<ClaudeRef[]> {
+  const home = homedir()
+  const entries = await readdir(home, { withFileTypes: true }).catch(() => [])
+  const dirs = entries
+    .filter((e) => e.isDirectory() && /^\.claude-[\w.-]+$/.test(e.name))
+    .map((e) => join(home, e.name).normalize("NFC"))
+  // Only folders Claude Code has used (skips backups and other tools' folders).
+  const used = await Promise.all(dirs.map((d) => access(join(d, ".claude.json")).then(() => true, () => false)))
+  const refs = [claudeRef(), ...dirs.filter((_, i) => used[i]).map((d) => claudeRef(d))]
+  if (!refs.some((r) => r.id === ACTIVE.id)) refs.push(ACTIVE)
+  return refs
+}
+
+function readCredentials(ref: ClaudeRef): Promise<Credentials> {
   return new Promise((resolve) => {
     execFile(
       "security",
-      ["find-generic-password", "-s", KEYCHAIN_SERVICE, "-w"],
+      ["find-generic-password", "-s", ref.keychain, "-w"],
       (err, stdout) => {
         if (err) return resolve({})
         try {
@@ -116,9 +150,9 @@ const titleCase = (s?: string) =>
   s ? s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : undefined
 
 // Profile cached by Claude Code in ~/.claude.json (no network call needed).
-async function readAccount(subscriptionType?: string): Promise<Account | undefined> {
+async function readAccount(ref: ClaudeRef, subscriptionType?: string): Promise<Account | undefined> {
   try {
-    const raw = await readFile(PROFILE_FILE, "utf8")
+    const raw = await readFile(ref.profile, "utf8")
     const a = JSON.parse(raw).oauthAccount
     if (!a) return undefined
     const plan = subscriptionType ?? a.organizationType?.replace(/^claude_/, "")
@@ -140,39 +174,38 @@ async function readAccount(subscriptionType?: string): Promise<Account | undefin
 // Every OpenCode window (and every plugin reload) shares one on-disk cache, so
 // the endpoint is hit at most once per CACHE_TTL_MS overall. On 429 we back
 // off exponentially, up to 30 min.
-// One cache per account, so the work and personal usage never mix.
-const CACHE_FILE = join(homedir(), ".cache", `opencode-claude-usage${ACCOUNT_SUFFIX}.json`)
+// One cache per account (ClaudeRef.cache).
 const CACHE_TTL_MS = 2 * 60 * 1000
 const BACKOFF_MIN_MS = 5 * 60 * 1000
 const BACKOFF_MAX_MS = 30 * 60 * 1000
 
 type Cache = { fetchedAt?: number; usage?: ClaudeUsage; backoffUntil?: number; backoffMs?: number }
 
-async function readCache(): Promise<Cache> {
+async function readCache(ref: ClaudeRef): Promise<Cache> {
   try {
-    return JSON.parse(await readFile(CACHE_FILE, "utf8"))
+    return JSON.parse(await readFile(ref.cache, "utf8"))
   } catch {
     return {}
   }
 }
 
-async function writeCache(cache: Cache) {
+async function writeCache(ref: ClaudeRef, cache: Cache) {
   try {
-    await mkdir(dirname(CACHE_FILE), { recursive: true })
-    const tmp = `${CACHE_FILE}.${process.pid}.tmp`
+    await mkdir(dirname(ref.cache), { recursive: true })
+    const tmp = `${ref.cache}.${process.pid}.tmp`
     await writeFile(tmp, JSON.stringify(cache))
-    await rename(tmp, CACHE_FILE) // atomic, so concurrent windows never read a partial file
+    await rename(tmp, ref.cache) // atomic, so concurrent windows never read a partial file
   } catch {}
 }
 
-async function fetchClaude(): Promise<ClaudeState> {
-  const creds = await readCredentials()
-  const account = await readAccount(creds.subscriptionType)
+async function fetchClaude(ref: ClaudeRef): Promise<ClaudeState> {
+  const creds = await readCredentials(ref)
+  const account = await readAccount(ref, creds.subscriptionType)
   const token = creds.accessToken
   if (!token) return { error: "no login", account }
 
   const now = Date.now()
-  const cache = await readCache()
+  const cache = await readCache(ref)
   if (cache.usage && cache.fetchedAt && now - cache.fetchedAt < CACHE_TTL_MS) {
     return { usage: cache.usage, account }
   }
@@ -186,13 +219,13 @@ async function fetchClaude(): Promise<ClaudeState> {
     })
     if (res.status === 429) {
       const backoffMs = Math.min(BACKOFF_MAX_MS, cache.backoffMs ? cache.backoffMs * 2 : BACKOFF_MIN_MS)
-      await writeCache({ ...cache, backoffMs, backoffUntil: now + backoffMs })
+      await writeCache(ref, { ...cache, backoffMs, backoffUntil: now + backoffMs })
       return cache.usage ? { usage: cache.usage, account } : { error: "rate limited", account }
     }
     if (res.status === 401) return { error: "token expired", account }
     if (!res.ok) return cache.usage ? { usage: cache.usage, account } : { error: `http ${res.status}`, account }
     const usage = (await res.json()) as ClaudeUsage
-    await writeCache({ fetchedAt: now, usage })
+    await writeCache(ref, { fetchedAt: now, usage })
     return { usage, account }
   } catch {
     return cache.usage ? { usage: cache.usage, account } : { error: "offline", account }
@@ -271,7 +304,6 @@ export default Plugin.define({
     })
 
     const [goState, setGoState] = createSignal<GoState>({})
-    const [claudeState, setClaudeState] = createSignal<ClaudeState>({})
 
     // The server answers from its cached credential; a failure (offline, no
     // OpenCode account) keeps the last numbers so the bars don't blink.
@@ -284,12 +316,25 @@ export default Plugin.define({
       }
     }
 
+    // Every Claude account, the active one included, is fetched together (each
+    // through its own cache), so the per-account 5h list is always current.
+    const [claudeRefs, setClaudeRefs] = createSignal<ClaudeRef[]>([ACTIVE])
+    const [claudeStates, setClaudeStates] = createSignal<Record<string, ClaudeState>>({})
+    const claudeState = () => claudeStates()[ACTIVE.id] ?? {}
+
     const refreshClaude = async () => {
-      const next = await fetchClaude()
-      // Keep showing the last good numbers on transient failures.
-      const prev = claudeState()
-      if (next.error && prev.usage && next.error !== "token expired") return
-      setClaudeState(next)
+      const refs = await listClaudeAccounts()
+      setClaudeRefs(refs)
+      const results = await Promise.all(refs.map(async (ref) => [ref.id, await fetchClaude(ref)] as const))
+      setClaudeStates((prev) => {
+        const next: Record<string, ClaudeState> = {}
+        for (const [id, state] of results) {
+          // Keep showing the last good numbers on transient failures.
+          const old = prev[id]
+          next[id] = state.error && old?.usage && state.error !== "token expired" ? old : state
+        }
+        return next
+      })
     }
 
     // Turn ends trigger a refresh too (a finished turn is what moves the
@@ -306,7 +351,16 @@ export default Plugin.define({
       createEffect(on(mode, () => void refresh()))
       return dispose
     })
-    const timer = setInterval(() => refresh(), POLL_MS)
+    // The per-account 5h list shows on every provider, so the Claude accounts
+    // are polled even when an OpenCode model is selected.
+    const pollClaudeToo = () => {
+      if (mode() !== "claude") void refreshClaude()
+    }
+    pollClaudeToo()
+    const timer = setInterval(() => {
+      void refresh()
+      pollClaudeToo()
+    }, POLL_MS)
     const stopTurns = (["succeeded", "failed", "interrupted"] as const).map((outcome) =>
       context.data.on(`session.execution.${outcome}`, () => refresh(TURN_MIN_GAP_MS)),
     )
@@ -536,6 +590,73 @@ export default Plugin.define({
       </Show>
     )
 
+    // The 5h window of every logged-in Claude account, one line each, so you
+    // can see when each frees up before switching (clac). ● marks the account
+    // this OpenCode runs on; a full window shows its reset in red.
+    //
+    //   Claude 5h
+    //   ● work     ████████ 100% →18:50
+    //     personal █████░░░  68% →19:10
+    const ACCOUNT_BAR_WIDTH = 8
+    const AllAccounts = () => {
+      const rows = () =>
+        claudeRefs().filter((ref) => {
+          const state = claudeStates()[ref.id]
+          return state && state.error !== "no login"
+        })
+      const labelWidth = () => Math.max(...rows().map((ref) => ref.label.length))
+      return (
+        // A single account is already the 5h bar under Usage.
+        <Show when={rows().length > 1}>
+          <box flexDirection="column">
+            <text fg={theme.text.base}>
+              <b>Claude 5h</b>
+            </text>
+            {/* Index, not For: the refs are rebuilt on every poll, and For
+                would remount every row each time. */}
+            <Index each={rows()}>
+              {(ref) => {
+                const state = () => claudeStates()[ref().id] ?? {}
+                const active = () => ref().id === ACTIVE.id
+                const win = () => claudeWindow(state().usage?.five_hour)
+                const bar = () => cells(win()?.percent ?? 0, ACCOUNT_BAR_WIDTH)
+                const c = () => color(win()?.percent ?? 0)
+                const full = () => (win()?.percent ?? 0) >= 100
+                return (
+                  <box flexDirection="row" flexShrink={0}>
+                    <text flexShrink={0} wrapMode="none" fg={active() ? theme.text.base : DIM}>
+                      {(active() ? "● " : "  ") + ref().label.padEnd(labelWidth()) + " "}
+                    </text>
+                    <Show
+                      when={win()}
+                      fallback={
+                        <text flexShrink={0} wrapMode="none" fg={DIM}>
+                          {/* Usage but no 5h window: nothing used lately. */}
+                          {state().usage ? "idle" : (state().error ?? "…")}
+                        </text>
+                      }
+                    >
+                      <text flexShrink={0} wrapMode="none">
+                        <span style={{ fg: c() }}>{bar().filled}</span>
+                        <span style={{ fg: DIM }}>{bar().empty}</span>
+                      </text>
+                      <text flexShrink={0} wrapMode="none" fg={c()}>
+                        {`${Math.round(win()!.percent)}%`.padStart(5)}
+                      </text>
+                      <text flexShrink={0} wrapMode="none" fg={full() ? RED_HEX : DIM}>
+                        {/* No reset time: no message in the last 5 hours, nothing to wait for. */}
+                        {win()!.resetsAt ? ` →${resetTime(win()!.resetsAt)}` : " idle"}
+                      </text>
+                    </Show>
+                  </box>
+                )
+              }}
+            </Index>
+          </box>
+        </Show>
+      )
+    }
+
     // The plugin API doesn't expose sidebar visibility, but OpenCode unmounts
     // sidebar content when the sidebar is hidden (narrow pane, toggled off).
     // Count mounted sidebar instances; the status-bar fallback shows at 0.
@@ -593,6 +714,7 @@ export default Plugin.define({
           <Item label="7d" win={windows()?.weekly} reset={resetDay(windows()?.weekly?.resetsAt)} />
           <Item label="30d" win={windows()?.monthly} reset={resetDate(windows()?.monthly?.resetsAt)} />
         </Show>
+        <AllAccounts />
       </box>
     )
 
