@@ -595,9 +595,8 @@ export default Plugin.define({
     // this OpenCode runs on; a full window shows its reset in red.
     //
     //   Claude 5h
-    //   ● work     ████████ 100% →18:50
-    //     personal █████░░░  68% →19:10
-    const ACCOUNT_BAR_WIDTH = 8
+    //   ● work     █████████ 100% →18:50
+    //     personal ██████░░░  68% →19:10
     const AllAccounts = () => {
       const rows = () =>
         claudeRefs().filter((ref) => {
@@ -605,6 +604,10 @@ export default Plugin.define({
           return state && state.error !== "no login"
         })
       const labelWidth = () => Math.max(...rows().map((ref) => ref.label.length))
+      // The bar ends in the same column as the Usage bars above (4-col label +
+      // BAR_WIDTH), so the percentages line up: it takes what the "● name "
+      // prefix leaves.
+      const barWidth = () => Math.max(4, 4 + BAR_WIDTH - (2 + labelWidth() + 1))
       return (
         // A single account is already the 5h bar under Usage.
         <Show when={rows().length > 1}>
@@ -619,7 +622,7 @@ export default Plugin.define({
                 const state = () => claudeStates()[ref().id] ?? {}
                 const active = () => ref().id === ACTIVE.id
                 const win = () => claudeWindow(state().usage?.five_hour)
-                const bar = () => cells(win()?.percent ?? 0, ACCOUNT_BAR_WIDTH)
+                const bar = () => cells(win()?.percent ?? 0, barWidth())
                 const c = () => color(win()?.percent ?? 0)
                 const full = () => (win()?.percent ?? 0) >= 100
                 return (
