@@ -34,3 +34,8 @@ docs/**
 {{ if ne .chezmoi.os "darwin" -}}
 .local/bin/herdr-panes
 {{ end -}}
+
+# termscp bookmarks keep hosts and usernames in plain text: never add them
+# to this public repo.
+.config/termscp
+.config/termscp/**
