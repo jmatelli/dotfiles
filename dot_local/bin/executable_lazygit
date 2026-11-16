@@ -37,4 +37,17 @@ if [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ]; then
   fi
 fi
 
+# The config lives in ~/.config/lazygit, which lazygit reads on macOS only
+# through LG_CONFIG_FILE (set in ~/.zshenv). A process that started without
+# it (a shell opened before ~/.zshenv had it, Neovim, a pane herdr-panes
+# restored) would fall back to ~/Library/Application Support/lazygit and
+# its defaults, so set it here too. An explicit LG_CONFIG_FILE wins.
+if [ -z "${LG_CONFIG_FILE:-}" ]; then
+  config="${XDG_CONFIG_HOME:-$HOME/.config}/lazygit/config.yml"
+  if [ -f "$config" ]; then
+    LG_CONFIG_FILE=$config
+    export LG_CONFIG_FILE
+  fi
+fi
+
 exec "$real" "$@"
