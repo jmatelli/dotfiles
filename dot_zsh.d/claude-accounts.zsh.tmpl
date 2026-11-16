@@ -8,11 +8,18 @@
 # Log in each once, from a folder of that kind:
 #   cd ~ && claude auth login                  # personal
 #   cd {{ .projectsDir }} && claude auth login         # work
+#
+# To override the folder rule in this shell (e.g. the work account hit its
+# usage limit): `claude-account personal`, `claude-account work`, or
+# `claude-account auto` to go back to picking by folder. With no argument it
+# prints the account in use.
 
 _claude_account() {
   local work="{{ .projectsDir }}"
   work="${work/#\~/$HOME}"
-  if [[ "$PWD/" == "$work/"* ]]; then
+  if [[ "${CLAUDE_ACCOUNT:-}" == personal ]]; then
+    unset CLAUDE_CONFIG_DIR
+  elif [[ "${CLAUDE_ACCOUNT:-}" == work || "$PWD/" == "$work/"* ]]; then
     export CLAUDE_CONFIG_DIR="$HOME/.claude-work"
   else
     unset CLAUDE_CONFIG_DIR
@@ -21,6 +28,23 @@ _claude_account() {
 autoload -Uz add-zsh-hook
 add-zsh-hook chpwd _claude_account
 _claude_account
+
+claude-account() {
+  case "${1:-}" in
+    personal|work) export CLAUDE_ACCOUNT="$1" ;;
+    auto) unset CLAUDE_ACCOUNT ;;
+    "") ;;
+    *) print -u2 "usage: claude-account [personal|work|auto]"; return 1 ;;
+  esac
+  _claude_account
+  local mode="${CLAUDE_ACCOUNT:-auto}"
+  if [[ -n "${CLAUDE_CONFIG_DIR:-}" ]]; then
+    print "work ($mode)"
+  else
+    print "personal ($mode)"
+  fi
+}
+alias clac=claude-account
 
 # OpenCode's Claude Agent models run `claude` from OpenCode's shared background
 # service, which keeps the environment it started with (the personal account).

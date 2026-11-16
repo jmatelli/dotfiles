@@ -280,7 +280,9 @@ deep-reviewer (Opus) for risky ones, in both OpenCode and Claude Code.
 with its own login and history; its settings, agents, hooks and plugins are
 links to `~/.claude`. In a work folder `opencode` runs its own server
 (`--standalone`), so its Claude Agent models use the work login, and the
-sidebar shows that account.
+sidebar shows that account. `claude-account personal` (alias `clac`; or `work`) overrides
+the folder rule in the current shell, e.g. when the work account hits its usage
+limit; `claude-account auto` goes back to it.
 
 <br clear="right">
 
