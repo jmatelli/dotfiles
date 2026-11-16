@@ -1,0 +1,8 @@
+# Template for an SFTP server connection in termscp.
+# Copy it into ~/.ssh/config.d/servers and fill in the placeholders.
+Host <alias>
+  HostName <host>
+  User <user>
+  Port <port>
+  Ciphers +aes128-cbc
+  PubkeyAuthentication no
