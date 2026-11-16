@@ -1,0 +1,40 @@
+#!/bin/sh
+# lazygit wrapper: runs the real lazygit as the GitHub account git uses for
+# this folder, so its branch list shows the right pull requests.
+#
+# lazygit gets its GitHub token by running `gh auth token --hostname ...`.
+# The gh wrapper leaves `gh auth ...` alone, so without this that is gh's
+# active account, whichever folder lazygit is in. `gh auth token` returns
+# GH_TOKEN when it is set, so exporting it here is enough.
+#
+# The account comes from `git config credential.https://github.com.username`
+# (personal by default, work under projectsDir via includeIf), like the gh
+# wrapper and git-credential-gh-account. It is resolved once, from the
+# directory lazygit starts in: opening another repo from inside lazygit keeps
+# that account.
+#
+# Left alone: an explicit GH_TOKEN / GITHUB_TOKEN.
+
+# The real lazygit: the first one on PATH that isn't this script.
+self_dir=$(cd "$(dirname "$0")" && pwd -P)
+real=
+old_ifs=$IFS
+IFS=:
+for dir in $PATH; do
+  [ -n "$dir" ] || continue
+  [ "$(cd "$dir" 2>/dev/null && pwd -P)" = "$self_dir" ] && continue
+  if [ -x "$dir/lazygit" ]; then real="$dir/lazygit"; break; fi
+done
+IFS=$old_ifs
+[ -n "$real" ] || real=/opt/homebrew/bin/lazygit
+[ -x "$real" ] || { echo "lazygit wrapper: real lazygit not found on PATH" >&2; exit 127; }
+
+if [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ]; then
+  user=$(git config --get credential.https://github.com.username 2>/dev/null)
+  if [ -n "$user" ] && token=$(GH_TOKEN='' GITHUB_TOKEN='' gh auth token --user "$user" 2>/dev/null) && [ -n "$token" ]; then
+    GH_TOKEN=$token
+    export GH_TOKEN
+  fi
+fi
+
+exec "$real" "$@"
