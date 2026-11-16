@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+{{ if eq .chezmoi.os "darwin" -}}
+# (Re)load the launchd agent that runs `herdr-panes tick`, so Herdr panes get
+# their programs back after a reboot. Reruns whenever the plist changes:
+# plist hash: {{ include "Library/LaunchAgents/local.herdr-panes.plist.tmpl" | sha256sum }}
+plist="$HOME/Library/LaunchAgents/local.herdr-panes.plist"
+domain="gui/$(id -u)"
+launchctl bootout "$domain/local.herdr-panes" 2>/dev/null || true
+launchctl bootstrap "$domain" "$plist" || echo "Warning: failed to load $plist" >&2
+{{ end -}}

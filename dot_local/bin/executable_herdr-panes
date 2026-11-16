@@ -1,0 +1,179 @@
+#!/usr/bin/env -S python3 -I
+"""Bring back what ran in each Herdr pane after a reboot (or a core crash).
+
+    herdr-panes            what would be restarted now (dry run)
+    herdr-panes restore    restart it now
+    herdr-panes save       record what each pane runs
+    herdr-panes tick       restore what was lost, then save (launchd, every 30s)
+
+Herdr keeps its tabs, splits and each pane's folder across a reboot, but a lost
+terminal comes back as a plain shell: "its original command is never run
+again". So `tick` records each pane's foreground program, and when a pane's
+shell has been replaced (its shell pid changed) and it sits at a prompt, types
+the recorded command back in with `hc send`.
+
+Only interactive tools (TOOLS) are restarted. Dev servers, builds and other
+commands are recorded but not re-run, so nothing runs twice by surprise.
+OpenCode and Claude Code panes resume their session when Herdr knows it.
+
+The record is ~/.local/state/herdr-panes.json. `tick` does nothing while
+herdr-core isn't running (it never starts it).
+"""
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+
+TOOLS = {"nvim", "vim", "lazygit", "opencode", "claude", "htop", "btop", "k9s", "yazi"}
+SHELLS = {"zsh", "bash", "sh", "fish", "nu"}
+STATE = os.path.expanduser("~/.local/state/herdr-panes.json")
+HC = shutil.which("hc") or os.path.expanduser("~/.local/bin/hc")
+
+
+def hc(*args):
+    out = subprocess.run([HC, *args, "--json"], capture_output=True, text=True, check=True)
+    return json.loads(out.stdout)
+
+
+def core_running():
+    return subprocess.run(["pgrep", "-qf", "herdr-core --hc-launchd"]).returncode == 0
+
+
+def name(argv):
+    return os.path.basename(argv[0]).lstrip("-") if argv else ""
+
+
+def session(term, app):
+    """The agent's session id, when Herdr knows which one the pane shows."""
+    records = {k: v for k, v in (term.get("records") or {}).items() if v.get("app") == app}
+    if len(records) > 1:  # several sessions seen in this pane: the one shown now
+        title = (term.get("status") or {}).get("title")
+        records = {k: v for k, v in records.items() if v.get("title") == title}
+    return next(iter(records)) if len(records) == 1 else None
+
+
+def command(term, argv):
+    """What to type to start it again. Agents resume their session and never
+    get their first prompt again (it would be sent a second time)."""
+    app = name(argv)
+    if app == "opencode":
+        if len(argv) > 1 and not argv[1].startswith("-") and argv[1] != "mini":
+            return None  # a subcommand (run, serve, ...), not the interactive app
+        out, skip = [], False
+        for a in argv:
+            if skip:
+                skip = False
+            elif a in ("--prompt", "-s", "--session"):
+                skip = True
+            elif not a.startswith(("--prompt=", "--session=")) and a not in ("-c", "--continue"):
+                out.append(a)
+        sid = session(term, app)
+        return out + (["-s", sid] if sid else [])
+    if app == "claude":
+        if any(a in ("-p", "--print") for a in argv):
+            return None  # one-shot, not interactive
+        sid = session(term, app)
+        return ["claude"] + (["--resume", sid] if sid else [])
+    return argv
+
+
+def snapshot():
+    """{address: pane} for live Herdr terminals (the ones with a space label)."""
+    panes = {}
+    for t in hc("ls")["terminals"]:
+        if t.get("state") != "live":
+            continue
+        term = hc("get", t["address"])
+        labels = term.get("labels") or {}
+        if "herdr.space" not in labels:
+            continue
+        fg = term.get("foreground") or {}
+        argv = fg.get("argv") or []
+        idle = not argv or fg.get("pid") == term.get("pid") or name(argv) in SHELLS
+        panes[t["address"]] = {
+            "pid": term.get("pid"),
+            "where": labels.get("where", ""),
+            "tab": labels.get("herdr.tab"),
+            "cwd": fg.get("cwd") or term.get("cwd"),
+            "idle": idle,
+            "argv": None if idle else command(term, argv),
+        }
+    return panes
+
+
+def load():
+    try:
+        with open(STATE) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def store(panes):
+    os.makedirs(os.path.dirname(STATE), exist_ok=True)
+    tmp = STATE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(panes, f, indent=1)
+    os.replace(tmp, STATE)
+
+
+def lost(saved, now):
+    """Panes whose shell was replaced, that sit at a prompt, that ran a tool."""
+    for address, old in saved.items():
+        cur = now.get(address)
+        if (cur and old.get("argv") and name(old["argv"]) in TOOLS
+                and cur["pid"] != old["pid"] and cur["idle"] and cur["tab"] == old["tab"]):
+            yield address, old, cur
+
+
+def restore(saved, now, apply):
+    done = {}
+    for address, old, cur in lost(saved, now):
+        line = shlex.join(old["argv"])
+        if cur["cwd"] != old["cwd"]:
+            line = f"cd {shlex.quote(old['cwd'])} && {line}"
+        print(f"{address}  {old['where']}: {line}")
+        if apply:
+            subprocess.run([HC, "send", address, line], capture_output=True, check=True)
+            # Its program is starting: keep the recorded command, under the new shell.
+            done[address] = {**old, "pid": cur["pid"]}
+    return done
+
+
+def main(args):
+    cmd = args[0] if args else ""
+    if cmd in ("-h", "--help", "help"):
+        print(__doc__.strip())
+        return 0
+    if cmd not in ("", "restore", "save", "tick"):
+        print(f"herdr-panes: unknown command {cmd!r} (see --help)", file=sys.stderr)
+        return 2
+    if not core_running():
+        if cmd != "tick":
+            print("herdr-core isn't running: open Herdr first.", file=sys.stderr)
+        return 0 if cmd == "tick" else 1
+
+    saved, now = load(), snapshot()
+    if cmd == "save":
+        store(now)
+        return 0
+
+    if cmd == "":
+        if not any(lost(saved, now)):
+            print("Nothing to restart.")
+            return 0
+        restore(saved, now, apply=False)
+        print("\nDry run: `herdr-panes restore` restarts these.")
+        return 0
+
+    done = restore(saved, now, apply=True)
+    # Panes not lost are recorded as they are now; restarted ones keep their
+    # command (their program may not be in the foreground yet).
+    store({**now, **done})
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

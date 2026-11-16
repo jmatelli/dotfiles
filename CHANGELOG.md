@@ -13,6 +13,14 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
 
+### Added
+
+- **`herdr-panes`**: Herdr panes get their programs back after a reboot.
+  Herdr restores tabs, splits and folders but only a shell in each pane; a
+  launchd agent now records each pane's program every 30s and types it back
+  in once the pane is a fresh shell. Interactive tools only (nvim, lazygit,
+  OpenCode, Claude Code…), never dev servers; agents resume their session.
+
 ## 2026-11 · [v2026.11.16]
 
 ### Added

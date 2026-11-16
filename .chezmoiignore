@@ -22,3 +22,9 @@ docs/**
 # herdr-backgrounds prepares into backgrounds/rotation, which is in the repo.
 .config/herdr-app/backgrounds/originals
 .config/herdr-app/backgrounds/originals/**
+
+# Herdr is macOS-only here: its launchd agent and helper only make sense there.
+{{ if ne .chezmoi.os "darwin" -}}
+Library/LaunchAgents/local.herdr-panes.plist
+.local/bin/herdr-panes
+{{ end -}}
