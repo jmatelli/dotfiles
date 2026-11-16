@@ -40,6 +40,10 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **SSH keys only for listed hosts**: `Host *` turns off key login and
+  `github.com` turns it back on, so `~/.ssh/id_ed25519` is never offered to
+  other servers (termscp follows the same rule). A host that should use the key
+  needs `PubkeyAuthentication yes`.
 - **lazygit config** moved to `dot_config/lazygit/` (`~/.config/lazygit`) from
   `Library/Application Support/`; on macOS `LG_CONFIG_FILE` points lazygit at
   it. On Linux, where lazygit already reads `~/.config`, the config now
