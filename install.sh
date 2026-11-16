@@ -5,7 +5,7 @@
 # in the chezmoi source state and is OS-branched there, not here.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/tellijo/dotfiles/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/jmatelli/dotfiles/main/install.sh | bash
 #
 # Override the source repo/branch (e.g. to test a local checkout or a
 # feature branch before merging):
@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-DOTFILES_REPO="${DOTFILES_REPO:-https://github.com/tellijo/dotfiles.git}"
+DOTFILES_REPO="${DOTFILES_REPO:-https://github.com/jmatelli/dotfiles.git}"
 DOTFILES_BRANCH="${DOTFILES_BRANCH:-main}"
 DOTFILES_SOURCE_DIR="${DOTFILES_SOURCE_DIR:-$HOME/.dotfiles}"
 
@@ -57,17 +57,22 @@ info "Detected platform: $PLATFORM"
 
 case "$PLATFORM" in
 macos)
-  if ! command -v git &>/dev/null; then
-    info "Installing Xcode Command Line Tools (provides git)..."
-    xcode-select --install
-    fail "Re-run this script after the Xcode Command Line Tools install finishes."
-  fi
-
   if ! command -v brew &>/dev/null; then
-    info "Installing Homebrew..."
+    # Homebrew's installer also installs the Xcode Command Line Tools (git).
+    # Run non-interactively it never asks for a password (sudo -n), so on a
+    # fresh Mac, where it must create /opt/homebrew, it would abort: ask for
+    # the password once here, then it reuses it.
+    info "Installing Homebrew (and the Xcode Command Line Tools); enter your Mac password..."
+    sudo -v
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
+  # Apple silicon, else Intel.
+  for brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$brew" ]; then
+      eval "$("$brew" shellenv)"
+      break
+    fi
+  done
 
   info "Installing chezmoi..."
   brew install -q chezmoi
@@ -99,4 +104,6 @@ esac
 info "Running chezmoi init --apply ($DOTFILES_REPO @ $DOTFILES_BRANCH -> $DOTFILES_SOURCE_DIR)..."
 chezmoi init --apply --branch "$DOTFILES_BRANCH" --source "$DOTFILES_SOURCE_DIR" "$DOTFILES_REPO"
 
-info "Done. Restart your shell."
+info "Done. Open a new terminal, then finish the manual steps in the README:"
+echo "  https://github.com/jmatelli/dotfiles#after-the-install"
+echo "  (GitHub logins, secrets, Claude Code, OpenCode, Herdr layout)"

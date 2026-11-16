@@ -10,33 +10,102 @@ VPS/Raspberry Pi profile, CLI tools only, no desktop packages).
 
 ## Install on a new machine
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/tellijo/dotfiles/main/install.sh | bash
-```
-
-No prior clone needed - chezmoi does its own clone as part of `init`. You'll
-be prompted once for your git name/email; that's stored in
-`~/.config/chezmoi/chezmoi.toml` and reused on every future `chezmoi apply`
-on that machine.
-
-Then log in both GitHub accounts to `gh` (the only manual step: it opens a
-browser):
+Nothing needs to be installed first: a fresh macOS, Arch or Debian/Ubuntu
+with a user that can `sudo` is enough. In a terminal (on a Mac: Terminal.app):
 
 ```bash
-gh auth login --hostname github.com   # personal: jmatelli
-gh auth login --hostname github.com   # work: jomatelli
+curl -fsSL https://raw.githubusercontent.com/jmatelli/dotfiles/main/install.sh | bash
 ```
 
-Git and `gh` then pick the account per folder by themselves: work under
-`~/Projects/`, personal everywhere else. The `gh` wrapper and the git
-credential helper that do this live in `dot_local/bin/`.
+It installs Homebrew (macOS; with the Xcode Command Line Tools) or uses the
+native package manager, then chezmoi, which clones this repo to
+`~/.dotfiles` and applies it: packages and apps, dotfiles, mise, Neovim,
+tmux plugins, Herdr. On a Mac this takes a while (100+ packages and apps).
 
-To test against a local checkout or a branch before merging, override the
-source:
+You'll be asked for:
+
+- your **password** (sudo; on macOS, once at the start);
+- four questions, stored in `~/.config/chezmoi/chezmoi.toml` and never asked
+  again on that machine: personal git email, git name, work git email, and
+  where your work projects live (default `~/Projects`). Git and `gh` use the
+  work identity under that folder and the personal one everywhere else.
+
+Some app installs (casks) can still ask for the password or fail on their own;
+the run keeps going and lists what failed at the end. Re-running the same
+command is safe.
+
+To install from a branch or a local checkout instead of `main`:
 
 ```bash
-DOTFILES_REPO=/path/to/local/checkout DOTFILES_BRANCH=my-branch ./install.sh
+curl -fsSL https://raw.githubusercontent.com/jmatelli/dotfiles/<branch>/install.sh | DOTFILES_BRANCH=<branch> bash
+DOTFILES_REPO=/path/to/checkout DOTFILES_BRANCH=<branch> ./install.sh
 ```
+
+## After the install
+
+These need you (a browser, a password, or a key), so the install can't do
+them. Open a **new terminal** first, so the shell picks up everything. Each
+step stands on its own: do them in any order, or come back to one later.
+
+1. **GitHub**: log in both accounts to `gh` (each opens a browser):
+
+   ```bash
+   gh auth login --hostname github.com   # personal: jmatelli
+   gh auth login --hostname github.com   # work: jomatelli
+   ```
+
+   Git then gets the right account's token per folder through `gh` (the `gh`
+   wrapper and git credential helper in `dot_local/bin/`).
+
+2. **Secrets** (can wait): run the prompt script whenever you have the keys.
+   It asks only for what's missing, and leaving one empty skips it, so you can
+   run it again later for the rest. They go to `~/.zsh.d/secrets.zsh` (never
+   committed), which the shell loads when it exists.
+
+   ```bash
+   ~/.dotfiles/setup-secrets.sh
+   ```
+
+   | Variable | Used by | Where to get it |
+   | --- | --- | --- |
+   | `GITHUB_PERSONAL_ACCESS_TOKEN` | OpenCode's GitHub MCP server | github.com → Settings → Developer settings → Personal access tokens |
+   | `ANTHROPIC_API_KEY` | Claude Code without a logged-in account (optional: step 3's login comes first) | console.anthropic.com → API keys |
+   | `LINEAR_API_KEY` | OpenCode's sidebar (the branch's Linear issue) | Linear settings → personal API keys |
+   | `METABASE_MCP_URL` | OpenCode's Metabase MCP server | `https://<metabase instance>/api/metabase-mcp` |
+
+   Until a secret is set, only what uses it is missing: OpenCode lists the
+   GitHub or Metabase MCP server as failed, and its sidebar shows no Linear
+   issue. Everything else works.
+
+   After adding secrets, open a new terminal and restart OpenCode's background
+   service from it, so OpenCode sees them (it keeps the environment of the
+   terminal that started it):
+
+   ```bash
+   opencode service restart
+   ```
+
+3. **Claude Code**: run `claude` and log in. OpenCode's Claude Agent models
+   and its usage sidebar use that login.
+
+4. **OpenCode**: run `opencode`, then
+   - `/connect` → OpenCode Go (or another provider), to use those models;
+   - `/mcps` → sign in to each remote MCP server that shows as needing it
+     (Linear, Figma, Sentry, PostHog, Stripe, Intercom, Resend, Expo…).
+     GitHub and Metabase use the secrets from step 2 instead.
+
+5. **Herdr** (macOS): open the Herdr app, then switch it to this repo's layout (it
+   opens on its default one and remembers the choice afterwards):
+
+   ```bash
+   herdr-app do layout.switch '{"name":"neon"}'
+   ```
+
+   or press `cmd-shift-l` until the tmux-style bar appears at the bottom. The
+   background rotates through `backgrounds/rotation` every two hours.
+
+6. **Neovim**: the first `nvim` installs its plugins and language servers
+   (Mason); give it a minute, then restart it.
 
 ## Day to day
 
@@ -73,15 +142,11 @@ rewriting.
 
 ## Secrets
 
-Not managed by chezmoi. Run, any time, to fill in or add to your local
-secrets (checks what's already set and only prompts for what's missing):
-
-```bash
-./setup-secrets.sh
-```
-
-Writes to `~/.zsh.d/secrets.zsh`, which `.zshrc` sources and which is never
-committed.
+Not managed by chezmoi (see step 2 above). Run `~/.dotfiles/setup-secrets.sh`
+any time to fill in or add secrets: it checks what's already set and only
+prompts for what's missing. They go to `~/.zsh.d/secrets.zsh`, which `.zshrc`
+sources and which is never committed. To add a new one to the prompts, add a
+line to `VARS` in the script.
 
 ## Testing OS branches before you actually need them
 
