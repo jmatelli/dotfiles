@@ -14,6 +14,7 @@
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, panes, run, openOverlay, exec, nextCommand, layout } from "herdr";
+import { CHECK_MS, nextBackground, slotBackground } from "./backgrounds.js";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -66,6 +67,9 @@ export default class TmuxBar extends View {
       }
       cx.notify();
     });
+    // The window background changes every two hours on the clock (backgrounds.js).
+    cx.spawn(async () => { await slotBackground(); });
+    cx.timer.every(CHECK_MS, (cx) => cx.spawn(async () => { await slotBackground(); }));
     // Clock: tmux's status-interval is 5s; minutes only, so 10s is plenty.
     cx.timer.every(10000, (cx) => cx.notify());
     // Commands from keys.json ("tmux-bar.<command>"), for actions Herdr has
@@ -83,6 +87,10 @@ export default class TmuxBar extends View {
     const space = spaces().find((s) => s.active);
     const tab = space?.tabs.find((t) => t.active);
     switch (command) {
+      // The next background image now (keys.json: ctrl-b i).
+      case "background_next":
+        nextBackground();
+        return;
       // tmux's swap-window -t -1 / +1: move the shown tab one place.
       case "tab_left":
       case "tab_right": {

@@ -1,3 +1,20 @@
+#!/usr/bin/env python3
+# chezmoi modify_ script for ~/.config/herdr-app/layouts/neon.json.
+#
+# The layout is BASE below; edit it here, not in the target file. Herdr itself
+# rewrites the target: the background rotation (mods/tmux-bar/backgrounds.js)
+# sets the root "background" through layout.set, which for a personal layout
+# saves the whole tree back to the file (its own key order, f32 numbers, and
+# folded-in clicks like the sidebar width). So:
+#
+# - the root background is runtime state: the current one is always kept;
+# - when the file matches BASE apart from that, it is left untouched, so
+#   chezmoi sees no difference;
+# - otherwise BASE is written, with the current background.
+import json
+import sys
+
+BASE = json.loads(r"""
 {
   "id": "root",
   "cloned_from": {
@@ -65,7 +82,7 @@
         }
       ],
       "size": {
-        "px": 268
+        "px": 225
       },
       "min": 44,
       "max": 480,
@@ -152,7 +169,7 @@
     }
   ],
   "background": {
-    "image": "backgrounds/neon-window-2.jpg",
+    "image": "backgrounds/rotation/alex-knight-5-GNa303REg.jpg",
     "fit": "cover"
   },
   "terminal_opacity": 0.6,
@@ -173,3 +190,31 @@
   "font": "FiraMono Nerd Font",
   "font_size": 13
 }
+""")
+
+
+def same(a, b):
+    """Equal as JSON, ignoring key order and f32 rounding (0.6 vs 0.6000000238)."""
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(same(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool):
+        return abs(a - b) < 1e-6
+    return a == b
+
+
+raw = sys.stdin.read()
+try:
+    current = json.loads(raw) if raw.strip() else None
+except ValueError:
+    current = None
+
+out = dict(BASE)
+if isinstance(current, dict) and isinstance(current.get("background"), dict):
+    out["background"] = current["background"]
+
+if current is not None and same({**current, "background": None}, {**out, "background": None}):
+    sys.stdout.write(raw)
+else:
+    sys.stdout.write(json.dumps(out, indent=2, ensure_ascii=False) + "\n")

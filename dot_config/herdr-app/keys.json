@@ -35,6 +35,7 @@
     "ctrl-b b": "layout.toggle:sidebar",
     "ctrl-b e": "tmux-bar.files",
     "ctrl-b g": "tmux-bar.changes",
+    "ctrl-b i": "tmux-bar.background_next",
 
     "ctrl-b k": "space.close",
     "ctrl-b $": "space.rename",
