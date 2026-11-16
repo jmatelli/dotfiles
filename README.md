@@ -231,6 +231,13 @@ This repo gives it a `neon` layout (`dot_config/herdr-app/`):
 All keys are in `dot_config/herdr-app/keys.json`. `tmux-to-herdr` recreates
 tmux sessions, windows and panes as Herdr spaces, tabs and splits.
 
+After a reboot Herdr brings back spaces, tabs, splits and folders, but each
+pane only as a shell. `herdr-panes` (a launchd agent, every 30s) records what
+each pane runs and starts it again: nvim, lazygit, OpenCode and Claude Code
+(on their session) and a few other tools, never dev servers or builds.
+`herdr-panes` alone shows what it would restart; the list is `TOOLS` in
+`dot_local/bin/executable_herdr-panes`.
+
 ### Backgrounds
 
 <p align="center">
