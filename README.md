@@ -34,6 +34,18 @@ Some app installs (casks) can still ask for the password or fail on their own;
 the run keeps going and lists what failed at the end. Re-running the same
 command is safe.
 
+To install a known-good version instead of `main` (if `main` is broken, say),
+use one of the date tags listed in `CHANGELOG.md` and on the GitHub releases
+page, the same way as a branch:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jmatelli/dotfiles/v2026.11.16/install.sh | DOTFILES_BRANCH=v2026.11.16 bash
+```
+
+The checkout in `~/.dotfiles` is then on that tag, not a branch, so
+`chezmoi update` can't pull: switch it back with `git -C ~/.dotfiles switch main`
+once `main` is fixed.
+
 To install from a branch or a local checkout instead of `main`:
 
 ```bash

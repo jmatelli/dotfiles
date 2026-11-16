@@ -1,13 +1,19 @@
 # Changelog
 
-Notable changes to these dotfiles, newest first. There are no releases or
-tags: changes are grouped by month (by year before 2026), each split into
-Added, Changed, Fixed and Removed. Pull requests are linked where there was
-one; the commit history (`git log`) has the detail.
+Notable changes to these dotfiles, newest first, grouped by month (by year
+before 2026), each split into Added, Changed, Fixed and Removed. Pull requests
+are linked where there was one; the commit history (`git log`) has the detail.
+
+Versions are date tags (`vYYYY.MM.DD`) on known-good states of `main`, made at
+milestones rather than on every change; the heading of the period a tag closes
+names it. A tag can be installed instead of `main` (see the README), for
+example if `main` is broken when setting up a new machine.
 
 Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## 2026-11
+## Unreleased
+
+## 2026-11 · [v2026.11.16]
 
 ### Added
 
@@ -114,7 +120,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Lazygit config moved to the path it reads on macOS.
 - mise pins Go 1.25.
 
-## 2026-08
+## 2026-08 · [v2026.08.28]
 
 ### Added
 
@@ -156,7 +162,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Neovim on LazyVim (April); tmux and Neovim configs reorganised.
 
-## 2024
+## 2024 · [v2024.06.07]
 
 ### Changed
 
@@ -170,7 +176,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Neovim on LazyVim; ripgrep configured.
 
-## 2022
+## 2022 · [v2022.12.28]
 
 ### Added
 
@@ -192,3 +198,8 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - The first dotfiles: zsh, tmux, Vim/Neovim and git configs, and a setup
   script (2018).
+
+[v2026.11.16]: https://github.com/jmatelli/dotfiles/releases/tag/v2026.11.16
+[v2026.08.28]: https://github.com/jmatelli/dotfiles/releases/tag/v2026.08.28
+[v2024.06.07]: https://github.com/jmatelli/dotfiles/releases/tag/v2024.06.07
+[v2022.12.28]: https://github.com/jmatelli/dotfiles/releases/tag/v2022.12.28
