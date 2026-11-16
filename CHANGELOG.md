@@ -35,8 +35,8 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `~/.ssh/server.template` is the block to copy there for an SFTP server in
   termscp (legacy `aes128-cbc` cipher, password login only).
 - **Casks for apps already in use**: `alt-tab`, `ardia`, `brave-browser`,
-  `calibre`, `homebrew-app`, `mactex`, `papercut-mobility-print-client`,
-  `sf-symbols`, `visual-studio-code`, `zoom`, `zulu@17`.
+  `calibre`, `homebrew-app`, `papercut-mobility-print-client`, `sf-symbols`,
+  `visual-studio-code`, `zoom`, `zulu@17`.
 
 ### Changed
 
@@ -58,7 +58,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `tmux-to-herdr`; tmux-continuum no longer starts kitty with tmux at login.
   tmux stays on Arch and Debian/Ubuntu.
 - **Casks for apps no longer used**: `displaylink`, `elgato-camera-hub`,
-  `focusrite-control`, `keka`, `keymapp`.
+  `focusrite-control`, `handbrake-app`, `keka`, `keymapp`.
 - **LM Studio and Antigravity `PATH` entries** in `.zshrc`; both apps are gone.
 
 ## 2026-11 · [v2026.11.16]
