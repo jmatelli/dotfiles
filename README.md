@@ -297,6 +297,11 @@ Stripe, Intercom) and blocks the personal ones with `mcp.use` policies.
 `opencode mcp list` ignores policies, so it still shows them there; sessions
 don't get them.
 
+**Worktrees inside the project**: OpenCode creates worktrees in
+`<project>/.worktrees/<name>` (`worktree.directory`), ignored by the global
+`~/.gitignore`. A worktree of a work repo stays under the projects folder, so
+it keeps the work MCP servers, Claude account and git identity.
+
 <br clear="right">
 
 ### Switching account

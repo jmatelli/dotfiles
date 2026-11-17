@@ -1,3 +1,7 @@
 .zsh.d/secrets.zsh
 
 **/.claude/settings.local.json
+
+# OpenCode worktrees live inside each project (worktree.directory in
+# ~/.config/opencode/opencode.json).
+.worktrees/

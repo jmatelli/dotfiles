@@ -40,6 +40,9 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **OpenCode worktrees** go in `<project>/.worktrees/` (ignored by the global
+  `~/.gitignore`) instead of OpenCode's data folder, so they keep the
+  per-folder MCP servers, Claude account and git identity.
 - **OpenCode MCP servers by folder**: Sentry, Metabase, Stripe and Intercom
   only load under the projects folder (from an `opencode.json` written there),
   and Neon and Netlify only outside it. The rest stay common.
