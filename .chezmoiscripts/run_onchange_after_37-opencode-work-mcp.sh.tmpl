@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# OpenCode MCP servers by folder, like the git identity and the Claude account:
+# the global ~/.config/opencode/opencode.json has the common and personal
+# servers, and an opencode.json at the root of projectsDir adds the work-only
+# ones and blocks the personal-only ones. OpenCode merges every opencode.json
+# from a project folder up to / over the global config, per folder, so this
+# also works on the shared background service.
+#
+# chezmoi can't put projectsDir in a target path, so this script writes the
+# file from .chezmoitemplates/opencode-work.json. The template is part of this
+# script, so the script reruns whenever it changes.
+dir="{{ .projectsDir }}"
+dir="${dir/#\~/$HOME}"
+mkdir -p "$dir"
+cat > "$dir/opencode.json" <<'JSON'
+{{ template "opencode-work.json" . -}}
+JSON

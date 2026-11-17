@@ -40,6 +40,9 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **OpenCode MCP servers by folder**: Sentry, Metabase, Stripe and Intercom
+  only load under the projects folder (from an `opencode.json` written there),
+  and Neon and Netlify only outside it. The rest stay common.
 - **SSH keys only for listed hosts**: `Host *` turns off key login and
   `github.com` turns it back on, so `~/.ssh/id_ed25519` is never offered to
   other servers (termscp follows the same rule). A host that should use the key

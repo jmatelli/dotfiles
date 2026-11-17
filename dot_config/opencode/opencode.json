@@ -84,34 +84,14 @@
       },
       "enabled": true
     },
-    "sentry": {
-      "type": "remote",
-      "url": "https://mcp.sentry.dev/mcp",
-      "oauth": {}
-    },
     "expo": {
       "type": "remote",
       "url": "https://mcp.expo.dev/mcp",
       "oauth": {}
     },
-    "metabase": {
-      "type": "remote",
-      "url": "{env:METABASE_MCP_URL}",
-      "oauth": {}
-    },
     "figma": {
       "type": "remote",
       "url": "https://mcp.figma.com/mcp",
-      "oauth": {}
-    },
-    "stripe": {
-      "type": "remote",
-      "url": "https://mcp.stripe.com",
-      "oauth": {}
-    },
-    "intercom": {
-      "type": "remote",
-      "url": "https://mcp.intercom.com/mcp",
       "oauth": {}
     },
     "resend": {
@@ -122,6 +102,16 @@
     "exa": {
       "type": "remote",
       "url": "https://mcp.exa.ai/mcp",
+      "enabled": true
+    },
+    "Neon": {
+      "type": "remote",
+      "url": "https://mcp.neon.tech/mcp",
+      "enabled": true
+    },
+    "netlify": {
+      "type": "remote",
+      "url": "https://mcp.netlify.com/mcp",
       "enabled": true
     }
   }

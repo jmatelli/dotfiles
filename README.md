@@ -187,8 +187,9 @@ Run `opencode`, then:
 
 - `/connect` → OpenCode Go (or another provider), to use those models;
 - `/mcps` → sign in to each remote MCP server that shows as needing it
-  (Linear, Figma, Sentry, PostHog, Stripe, Intercom, Resend, Expo…). GitHub
-  and Metabase use the secrets from step 2 instead.
+  (Linear, Figma, PostHog, Resend, Expo…; Neon and Netlify outside the
+  projects folder; Sentry, Stripe and Intercom from inside it). GitHub and
+  Metabase use the secrets from step 2 instead.
 
 ### 5. Herdr (macOS)
 
@@ -286,6 +287,15 @@ with its own login and history; its settings, agents, hooks and plugins are
 links to `~/.claude`. In a work folder `opencode` runs its own server
 (`--standalone`), so its Claude Agent models use the work login, and the
 sidebar shows that account.
+
+**MCP servers by folder**: the global `~/.config/opencode/opencode.json` has
+the common servers plus the personal ones (Neon, Netlify). An `opencode.json`
+at the root of the projects folder, written by
+`run_onchange_after_37-opencode-work-mcp` from
+`.chezmoitemplates/opencode-work.json`, adds the work ones (Sentry, Metabase,
+Stripe, Intercom) and blocks the personal ones with `mcp.use` policies.
+`opencode mcp list` ignores policies, so it still shows them there; sessions
+don't get them.
 
 <br clear="right">
 
