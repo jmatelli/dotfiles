@@ -22,8 +22,12 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Switch Claude account from the sidebar**: clicking an account in the
   sidebar's "Claude 5h" list moves the OpenCode server to that login, starting
   with the next prompt, with no restart. A server part of the budget-sidebar
-  plugin sets `CLAUDE_CONFIG_DIR` in the server process. On the shared
-  background service the switch applies to every window that uses it.
+  plugin sets `CLAUDE_CONFIG_DIR` in the server process and stops the `claude`
+  processes still running on the old account (OpenCode keeps one alive per
+  session between prompts), so the next prompt starts a new one on the new
+  account. The list is a radio button (● current, ○ others), and an account at
+  its weekly limit is greyed out and can't be picked. On the shared background
+  service the switch applies to every window that uses it.
 - **`claude-account`** (alias `clac`, [#30](https://github.com/jmatelli/dotfiles/pull/30)):
   overrides, in the current shell, the Claude account picked by folder:
   `clac personal` in a work folder (e.g. when the work account hits its usage

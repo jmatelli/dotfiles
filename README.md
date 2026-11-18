@@ -289,8 +289,10 @@ with its own login and history; its settings, agents, hooks and plugins are
 links to `~/.claude`. In a work folder `opencode` runs its own server
 (`--standalone`), so its Claude Agent models use the work login, and the
 sidebar shows that account. Clicking another account in the sidebar's
-"Claude 5h" list switches the server to it, starting with the next prompt.
-On the shared service, every window that uses it switches.
+"Claude 5h" list switches the server to it, starting with the next prompt
+(a turn still running on the old account is cut short). An account at its
+weekly limit is greyed out and can't be picked. On the shared service, every
+window that uses it switches.
 
 **MCP servers by project**: the global `~/.config/opencode/opencode.json` has
 only the servers every project uses (browser, docs, search, Expo, Figma…). Services tied to an account live in each project's own config, which

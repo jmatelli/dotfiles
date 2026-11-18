@@ -16,7 +16,8 @@
 // Below the usage, a "Claude 5h" list gives every Claude account on the
 // machine (personal, work, …) with its 5h window and reset time, whatever
 // model is selected (see AllAccounts). Clicking an account there switches the
-// server's Claude login to it for the next turns (server.ts).
+// server's Claude login to it for the next turns (server.ts); an account at its
+// weekly limit is greyed out and can't be picked.
 //
 // Claude: account info is read from Claude Code's ~/.claude.json (or the
 // CLAUDE_CONFIG_DIR account's, see ClaudeRef below); usage comes
@@ -607,12 +608,26 @@ export default Plugin.define({
       </Show>
     )
 
+    // An account whose 7-day window is used up can't run a turn until it
+    // resets, so it can't be switched to.
+    const weekly = (id: string) => claudeWindow(claudeStates()[id]?.usage?.seven_day)
+    const weeklyFull = (id: string) => (weekly(id)?.percent ?? 0) >= 100
+
     // Clicking another account's row moves the server to it (server.ts): the
     // next Claude turn runs on that login, no restart needed.
     const switchTo = (ref: ClaudeRef) => async (event: Click) => {
       if (event.button !== 0) return
       event.stopPropagation()
       if (ref.id === active().id) return
+      if (weeklyFull(ref.id)) {
+        const until = resetDay(weekly(ref.id)?.resetsAt)
+        context.ui.toast.show({
+          title: "Claude account",
+          message: `${ref.label} is at its weekly limit${until ? ` until ${until}` : ""}`,
+          variant: "warning",
+        })
+        return
+      }
       switches++
       try {
         const { configDir } = await accounts.set({ configDir: ref.id })
@@ -625,13 +640,15 @@ export default Plugin.define({
     }
 
     // The 5h window of every logged-in Claude account, one line each, so you
-    // can see when each frees up before switching. ● marks the account this
-    // OpenCode runs on; click another row to switch to it. A full window shows
-    // its reset in red.
+    // can see when each frees up before switching. A radio button: ● marks the
+    // account this OpenCode runs on, ○ the others; click one to switch to it.
+    // A full window shows its reset in red. An account at its weekly limit is
+    // greyed out and can't be picked; it shows the weekly reset instead.
     //
     //   Claude 5h
     //   ● work     █████████ 100% →18:50
-    //     personal ██████░░░  68% →19:10
+    //   ○ personal ██████░░░  68% →19:10
+    //   ○ other    7d limit →Thu 09:00
     const AllAccounts = () => {
       const rows = () =>
         claudeRefs().filter((ref) => {
@@ -660,31 +677,53 @@ export default Plugin.define({
                 const bar = () => cells(win()?.percent ?? 0, barWidth())
                 const c = () => color(win()?.percent ?? 0)
                 const full = () => (win()?.percent ?? 0) >= 100
+                const disabled = () => weeklyFull(ref().id)
                 return (
                   <box flexDirection="row" flexShrink={0} onMouseUp={(event: Click) => switchTo(ref())(event)}>
-                    <text flexShrink={0} wrapMode="none" fg={current() ? theme.text.base : DIM}>
-                      {(current() ? "● " : "  ") + ref().label.padEnd(labelWidth()) + " "}
+                    <text flexShrink={0} wrapMode="none">
+                      <span style={{ fg: disabled() && !current() ? DIM : theme.text.base }}>
+                        {current() ? "● " : "○ "}
+                      </span>
+                      <span style={{ fg: current() ? theme.text.base : DIM }}>
+                        {ref().label.padEnd(labelWidth()) + " "}
+                      </span>
                     </text>
                     <Show
-                      when={win()}
+                      when={!disabled()}
                       fallback={
+                        // The 5h numbers don't matter until the week resets.
+                        // Starts where the bars do and fills the bar +
+                        // percentage columns, so the → lines up with the other
+                        // rows' reset times.
                         <text flexShrink={0} wrapMode="none" fg={DIM}>
-                          {/* Usage but no 5h window: nothing used lately. */}
-                          {state().usage ? "idle" : (state().error ?? "…")}
+                          {"7d limit".padEnd(barWidth() + 5)}
+                          <span style={{ fg: RED_HEX }}>
+                            {weekly(ref().id)?.resetsAt ? ` →${resetDay(weekly(ref().id)!.resetsAt)}` : ""}
+                          </span>
                         </text>
                       }
                     >
-                      <text flexShrink={0} wrapMode="none">
-                        <span style={{ fg: c() }}>{bar().filled}</span>
-                        <span style={{ fg: DIM }}>{bar().empty}</span>
-                      </text>
-                      <text flexShrink={0} wrapMode="none" fg={c()}>
-                        {`${Math.round(win()!.percent)}%`.padStart(5)}
-                      </text>
-                      <text flexShrink={0} wrapMode="none" fg={full() ? RED_HEX : DIM}>
-                        {/* No reset time: no message in the last 5 hours, nothing to wait for. */}
-                        {win()!.resetsAt ? ` →${resetTime(win()!.resetsAt)}` : " idle"}
-                      </text>
+                      <Show
+                        when={win()}
+                        fallback={
+                          <text flexShrink={0} wrapMode="none" fg={DIM}>
+                            {/* Usage but no 5h window: nothing used lately. */}
+                            {state().usage ? "idle" : (state().error ?? "…")}
+                          </text>
+                        }
+                      >
+                        <text flexShrink={0} wrapMode="none">
+                          <span style={{ fg: c() }}>{bar().filled}</span>
+                          <span style={{ fg: DIM }}>{bar().empty}</span>
+                        </text>
+                        <text flexShrink={0} wrapMode="none" fg={c()}>
+                          {`${Math.round(win()!.percent)}%`.padStart(5)}
+                        </text>
+                        <text flexShrink={0} wrapMode="none" fg={full() ? RED_HEX : DIM}>
+                          {/* No reset time: no message in the last 5 hours, nothing to wait for. */}
+                          {win()!.resetsAt ? ` →${resetTime(win()!.resetsAt)}` : " idle"}
+                        </text>
+                      </Show>
                     </Show>
                   </box>
                 )

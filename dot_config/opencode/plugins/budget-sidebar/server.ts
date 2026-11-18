@@ -2,16 +2,24 @@
 // of the running OpenCode server, which the sidebar (a separate TUI process)
 // can't do by itself.
 //
-// The Claude Agent provider starts every `claude` turn with a fresh copy of
-// the server's process.env, so changing CLAUDE_CONFIG_DIR here moves the next
-// turn to that account: no restart. This is the same variable
-// ~/.zsh.d/claude-accounts.zsh (clac) sets in the shell, so the server starts
-// on the account of the shell that launched it.
+// The Claude Agent provider starts each `claude` process with a fresh copy of
+// the server's process.env, so changing CLAUDE_CONFIG_DIR here moves the
+// processes it starts next to that account: no restart. This is the same
+// variable ~/.zsh.d/claude-accounts.zsh (clac) sets in the shell, so the
+// server starts on the account of the shell that launched it.
+//
+// But the provider keeps one `claude` process per session alive between turns
+// (until 5 idle minutes), and feeds the next prompt to it: that process keeps
+// the account it started with. So a switch also stops the server's `claude`
+// processes that run on another account; at the next prompt the provider sees
+// its process ended and starts a new one, on the new account, replaying the
+// conversation. A turn still running on the old account is cut short.
 //
 // The change is server-wide and lasts until the server stops: in standalone
 // mode (the work account), that is just this window; on the shared background
 // service, every window that uses it.
 import { Plugin } from "@opencode/plugin"
+import { execFile } from "node:child_process"
 import { access } from "node:fs/promises"
 import { homedir } from "node:os"
 import { basename, dirname, join, resolve } from "node:path"
@@ -36,6 +44,48 @@ async function valid(configDir: string) {
   return access(join(configDir, ".claude.json")).then(() => true, () => false)
 }
 
+const run = (cmd: string, args: string[]) =>
+  new Promise<string>((done) =>
+    execFile(cmd, args, { timeout: 3000 }, (err, stdout) => done(err ? "" : stdout.normalize("NFC"))),
+  )
+
+// pid → the rest of the `ps` line, for the given columns.
+async function ps(columns: string, pids: string[], env = false) {
+  const out = await run("ps", [...(env ? ["-E"] : []), "-ww", "-o", columns, "-p", pids.join(",")])
+  const rows = new Map<string, string>()
+  for (const line of out.split("\n")) {
+    const m = line.match(/^\s*(\d+) (.*)$/)
+    if (m) rows.set(m[1], m[2])
+  }
+  return rows
+}
+
+// Stops this server's `claude` child processes that run on another account
+// than configDir. Only direct children of the server: a `claude` run from a
+// shell tool is a grandchild and left alone.
+//
+// `ps -E` appends the environment to the command line (macOS, same user),
+// space-separated with no quoting, so paths are matched whole rather than
+// split on spaces. A process whose environment can't be read (no HOME in it)
+// is left alone rather than guessed at.
+async function stopOtherAccounts(configDir: string) {
+  const pids = (await run("pgrep", ["-P", String(process.pid)])).split(/\s+/).filter(Boolean)
+  if (pids.length === 0) return
+  const [names, commands] = await Promise.all([ps("pid=,comm=", pids), ps("pid=,command=", pids, true)])
+  for (const [pid, name] of names) {
+    if (basename(name.trim()) !== "claude") continue
+    const line = ` ${commands.get(pid) ?? ""} `
+    if (!line.includes(" HOME=")) continue
+    const onTarget = configDir
+      ? line.includes(` CLAUDE_CONFIG_DIR=${configDir} `)
+      : !line.includes(" CLAUDE_CONFIG_DIR=")
+    if (onTarget) continue
+    try {
+      process.kill(Number(pid), "SIGTERM")
+    } catch {} // already gone
+  }
+}
+
 export default Plugin.define({
   id: "dotfiles.budget-sidebar",
   async setup(ctx) {
@@ -46,6 +96,7 @@ export default Plugin.define({
         if (!(await valid(configDir))) return context.error("invalid", "Not a Claude account folder", { configDir })
         if (configDir) process.env.CLAUDE_CONFIG_DIR = configDir
         else delete process.env.CLAUDE_CONFIG_DIR
+        await stopOtherAccounts(configDir)
         return { configDir: current() }
       },
     })
