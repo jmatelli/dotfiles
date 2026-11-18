@@ -309,6 +309,12 @@ name, so a service used with two accounts needs two names.
 `~/.gitignore`. A worktree of a work repo stays under the projects folder, so
 it keeps the work MCP servers, Claude account and git identity.
 
+**Agent skills** (`~/.agents/skills`, installed with `npx skills add -g`) are
+tracked through the skills CLI's lockfile, `dot_agents/dot_skill-lock.json`.
+On a new machine, `run_onchange_after_45-restore-agent-skills` adds back every
+skill in it that's missing, linked to Claude Code and OpenCode. After adding,
+updating or removing a skill, run `chezmoi re-add ~/.agents/.skill-lock.json`.
+
 <br clear="right">
 
 ### Switching account

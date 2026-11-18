@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Reinstalls the global agent skills (~/.agents/skills) listed in the tracked
+# skills CLI lockfile, ~/.agents/.skill-lock.json. Only skills missing from
+# ~/.agents/skills are added, so this is a no-op on a machine that has them.
+# chezmoi reruns this whenever the lockfile changes:
+# lock hash: {{ include "dot_agents/dot_skill-lock.json" | sha256sum }}
+#
+# After `npx skills add/update/remove`, run `chezmoi re-add ~/.agents/.skill-lock.json`.
+
+# node/npx comes from mise (run_once_after_20-setup-mise).
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate bash)"
+  eval "$(mise hook-env -s bash)"
+fi
+if ! command -v npx >/dev/null 2>&1; then
+  echo "restore-agent-skills: npx not found, skipping" >&2
+  exit 0
+fi
+
+# One line per source: "<url-to-add> <missing skill> <missing skill> ...".
+# GitHub sources are added from their repo URL; well-known sources (like
+# docs.stripe.com) from https://<host>, which serves the skill index.
+# shellcheck disable=SC2016 # ${...} below is JavaScript, not shell
+node -e '
+const fs = require("fs");
+const home = require("os").homedir();
+const { skills } = JSON.parse(fs.readFileSync(home + "/.agents/.skill-lock.json", "utf8"));
+const bySource = new Map();
+for (const [name, s] of Object.entries(skills)) {
+  if (fs.existsSync(`${home}/.agents/skills/${name}`)) continue;
+  const url = s.sourceType === "github" ? s.sourceUrl : `https://${s.source}`;
+  if (!bySource.has(url)) bySource.set(url, []);
+  bySource.get(url).push(name);
+}
+for (const [url, names] of bySource) console.log(url, ...names);
+' | while read -r url names; do
+  # shellcheck disable=SC2086 # names is a space-separated list on purpose
+  npx -y skills add "$url" -g -y -a claude-code opencode -s $names </dev/null
+done

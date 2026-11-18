@@ -15,6 +15,10 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Agent skills tracked**: the skills CLI's lockfile
+  (`~/.agents/.skill-lock.json`) is in the repo, and a `run_onchange` script
+  reinstalls the skills it lists that are missing from `~/.agents/skills`,
+  for Claude Code and OpenCode.
 - **Switch Claude account from the sidebar**: clicking an account in the
   sidebar's "Claude 5h" list moves the OpenCode server to that login, starting
   with the next prompt, with no restart. A server part of the budget-sidebar
@@ -45,6 +49,9 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Homebrew's `shellenv` in `.zshenv`** instead of an untracked
+  `~/.zprofile`, so scripts and `zsh -c` get Homebrew too. `.zshrc` still runs
+  it again, to put Homebrew back ahead after macOS's `path_helper`.
 - **Linear key by folder** for the git-sidebar: `LINEAR_API_KEY` is the work
   workspace key, and `~/.zsh.d/linear-account.zsh` swaps in
   `LINEAR_API_KEY_HEURES` (new in `setup-secrets.sh`) in heures-app, matching
@@ -83,6 +90,7 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Casks for apps no longer used**: `displaylink`, `elgato-camera-hub`,
   `focusrite-control`, `handbrake-app`, `keka`, `keymapp`.
 - **LM Studio and Antigravity `PATH` entries** in `.zshrc`; both apps are gone.
+- **glow** from the Homebrew formulas.
 
 ## 2026-11 · [v2026.11.16]
 
