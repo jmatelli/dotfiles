@@ -151,7 +151,8 @@ committed), which the shell loads when it exists.
 
 | Variable | Used by | Where to get it |
 | --- | --- | --- |
-| `GITHUB_PERSONAL_ACCESS_TOKEN` | OpenCode's GitHub MCP server | github.com → Settings → Developer settings → Personal access tokens |
+| `GITHUB_PERSONAL_ACCESS_TOKEN` | the GitHub MCP server of work repos (yaarz's `.mcp.json`), work account | github.com → Settings → Developer settings → Personal access tokens |
+| `GITHUB_PERSONAL_ACCESS_TOKEN_JMATELLI` | the GitHub MCP server of personal repos (heures-app, leguin), personal account | the same, signed in as the personal account |
 | `ANTHROPIC_API_KEY` | Claude Code without a logged-in account (optional: step 3 comes first) | console.anthropic.com → API keys |
 | `LINEAR_API_KEY` | OpenCode's sidebar (the branch's Linear issue), work workspace | Linear settings → personal API keys |
 | `LINEAR_API_KEY_HEURES` | the same, in `~/code/heures-app` (personal Heures workspace) | Linear settings → personal API keys, in Heures |
@@ -188,9 +189,9 @@ Run `opencode`, then:
 
 - `/connect` → OpenCode Go (or another provider), to use those models;
 - `/mcps` → sign in to each remote MCP server that shows as needing it
-  (Linear, Figma, PostHog, Resend, Expo…; Neon and Netlify outside the
-  projects folder; Sentry, Stripe and Intercom from inside it). GitHub and
-  Metabase use the secrets from step 2 instead.
+  (Figma, Expo…, plus each project's own: Linear, PostHog, Resend, Sentry…,
+  signed in from inside that project). GitHub and Metabase use the secrets from
+  step 2 instead.
 
 ### 5. Herdr (macOS)
 
@@ -291,14 +292,17 @@ sidebar shows that account. Clicking another account in the sidebar's
 "Claude 5h" list switches the server to it, starting with the next prompt.
 On the shared service, every window that uses it switches.
 
-**MCP servers by folder**: the global `~/.config/opencode/opencode.json` has
-the common servers plus the personal ones (Neon, Netlify). An `opencode.json`
-at the root of the projects folder, written by
-`run_onchange_after_37-opencode-work-mcp` from
-`.chezmoitemplates/opencode-work.json`, adds the work ones (Sentry, Metabase,
-Stripe, Intercom) and blocks the personal ones with `mcp.use` policies.
-`opencode mcp list` ignores policies, so it still shows them there; sessions
-don't get them.
+**MCP servers by project**: the global `~/.config/opencode/opencode.json` has
+only the servers every project uses (browser, docs, search, Expo, Figma…). Services tied to an account live in each project's own config, which
+OpenCode merges over the global one: yaarz's `.opencode/opencode.json` (kept
+out of its repo by `.git/info/exclude`) adds Linear, Sentry, Stripe, Intercom,
+PostHog, Resend and Metabase on the work accounts; heures-app's
+`opencode.json` adds Neon, Netlify and `linear-heures`, `posthog-heures`,
+`resend-heures` on the personal ones. GitHub too is per repo, with the token of
+the account that owns it: yaarz's `.mcp.json` uses the work one, the
+`opencode.json` of heures-app, leguin and this repo (ignored by chezmoi, so it
+isn't deployed to `~`) the personal one. OpenCode stores an MCP sign-in per server
+name, so a service used with two accounts needs two names.
 
 **Worktrees inside the project**: OpenCode creates worktrees in
 `<project>/.worktrees/<name>` (`worktree.directory`), ignored by the global

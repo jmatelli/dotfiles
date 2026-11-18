@@ -67,24 +67,6 @@
       ],
       "enabled": true
     },
-    "posthog": {
-      "type": "remote",
-      "url": "https://mcp.posthog.com/mcp",
-      "oauth": {}
-    },
-    "linear": {
-      "type": "remote",
-      "url": "https://mcp.linear.app/mcp",
-      "oauth": {}
-    },
-    "github": {
-      "type": "remote",
-      "url": "https://api.githubcopilot.com/mcp/",
-      "headers": {
-        "Authorization": "Bearer {env:GITHUB_PERSONAL_ACCESS_TOKEN}"
-      },
-      "enabled": true
-    },
     "expo": {
       "type": "remote",
       "url": "https://mcp.expo.dev/mcp",
@@ -95,24 +77,9 @@
       "url": "https://mcp.figma.com/mcp",
       "oauth": {}
     },
-    "resend": {
-      "type": "remote",
-      "url": "https://mcp.resend.com/mcp",
-      "oauth": {}
-    },
     "exa": {
       "type": "remote",
       "url": "https://mcp.exa.ai/mcp",
-      "enabled": true
-    },
-    "Neon": {
-      "type": "remote",
-      "url": "https://mcp.neon.tech/mcp",
-      "enabled": true
-    },
-    "netlify": {
-      "type": "remote",
-      "url": "https://mcp.netlify.com/mcp",
       "enabled": true
     }
   }

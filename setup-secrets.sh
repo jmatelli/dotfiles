@@ -12,7 +12,8 @@ set -euo pipefail
 SECRETS_FILE="$HOME/.zsh.d/secrets.zsh"
 
 VARS=(
-  "GITHUB_PERSONAL_ACCESS_TOKEN|GitHub personal access token"
+  "GITHUB_PERSONAL_ACCESS_TOKEN|GitHub personal access token (work account)"
+  "GITHUB_PERSONAL_ACCESS_TOKEN_JMATELLI|GitHub personal access token (personal account, jmatelli)"
   "ANTHROPIC_API_KEY|Anthropic API key"
   "LINEAR_API_KEY|Linear API key (work workspace)"
   "LINEAR_API_KEY_HEURES|Linear API key (personal Heures workspace)"

@@ -45,17 +45,20 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **Linear by workspace**: the global `linear` MCP server is the work account;
-  `heures-app` adds its own `linear-heures` server (signed in to the personal
-  Heures workspace) and blocks `linear`. The git-sidebar's `LINEAR_API_KEY`
-  follows: `~/.zsh.d/linear-account.zsh` swaps in `LINEAR_API_KEY_HEURES` in
-  that repo (new in `setup-secrets.sh`).
+- **Linear key by folder** for the git-sidebar: `LINEAR_API_KEY` is the work
+  workspace key, and `~/.zsh.d/linear-account.zsh` swaps in
+  `LINEAR_API_KEY_HEURES` (new in `setup-secrets.sh`) in heures-app, matching
+  that project's own Linear MCP server.
 - **OpenCode worktrees** go in `<project>/.worktrees/` (ignored by the global
   `~/.gitignore`) instead of OpenCode's data folder, so they keep the
   per-folder MCP servers, Claude account and git identity.
-- **OpenCode MCP servers by folder**: Sentry, Metabase, Stripe and Intercom
-  only load under the projects folder (from an `opencode.json` written there),
-  and Neon and Netlify only outside it. The rest stay common.
+- **OpenCode MCP servers by project**: the global config keeps only the
+  servers every project uses. Account-bound ones (Linear, Sentry, Stripe,
+  Intercom, PostHog, Resend, Metabase, Neon, Netlify) moved into each
+  project's own OpenCode config, with a distinct server name per account.
+  GitHub too: each repo's config uses the token of the account that owns it
+  (`GITHUB_PERSONAL_ACCESS_TOKEN_JMATELLI`, new in `setup-secrets.sh`, for the
+  personal repos).
 - **SSH keys only for listed hosts**: `Host *` turns off key login and
   `github.com` turns it back on, so `~/.ssh/id_ed25519` is never offered to
   other servers (termscp follows the same rule). A host that should use the key

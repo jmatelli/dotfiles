@@ -25,3 +25,7 @@ Library/Application Support/lazygit/config.yml
 # mcphub.nvim was dropped from the nvim rebuild - nothing reads this
 # anymore. Not the same thing as opencode's own, separate MCP config.
 .config/mcphub
+
+# The work MCP servers moved from an opencode.json at the root of projectsDir
+# (written by a chezmoi script) into each project's own config.
+{{ trimPrefix "~/" .projectsDir }}/opencode.json
