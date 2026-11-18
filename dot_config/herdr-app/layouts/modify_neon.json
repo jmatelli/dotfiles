@@ -187,6 +187,7 @@ BASE = json.loads(r"""
     9
   ],
   "theme": "tokyo-neon",
+  "toast": "neon-toast",
   "font": "FiraMono Nerd Font",
   "font_size": 13
 }
