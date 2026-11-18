@@ -40,6 +40,11 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Linear by workspace**: the global `linear` MCP server is the work account;
+  `heures-app` adds its own `linear-heures` server (signed in to the personal
+  Heures workspace) and blocks `linear`. The git-sidebar's `LINEAR_API_KEY`
+  follows: `~/.zsh.d/linear-account.zsh` swaps in `LINEAR_API_KEY_HEURES` in
+  that repo (new in `setup-secrets.sh`).
 - **OpenCode worktrees** go in `<project>/.worktrees/` (ignored by the global
   `~/.gitignore`) instead of OpenCode's data folder, so they keep the
   per-folder MCP servers, Claude account and git identity.

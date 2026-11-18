@@ -76,6 +76,8 @@ source $HOME/.zsh.d/aliases.zsh
 source $HOME/.zsh.d/claude-accounts.zsh
 # secrets (written by ~/.dotfiles/setup-secrets.sh; absent until that runs)
 [ -f "$HOME/.zsh.d/secrets.zsh" ] && source "$HOME/.zsh.d/secrets.zsh"
+# Linear key by folder (needs the secrets above)
+source $HOME/.zsh.d/linear-account.zsh
 
 # Shell integrations
 eval "$(fzf --zsh)"

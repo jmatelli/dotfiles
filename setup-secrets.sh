@@ -14,7 +14,8 @@ SECRETS_FILE="$HOME/.zsh.d/secrets.zsh"
 VARS=(
   "GITHUB_PERSONAL_ACCESS_TOKEN|GitHub personal access token"
   "ANTHROPIC_API_KEY|Anthropic API key"
-  "LINEAR_API_KEY|Linear API key"
+  "LINEAR_API_KEY|Linear API key (work workspace)"
+  "LINEAR_API_KEY_HEURES|Linear API key (personal Heures workspace)"
   "METABASE_MCP_URL|Metabase MCP URL (https://<instance>/api/metabase-mcp)"
 )
 

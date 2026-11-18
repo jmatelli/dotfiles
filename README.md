@@ -153,7 +153,8 @@ committed), which the shell loads when it exists.
 | --- | --- | --- |
 | `GITHUB_PERSONAL_ACCESS_TOKEN` | OpenCode's GitHub MCP server | github.com → Settings → Developer settings → Personal access tokens |
 | `ANTHROPIC_API_KEY` | Claude Code without a logged-in account (optional: step 3 comes first) | console.anthropic.com → API keys |
-| `LINEAR_API_KEY` | OpenCode's sidebar (the branch's Linear issue) | Linear settings → personal API keys |
+| `LINEAR_API_KEY` | OpenCode's sidebar (the branch's Linear issue), work workspace | Linear settings → personal API keys |
+| `LINEAR_API_KEY_HEURES` | the same, in `~/code/heures-app` (personal Heures workspace) | Linear settings → personal API keys, in Heures |
 | `METABASE_MCP_URL` | OpenCode's Metabase MCP server | `https://<metabase instance>/api/metabase-mcp` |
 
 Until a secret is set, only what uses it is missing: OpenCode lists the GitHub
