@@ -287,7 +287,9 @@ deep-reviewer (Opus) for risky ones, in both OpenCode and Claude Code.
 with its own login and history; its settings, agents, hooks and plugins are
 links to `~/.claude`. In a work folder `opencode` runs its own server
 (`--standalone`), so its Claude Agent models use the work login, and the
-sidebar shows that account.
+sidebar shows that account. Clicking another account in the sidebar's
+"Claude 5h" list switches the server to it, starting with the next prompt.
+On the shared service, every window that uses it switches.
 
 **MCP servers by folder**: the global `~/.config/opencode/opencode.json` has
 the common servers plus the personal ones (Neon, Netlify). An `opencode.json`

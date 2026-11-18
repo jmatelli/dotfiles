@@ -15,7 +15,8 @@
 //
 // Below the usage, a "Claude 5h" list gives every Claude account on the
 // machine (personal, work, …) with its 5h window and reset time, whatever
-// model is selected (see AllAccounts).
+// model is selected (see AllAccounts). Clicking an account there switches the
+// server's Claude login to it for the next turns (server.ts).
 //
 // Claude: account info is read from Claude Code's ~/.claude.json (or the
 // CLAUDE_CONFIG_DIR account's, see ClaudeRef below); usage comes
@@ -49,6 +50,7 @@ import { createHash } from "node:crypto"
 import { access, mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { basename, dirname, join } from "node:path"
+import { ClaudeAccountRpc } from "./rpc"
 
 const POLL_MS = 2 * 60 * 1000
 // Floor for refreshes triggered by a finished turn (a burst of subagent turns
@@ -110,13 +112,10 @@ function claudeRef(configDir?: string): ClaudeRef {
   }
 }
 
-// The account this OpenCode was started with.
-const ACTIVE = claudeRef(process.env.CLAUDE_CONFIG_DIR?.normalize("NFC") || undefined)
-
 // Every account on this machine: the default one plus each ~/.claude-<name>
 // folder (the same path the zsh hook exports, so the Keychain hash matches).
 // Accounts that were never logged in are dropped later, on "no login".
-async function listClaudeAccounts(): Promise<ClaudeRef[]> {
+async function listClaudeAccounts(active: ClaudeRef): Promise<ClaudeRef[]> {
   const home = homedir()
   const entries = await readdir(home, { withFileTypes: true }).catch(() => [])
   const dirs = entries
@@ -125,7 +124,7 @@ async function listClaudeAccounts(): Promise<ClaudeRef[]> {
   // Only folders Claude Code has used (skips backups and other tools' folders).
   const used = await Promise.all(dirs.map((d) => access(join(d, ".claude.json")).then(() => true, () => false)))
   const refs = [claudeRef(), ...dirs.filter((_, i) => used[i]).map((d) => claudeRef(d))]
-  if (!refs.some((r) => r.id === ACTIVE.id)) refs.push(ACTIVE)
+  if (!refs.some((r) => r.id === active.id)) refs.push(active)
   return refs
 }
 
@@ -316,14 +315,32 @@ export default Plugin.define({
       }
     }
 
+    // The account the server runs `claude` with. The server owns it (see
+    // server.ts): it can be switched from the 5h list, by this window or by
+    // another one on the same shared service. Until the server answers, the
+    // TUI's own environment, which the server was started from.
+    const accounts = context.client.rpc(ClaudeAccountRpc)
+    const [active, setActive] = createSignal(claudeRef(process.env.CLAUDE_CONFIG_DIR?.normalize("NFC") || undefined))
+    // Bumped by every click: a get sent before a switch answers with the old
+    // account, and must not undo it.
+    let switches = 0
+    const syncActive = async () => {
+      const seq = switches
+      try {
+        const { configDir } = await accounts.get({})
+        if (seq === switches && configDir !== active().id) setActive(claudeRef(configDir || undefined))
+      } catch {} // server part not loaded yet: keep the last known one
+    }
+
     // Every Claude account, the active one included, is fetched together (each
     // through its own cache), so the per-account 5h list is always current.
-    const [claudeRefs, setClaudeRefs] = createSignal<ClaudeRef[]>([ACTIVE])
+    const [claudeRefs, setClaudeRefs] = createSignal<ClaudeRef[]>([active()])
     const [claudeStates, setClaudeStates] = createSignal<Record<string, ClaudeState>>({})
-    const claudeState = () => claudeStates()[ACTIVE.id] ?? {}
+    const claudeState = () => claudeStates()[active().id] ?? {}
 
     const refreshClaude = async () => {
-      const refs = await listClaudeAccounts()
+      await syncActive()
+      const refs = await listClaudeAccounts(active())
       setClaudeRefs(refs)
       const results = await Promise.all(refs.map(async (ref) => [ref.id, await fetchClaude(ref)] as const))
       setClaudeStates((prev) => {
@@ -590,9 +607,27 @@ export default Plugin.define({
       </Show>
     )
 
+    // Clicking another account's row moves the server to it (server.ts): the
+    // next Claude turn runs on that login, no restart needed.
+    const switchTo = (ref: ClaudeRef) => async (event: Click) => {
+      if (event.button !== 0) return
+      event.stopPropagation()
+      if (ref.id === active().id) return
+      switches++
+      try {
+        const { configDir } = await accounts.set({ configDir: ref.id })
+        setActive(claudeRef(configDir || undefined))
+        context.ui.toast.show({ title: "Claude account", message: `Next turns use ${ref.label}`, variant: "success" })
+        void refreshClaude()
+      } catch (error) {
+        context.ui.toast.show({ title: "Claude account", message: message(error), variant: "error" })
+      }
+    }
+
     // The 5h window of every logged-in Claude account, one line each, so you
-    // can see when each frees up before switching (clac). ● marks the account
-    // this OpenCode runs on; a full window shows its reset in red.
+    // can see when each frees up before switching. ● marks the account this
+    // OpenCode runs on; click another row to switch to it. A full window shows
+    // its reset in red.
     //
     //   Claude 5h
     //   ● work     █████████ 100% →18:50
@@ -620,15 +655,15 @@ export default Plugin.define({
             <Index each={rows()}>
               {(ref) => {
                 const state = () => claudeStates()[ref().id] ?? {}
-                const active = () => ref().id === ACTIVE.id
+                const current = () => ref().id === active().id
                 const win = () => claudeWindow(state().usage?.five_hour)
                 const bar = () => cells(win()?.percent ?? 0, barWidth())
                 const c = () => color(win()?.percent ?? 0)
                 const full = () => (win()?.percent ?? 0) >= 100
                 return (
-                  <box flexDirection="row" flexShrink={0}>
-                    <text flexShrink={0} wrapMode="none" fg={active() ? theme.text.base : DIM}>
-                      {(active() ? "● " : "  ") + ref().label.padEnd(labelWidth()) + " "}
+                  <box flexDirection="row" flexShrink={0} onMouseUp={(event: Click) => switchTo(ref())(event)}>
+                    <text flexShrink={0} wrapMode="none" fg={current() ? theme.text.base : DIM}>
+                      {(current() ? "● " : "  ") + ref().label.padEnd(labelWidth()) + " "}
                     </text>
                     <Show
                       when={win()}
