@@ -1,17 +1,22 @@
 // Moves the built-in toast from the top-right corner (where it sits over the
-// sidebar and is easy to miss) to the top-left of the transcript, and makes it
-// louder: no border, the whole toast filled with its variant color
-// (info/success/warning/error), and black or white text, whichever contrasts.
+// sidebar and is easy to miss) to the top-left of the transcript, and gives it
+// the same look as the Herdr toasts (dot_config/herdr-app/mods/neon-toast): a
+// dark card with a rounded border in its variant color (info/success/warning/
+// error), the title in the normal text color and the message muted. A terminal
+// can't draw Herdr's gradient or soft shadow, so the card is one flat gray.
 //
 // OpenCode has no setting for toast position or style, and plugins can't
 // replace the host <Toast />, so this finds its renderable in the OpenTUI tree
 // before each paint and restyles it. Host renderables aren't part of the plugin
 // API: if an OpenCode update changes the toast markup, the match fails and the
 // stock toast shows as before. Matched on packages/tui/src/ui/toast.tsx in
-// OpenCode v2.3.2: an absolute box at top=1/right=2 with left+right borders.
+// OpenCode v2.3.2: an absolute box at top=1/right=2 with left+right borders,
+// holding a padded surface box; with a title, the surface holds a row (bold
+// title, close mark) then the message text.
 //
 // Options (cli.json "plugins" entry): { "corner": "top-left" | "bottom-left" }
 import { Plugin } from "@opencode/plugin/tui"
+import { TextAttributes } from "@opentui/core"
 
 type Color = { r: number; g: number; b: number; equals(other?: Color): boolean }
 
@@ -22,9 +27,11 @@ type Node = {
   left?: unknown
   bottom?: unknown
   border?: unknown
+  borderStyle?: unknown
   borderColor?: Color
-  backgroundColor?: Color | string
-  fg?: Color | string
+  backgroundColor?: Color
+  fg?: Color
+  attributes?: number
   parent?: Node | null
   getChildren?: () => Node[]
   isFreed?: () => boolean
@@ -50,29 +57,14 @@ function findToast(node: Node, depth: number): Node | undefined {
   return undefined
 }
 
-// WCAG relative luminance; RGBA channels are 0..1.
-function luminance({ r, g, b }: Color) {
-  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
-  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
-}
-
-// Black text contrasts better than white once luminance passes ~0.179.
-const textOn = (bg: Color) => (luminance(bg) > 0.179 ? "#000000" : "#ffffff")
-
-const sameColor = (current: unknown, hex: string) => {
-  const c = current as Color | undefined
-  if (!c || typeof c.r !== "number") return false
-  const int = (v: number) => Math.round(v * 255)
-  return `#${[c.r, c.g, c.b].map((v) => int(v).toString(16).padStart(2, "0")).join("")}` === hex
-}
-
-function paintText(node: Node, hex: string) {
-  for (const child of node.getChildren?.() ?? []) {
-    // Text renderables have `fg`; boxes don't. Only assign on change: every
-    // assignment requests another frame, and the host resets fg on hover.
-    if ("fg" in child && !sameColor(child.fg, hex)) child.fg = hex
-    paintText(child, hex)
-  }
+// The message text when the toast has a title: the surface's second child,
+// after a row whose first text is bold. Without a title the message shares a
+// row with the close mark and stays in the normal text color.
+function titledMessage(surface: Node) {
+  const [row, message] = surface.getChildren?.() ?? []
+  const title = row?.getChildren?.()[0]
+  if (!message || !("fg" in message) || !title) return undefined
+  return ((title.attributes ?? 0) & TextAttributes.BOLD) !== 0 ? message : undefined
 }
 
 export default Plugin.define({
@@ -98,18 +90,24 @@ export default Plugin.define({
       }
     }
 
-    // The host reuses the same box when one toast follows another and sets the
-    // new variant on borderColor, which in OpenTUI also turns a hidden border
-    // back on. So the border, fill and text color are re-synced every frame,
-    // each assigned only when it changed.
+    // The host reuses the same box when one toast follows another, keeps
+    // borderColor bound to the variant, and rebuilds the text when a toast
+    // with a title follows one without. So the look is re-synced every frame,
+    // each property assigned only when it changed: every assignment requests
+    // another frame.
     const paint = (toast: Node) => {
-      if (toast.border !== false) toast.border = false
-      const variant = toast.borderColor
+      // A full border first: the border style setter only replaces the host's
+      // split-border glyphs once every side is on.
+      if (toast.border !== true) toast.border = true
+      if (toast.borderStyle !== "rounded") toast.borderStyle = "rounded"
+      // The surface is the host's raised gray; the border cells get it too, so
+      // the card reads as one block over the transcript.
       const surface = toast.getChildren?.()[0]
-      if (!variant || !surface) return
-      const bg = surface.backgroundColor as Color | undefined
-      if (!bg?.equals?.(variant)) surface.backgroundColor = variant
-      paintText(surface, textOn(variant))
+      const card = surface?.backgroundColor
+      if (card && !toast.backgroundColor?.equals(card)) toast.backgroundColor = card
+      const message = surface && titledMessage(surface)
+      const muted = context.theme.text.muted as unknown as Color
+      if (message && !message.fg?.equals(muted)) message.fg = muted
     }
 
     const onFrame = async () => {
