@@ -48,6 +48,12 @@
         "source": "github",
         "repo": "GoogleChrome/modern-web-guidance"
       }
+    },
+    "neon": {
+      "source": {
+        "source": "github",
+        "repo": "neondatabase/agent-skills"
+      }
     }
   },
   "effortLevel": "medium",
