@@ -11,6 +11,7 @@ set -euo pipefail
 # chezmoi replaces it. neovim itself is intentionally absent - bob (below)
 # installs/manages the actual nvim binary instead of a plain brew formula.
 BREW_PACKAGES=(
+  actionlint
   anomalyco/tap/opencode-v2
   arttime
   automake
@@ -30,6 +31,7 @@ BREW_PACKAGES=(
   gh
   git
   git-delta
+  git-filter-repo
   gitleaks
   golangci-lint
   golines
@@ -67,6 +69,7 @@ BREW_PACKAGES=(
   tree-sitter-cli
   trivy
   unzip
+  vhs
   volta
   watchman
   weasyprint
