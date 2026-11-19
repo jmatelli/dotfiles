@@ -39,5 +39,6 @@ docs/**
 
 # termscp bookmarks keep hosts and usernames in plain text: never add them
 # to this public repo.
-.config/termscp
-.config/termscp/**
+.config/termscp/bookmarks.toml
+.config/termscp/.ssh
+.config/termscp/.ssh/**

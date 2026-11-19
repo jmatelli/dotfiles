@@ -15,6 +15,10 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **termscp config tracked**: its settings (`config.toml`, a template so the
+  SSH config path follows the home directory) and a Neon Tokyo Night
+  `theme.toml` matching the prompt, tmux and Herdr. `bookmarks.toml` stays
+  ignored: it holds hosts, usernames and passwords.
 - **Agent skills tracked**: the skills CLI's lockfile
   (`~/.agents/.skill-lock.json`) is in the repo, and a `run_onchange` script
   reinstalls the skills it lists that are missing from `~/.agents/skills`,
