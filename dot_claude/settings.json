@@ -33,7 +33,8 @@
     "mattpocock-skills@claude-plugins-official": true,
     "modern-web-guidance@claude-plugins-official": true,
     "stripe@claude-plugins-official": true,
-    "intercom@anthropic-plugin-directory": true
+    "intercom@anthropic-plugin-directory": true,
+    "neon-postgres@neon": true
   },
   "extraKnownMarketplaces": {
     "chrome-devtools-plugins": {

@@ -57,6 +57,10 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Claude Code git hook exceptions**: `block-dangerous-git.sh` blocks nothing
+  in `~/code/leguin` and lets a plain, standalone `git push` through in
+  `~/code/TypeTUI` (force pushes, deletes and chained commands stay blocked).
+  The `neon-postgres` plugin is enabled in the Claude Code settings.
 - **Homebrew's `shellenv` in `.zshenv`** instead of an untracked
   `~/.zprofile`, so scripts and `zsh -c` get Homebrew too. `.zshrc` still runs
   it again, to put Homebrew back ahead after macOS's `path_helper`.
