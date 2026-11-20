@@ -24,15 +24,17 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (`~/.agents/.skill-lock.json`) is in the repo, and a `run_onchange` script
   reinstalls the skills it lists that are missing from `~/.agents/skills`,
   for Claude Code and OpenCode.
-- **Switch Claude account from the sidebar**: clicking an account in the
-  sidebar's "Claude 5h" list moves the OpenCode server to that login, starting
-  with the next prompt, with no restart. A server part of the budget-sidebar
-  plugin sets `CLAUDE_CONFIG_DIR` in the server process and stops the `claude`
-  processes still running on the old account (OpenCode keeps one alive per
+- **Switch Claude account from the sidebar, per session**: clicking an account
+  in the sidebar's "Claude 5h" list moves the session on screen to that login,
+  starting with its next prompt, with no restart; other sessions keep their
+  account. A server part of the budget-sidebar plugin sets `CLAUDE_CONFIG_DIR`
+  before each Claude request to the account of the session making it, and on a
+  switch stops that session's `claude` process (OpenCode keeps one alive per
   session between prompts), so the next prompt starts a new one on the new
-  account. The list is a radio button (● current, ○ others), and an account at
-  its weekly limit is greyed out and can't be picked. On the shared background
-  service the switch applies to every window that uses it.
+  account. Subagents and forks follow the session they come from, and the
+  choice survives a restart. The list is a radio button (● current, ○ others);
+  an account at its weekly limit is greyed out and can't be picked, until its
+  reset time has passed.
 - **`claude-account`** (alias `clac`, [#30](https://github.com/jmatelli/dotfiles/pull/30)):
   overrides, in the current shell, the Claude account picked by folder:
   `clac personal` in a work folder (e.g. when the work account hits its usage

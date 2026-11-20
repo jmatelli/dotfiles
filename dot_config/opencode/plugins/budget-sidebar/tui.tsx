@@ -15,9 +15,10 @@
 //
 // Below the usage, a "Claude 5h" list gives every Claude account on the
 // machine (personal, work, …) with its 5h window and reset time, whatever
-// model is selected (see AllAccounts). Clicking an account there switches the
-// server's Claude login to it for the next turns (server.ts); an account at its
-// weekly limit is greyed out and can't be picked.
+// model is selected (see AllAccounts). Clicking an account there moves the
+// session on screen to that Claude login for its next turns (server.ts); other
+// sessions keep theirs. An account at its weekly limit is greyed out and can't
+// be picked.
 //
 // Claude: account info is read from Claude Code's ~/.claude.json (or the
 // CLAUDE_CONFIG_DIR account's, see ClaudeRef below); usage comes
@@ -116,7 +117,7 @@ function claudeRef(configDir?: string): ClaudeRef {
 // Every account on this machine: the default one plus each ~/.claude-<name>
 // folder (the same path the zsh hook exports, so the Keychain hash matches).
 // Accounts that were never logged in are dropped later, on "no login".
-async function listClaudeAccounts(active: ClaudeRef): Promise<ClaudeRef[]> {
+async function listClaudeAccounts(inUse: ClaudeRef[]): Promise<ClaudeRef[]> {
   const home = homedir()
   const entries = await readdir(home, { withFileTypes: true }).catch(() => [])
   const dirs = entries
@@ -125,7 +126,7 @@ async function listClaudeAccounts(active: ClaudeRef): Promise<ClaudeRef[]> {
   // Only folders Claude Code has used (skips backups and other tools' folders).
   const used = await Promise.all(dirs.map((d) => access(join(d, ".claude.json")).then(() => true, () => false)))
   const refs = [claudeRef(), ...dirs.filter((_, i) => used[i]).map((d) => claudeRef(d))]
-  if (!refs.some((r) => r.id === active.id)) refs.push(active)
+  for (const ref of inUse) if (!refs.some((r) => r.id === ref.id)) refs.push(ref)
   return refs
 }
 
@@ -233,10 +234,15 @@ async function fetchClaude(ref: ClaudeRef): Promise<ClaudeState> {
 }
 
 // Claude reports no "limited" flag; the design never showed one for it.
-const claudeWindow = (w?: ClaudeWindow | null): Window | undefined =>
-  w?.utilization == null
-    ? undefined
-    : { percent: w.utilization, limited: false, resetsAt: w.resets_at ? Date.parse(w.resets_at) : undefined }
+// A window whose reset time has passed is empty again, whatever the numbers
+// say: they can be hours old when the usage endpoint keeps answering 429, and
+// an account at its weekly limit would stay greyed out after the reset.
+const claudeWindow = (w?: ClaudeWindow | null): Window | undefined => {
+  if (w?.utilization == null) return undefined
+  const resetsAt = w.resets_at ? Date.parse(w.resets_at) : undefined
+  if (resetsAt && resetsAt <= Date.now()) return { percent: 0, limited: false }
+  return { percent: w.utilization, limited: false, resetsAt }
+}
 
 // ---- Rendering helpers -----------------------------------------------------
 
@@ -316,32 +322,59 @@ export default Plugin.define({
       }
     }
 
-    // The account the server runs `claude` with. The server owns it (see
-    // server.ts): it can be switched from the 5h list, by this window or by
-    // another one on the same shared service. Until the server answers, the
-    // TUI's own environment, which the server was started from.
+    // The account each session runs `claude` with. The server owns it (see
+    // server.ts): one per session, switched from the 5h list. Keyed by session
+    // id, "" on the home screen (the account new sessions start on). Until the
+    // server answers, the TUI's own environment, which the server was started
+    // from.
     const accounts = context.client.rpc(ClaudeAccountRpc)
-    const [active, setActive] = createSignal(claudeRef(process.env.CLAUDE_CONFIG_DIR?.normalize("NFC") || undefined))
+    const envAccount = process.env.CLAUDE_CONFIG_DIR?.normalize("NFC") ?? ""
+    const [actives, setActives] = createSignal<Record<string, string>>({})
+    const activeID = (sessionID?: string) => actives()[sessionID ?? ""] ?? actives()[""] ?? envAccount
+    const active = (sessionID?: string) => claudeRef(activeID(sessionID) || undefined)
+    // The sessions shown so far in this window: the ones to ask the server about.
+    const shown = new Set<string>([""])
+    // The session on screen, for the /budget command.
+    let onScreen: string | undefined
     // Bumped by every click: a get sent before a switch answers with the old
     // account, and must not undo it.
     let switches = 0
     const syncActive = async () => {
       const seq = switches
-      try {
-        const { configDir } = await accounts.get({})
-        if (seq === switches && configDir !== active().id) setActive(claudeRef(configDir || undefined))
-      } catch {} // server part not loaded yet: keep the last known one
+      const answers = await Promise.all(
+        [...shown].map(async (id) => {
+          try {
+            return [id, (await accounts.get(id ? { sessionID: id } : {})).configDir] as const
+          } catch {
+            return undefined // server part not loaded yet: keep the last known one
+          }
+        }),
+      )
+      if (seq !== switches) return
+      setActives((prev) => {
+        const next = { ...prev }
+        for (const answer of answers) if (answer) next[answer[0]] = answer[1]
+        return next
+      })
+    }
+    // Called by the views with the session they show.
+    const show = (sessionID?: string) => {
+      onScreen = sessionID
+      if (shown.has(sessionID ?? "")) return
+      shown.add(sessionID ?? "")
+      void syncActive()
     }
 
     // Every Claude account, the active one included, is fetched together (each
     // through its own cache), so the per-account 5h list is always current.
     const [claudeRefs, setClaudeRefs] = createSignal<ClaudeRef[]>([active()])
     const [claudeStates, setClaudeStates] = createSignal<Record<string, ClaudeState>>({})
-    const claudeState = () => claudeStates()[active().id] ?? {}
+    const claudeState = (sessionID?: string) => claudeStates()[activeID(sessionID)] ?? {}
 
     const refreshClaude = async () => {
       await syncActive()
-      const refs = await listClaudeAccounts(active())
+      const inUse = [...new Set([envAccount, ...Object.values(actives())])].map((id) => claudeRef(id || undefined))
+      const refs = await listClaudeAccounts(inUse)
       setClaudeRefs(refs)
       const results = await Promise.all(refs.map(async (ref) => [ref.id, await fetchClaude(ref)] as const))
       setClaudeStates((prev) => {
@@ -390,16 +423,16 @@ export default Plugin.define({
     }
 
     // Normalised windows for the active provider.
-    const windows = () => {
+    const windows = (sessionID?: string) => {
       if (mode() === "claude") {
-        const u = claudeState().usage
+        const u = claudeState(sessionID).usage
         return u
           ? { rolling: claudeWindow(u.five_hour), weekly: claudeWindow(u.seven_day), monthly: undefined }
           : undefined
       }
       return goState().limits?.go
     }
-    const error = () => (mode() === "claude" ? claudeState().error : goState().error)
+    const error = (sessionID?: string) => (mode() === "claude" ? claudeState(sessionID).error : goState().error)
 
     // compact: short bar, no column padding, for the one-line status bar.
     const Bar = (props: { label: string; pct: number; suffix?: string; alert?: boolean; compact?: boolean }) => {
@@ -566,8 +599,8 @@ export default Plugin.define({
       )
     }
 
-    const ClaudeAccount = () => (
-      <Show when={claudeState().account}>
+    const ClaudeAccount = (props: { sessionID?: string }) => (
+      <Show when={claudeState(props.sessionID).account}>
         {(a) => {
           const plan = () => [a().plan, a().seat && `${a().seat} seat`].filter(Boolean).join(" · ")
           // A personal account still has an org, named "<email>'s Organization"
@@ -613,12 +646,21 @@ export default Plugin.define({
     const weekly = (id: string) => claudeWindow(claudeStates()[id]?.usage?.seven_day)
     const weeklyFull = (id: string) => (weekly(id)?.percent ?? 0) >= 100
 
-    // Clicking another account's row moves the server to it (server.ts): the
-    // next Claude turn runs on that login, no restart needed.
-    const switchTo = (ref: ClaudeRef) => async (event: Click) => {
+    // Clicking another account's row moves this session to it (server.ts): its
+    // next Claude turn runs on that login, no restart needed. Other sessions
+    // keep their account.
+    const switchTo = (ref: ClaudeRef, sessionID?: string) => async (event: Click) => {
       if (event.button !== 0) return
       event.stopPropagation()
-      if (ref.id === active().id) return
+      if (ref.id === activeID(sessionID)) return
+      if (!sessionID) {
+        context.ui.toast.show({
+          title: "Claude account",
+          message: "Open a session to pick its account",
+          variant: "warning",
+        })
+        return
+      }
       if (weeklyFull(ref.id)) {
         const until = resetDay(weekly(ref.id)?.resetsAt)
         context.ui.toast.show({
@@ -630,9 +672,13 @@ export default Plugin.define({
       }
       switches++
       try {
-        const { configDir } = await accounts.set({ configDir: ref.id })
-        setActive(claudeRef(configDir || undefined))
-        context.ui.toast.show({ title: "Claude account", message: `Next turns use ${ref.label}`, variant: "success" })
+        const { configDir } = await accounts.set({ sessionID, configDir: ref.id })
+        setActives((prev) => ({ ...prev, [sessionID]: configDir }))
+        context.ui.toast.show({
+          title: "Claude account",
+          message: `This session's next turns use ${ref.label}`,
+          variant: "success",
+        })
         void refreshClaude()
       } catch (error) {
         context.ui.toast.show({ title: "Claude account", message: message(error), variant: "error" })
@@ -641,7 +687,7 @@ export default Plugin.define({
 
     // The 5h window of every logged-in Claude account, one line each, so you
     // can see when each frees up before switching. A radio button: ● marks the
-    // account this OpenCode runs on, ○ the others; click one to switch to it.
+    // account this session runs on, ○ the others; click one to switch to it.
     // A full window shows its reset in red. An account at its weekly limit is
     // greyed out and can't be picked; it shows the weekly reset instead.
     //
@@ -649,7 +695,7 @@ export default Plugin.define({
     //   ● work     █████████ 100% →18:50
     //   ○ personal ██████░░░  68% →19:10
     //   ○ other    7d limit →Thu 09:00
-    const AllAccounts = () => {
+    const AllAccounts = (props: { sessionID?: string }) => {
       const rows = () =>
         claudeRefs().filter((ref) => {
           const state = claudeStates()[ref.id]
@@ -672,14 +718,14 @@ export default Plugin.define({
             <Index each={rows()}>
               {(ref) => {
                 const state = () => claudeStates()[ref().id] ?? {}
-                const current = () => ref().id === active().id
+                const current = () => ref().id === activeID(props.sessionID)
                 const win = () => claudeWindow(state().usage?.five_hour)
                 const bar = () => cells(win()?.percent ?? 0, barWidth())
                 const c = () => color(win()?.percent ?? 0)
                 const full = () => (win()?.percent ?? 0) >= 100
                 const disabled = () => weeklyFull(ref().id)
                 return (
-                  <box flexDirection="row" flexShrink={0} onMouseUp={(event: Click) => switchTo(ref())(event)}>
+                  <box flexDirection="row" flexShrink={0} onMouseUp={(event: Click) => switchTo(ref(), props.sessionID)(event)}>
                     <text flexShrink={0} wrapMode="none">
                       <span style={{ fg: disabled() && !current() ? DIM : theme.text.base }}>
                         {current() ? "● " : "○ "}
@@ -746,57 +792,64 @@ export default Plugin.define({
 
     // One-line fallback for the prompt status bar: context, then the two fast
     // windows. The monthly window moves too slowly to be worth the columns there.
-    const CompactStatus = (props: { sessionID?: string }) => (
-      <Show when={sidebarMounted() === 0}>
-        <box flexDirection="row" gap={2} flexShrink={0}>
-          <Context sessionID={props.sessionID} compact />
-          <Show
-            when={windows()}
-            fallback={
-              <Show when={error()}>
-                <text fg={DIM}>usage: {error()}</text>
-              </Show>
-            }
-          >
-            <Item label="5h" win={windows()?.rolling} compact />
-            <Item label="7d" win={windows()?.weekly} compact />
-          </Show>
-        </box>
-      </Show>
-    )
+    const CompactStatus = (props: { sessionID?: string }) => {
+      createEffect(() => show(props.sessionID))
+      return (
+        <Show when={sidebarMounted() === 0}>
+          <box flexDirection="row" gap={2} flexShrink={0}>
+            <Context sessionID={props.sessionID} compact />
+            <Show
+              when={windows(props.sessionID)}
+              fallback={
+                <Show when={error(props.sessionID)}>
+                  <text fg={DIM}>usage: {error(props.sessionID)}</text>
+                </Show>
+              }
+            >
+              <Item label="5h" win={windows(props.sessionID)?.rolling} compact />
+              <Item label="7d" win={windows(props.sessionID)?.weekly} compact />
+            </Show>
+          </box>
+        </Show>
+      )
+    }
 
     // Vertical block for the session sidebar: one section per child of the
     // gap={1} column (a blank line between sections); inside a section the
     // lines are consecutive.
-    const Status = (props: { sessionID?: string }) => (
-      <box flexDirection="column" gap={1}>
-        <TrackSidebar />
-        <Show when={mode() === "claude"} fallback={<GoAccount />}>
-          <ClaudeAccount />
-        </Show>
-        <Effort />
-        {/* Its own gap-less column: the bars sit on consecutive lines. */}
-        <box flexDirection="column">
-          <text fg={theme.text.base}>
-            <b>Usage</b>
-          </text>
-          <Context sessionID={props.sessionID} />
-          <Show
-            when={windows()}
-            fallback={
-              <Show when={error()}>
-                <text fg={theme.text.base}>usage: {error()}</text>
-              </Show>
-            }
-          >
-            <Item label="5h" win={windows()?.rolling} reset={resetTime(windows()?.rolling?.resetsAt)} />
-            <Item label="7d" win={windows()?.weekly} reset={resetDay(windows()?.weekly?.resetsAt)} />
-            <Item label="30d" win={windows()?.monthly} reset={resetDate(windows()?.monthly?.resetsAt)} />
+    const Status = (props: { sessionID?: string }) => {
+      createEffect(() => show(props.sessionID))
+      const win = () => windows(props.sessionID)
+      return (
+        <box flexDirection="column" gap={1}>
+          <TrackSidebar />
+          <Show when={mode() === "claude"} fallback={<GoAccount />}>
+            <ClaudeAccount sessionID={props.sessionID} />
           </Show>
+          <Effort />
+          {/* Its own gap-less column: the bars sit on consecutive lines. */}
+          <box flexDirection="column">
+            <text fg={theme.text.base}>
+              <b>Usage</b>
+            </text>
+            <Context sessionID={props.sessionID} />
+            <Show
+              when={win()}
+              fallback={
+                <Show when={error(props.sessionID)}>
+                  <text fg={theme.text.base}>usage: {error(props.sessionID)}</text>
+                </Show>
+              }
+            >
+              <Item label="5h" win={win()?.rolling} reset={resetTime(win()?.rolling?.resetsAt)} />
+              <Item label="7d" win={win()?.weekly} reset={resetDay(win()?.weekly?.resetsAt)} />
+              <Item label="30d" win={win()?.monthly} reset={resetDate(win()?.monthly?.resetsAt)} />
+            </Show>
+          </box>
+          <AllAccounts sessionID={props.sessionID} />
         </box>
-        <AllAccounts />
-      </box>
-    )
+      )
+    }
 
     const pct = (win?: Window) => Math.round(win?.percent ?? 0)
 
@@ -811,7 +864,7 @@ export default Plugin.define({
           slash: { name: "budget" },
           run: async () => {
             await refresh()
-            const w = windows()
+            const w = windows(onScreen)
             const parts = w && [
               `5h ${pct(w.rolling)}%`,
               `7d ${pct(w.weekly)}%`,
@@ -819,7 +872,7 @@ export default Plugin.define({
             ]
             context.ui.toast.show({
               title: mode() === "claude" ? "Claude usage" : "OpenCode usage",
-              message: parts ? parts.join(" · ") : (error() ?? "unavailable"),
+              message: parts ? parts.join(" · ") : (error(onScreen) ?? "unavailable"),
             })
           },
         },
