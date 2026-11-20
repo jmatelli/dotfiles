@@ -172,7 +172,7 @@ export default class TmuxBar extends View {
       .when(Boolean(space), (el) => el.child(
         this.pill("session", sessionColor, C.ink, `${ICON.session} ${space.name}`, (p) => p.font_weight(700)
           .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-          .on_click(() => run("mod.open", { name: "picker" })))))
+          .on_click(() => run("mod.open", { name: "neon-picker" })))))
       .child(h_flex().id("windows").flex_1().min_w(0).h_full().items_center().gap(2).overflow_x_scrollbar()
         .children(shown.map((c, i) => this.tab(space, c, i, shown))))
       .when(Boolean(host), (el) => el.child(this.pill("host", C.purple, C.ink, `${ICON.host} ${host}`)))

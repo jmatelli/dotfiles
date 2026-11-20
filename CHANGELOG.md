@@ -15,6 +15,10 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Herdr `neon-picker`**: the Go to… palette (cmd+p, ctrl+b s/w, the status
+  bar's session pill) names a tab nobody named after the program running in
+  it, like the tab bar, instead of by its number. A clone of the shipped
+  `picker`, so Herdr updates don't overwrite it.
 - **termscp config tracked**: its settings (`config.toml`, a template so the
   SSH config path follows the home directory) and a Neon Tokyo Night
   `theme.toml` matching the prompt, tmux and Herdr. `bookmarks.toml` stays
