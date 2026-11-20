@@ -68,3 +68,9 @@ export LOCAL_IP=$(/usr/sbin/ipconfig getifaddr en0)
 export VOLTA_HOME="$HOME/.volta"
 export PATH="$VOLTA_HOME/bin:$PATH"
 {{- end }}
+
+# ~/.local/bin first, here too and not only in .zshrc: agents and scripts run
+# `zsh -c`, which never reads .zshrc, so they got Homebrew's gh instead of the
+# wrapper that picks the GitHub account per folder. Login shells still need
+# .zshrc's copy (path_helper reorders PATH after this file).
+path=("$HOME/.local/bin" ${path:#$HOME/.local/bin})

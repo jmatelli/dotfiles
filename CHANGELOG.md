@@ -102,6 +102,14 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **README** ([#26](https://github.com/jmatelli/dotfiles/pull/26)): screenshots,
   tables and clearer sections.
 
+### Fixed
+
+- **`gh` picks the folder's GitHub account in agent shells too**: `.zshenv`
+  now puts `~/.local/bin` first, not only `.zshrc`. Agents and scripts run
+  `zsh -c`, which never reads `.zshrc`, so they got Homebrew's `gh` (gh's
+  active account) instead of the per-folder wrapper, and had to export a
+  token themselves.
+
 ### Removed
 
 - **kitty and tmux on macOS** ([#27](https://github.com/jmatelli/dotfiles/pull/27)):
