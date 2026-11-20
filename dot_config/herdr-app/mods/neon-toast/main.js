@@ -24,7 +24,8 @@ const BORDER = { error: "ansi9", warning: "ansi3", success: "ansi2", info: "ansi
 // surface, the same grays as Herdr's menus and cards.
 const BG_FROM = "popover";
 const BG_TO = "selected";
-const BORDER_WIDTH = 2;
+// The active pane's border width (focus.width in layouts/modify_neon.json).
+const BORDER_WIDTH = 1;
 const ANGLE = 90;
 // Layout px, scaled by the zoom like the rest of the layout. Toasts sit inside
 // the main pane like cards on it, so they take the neon layout's own numbers:

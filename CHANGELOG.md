@@ -60,6 +60,8 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Herdr toasts**: a 1 px border, the width of the active pane's, instead of
+  2 px.
 - **Claude Code git hook exceptions**: `block-dangerous-git.sh` blocks nothing
   in `~/code/leguin` and lets a plain, standalone `git push` through in
   `~/code/TypeTUI` (force pushes, deletes and chained commands stay blocked).
