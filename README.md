@@ -282,6 +282,12 @@ shows each as its own agent.
 
 **Reviewer agents**: a code-reviewer (Sonnet) for routine changes and a
 deep-reviewer (Opus) for risky ones, in both OpenCode and Claude Code.
+Next to them, a **security-auditor** (Opus) that can also run gitleaks,
+trivy, semgrep, govulncheck, zizmor and the dependency audits, and a **performance-optimizer** (Sonnet).
+Neither can edit files (in OpenCode the auditor's scanner commands are also
+pinned to forms that don't write, and it has no web access). They check the current change by default, or a path or
+the whole repo when asked, and report fixes without applying them. Their
+prompts live in `.chezmoitemplates/`, shared by both clients.
 
 **Two Claude accounts by folder**: under the projects folder,
 `~/.zsh.d/claude-accounts.zsh` points `CLAUDE_CONFIG_DIR` at `~/.claude-work`,

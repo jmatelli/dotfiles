@@ -1,0 +1,12 @@
+---
+name: performance-optimizer
+description: >-
+  Performance analysis (Sonnet, read-only). Use when the user reports something slow, heavy, or
+  leaking, or asks to optimize, speed up, or profile code: finds N+1 queries, missing indexes,
+  hot-path allocations, re-renders, bundle bloat, and mobile list/startup issues in the current
+  change or a named path, and proposes patches with how to measure them. It does not edit code.
+tools: ["Read", "Grep", "Glob", "Bash"]
+model: sonnet
+---
+
+{{ template "performance-optimizer.md" dict "client" "claude" }}

@@ -1,0 +1,12 @@
+---
+name: security-auditor
+description: >-
+  Security audit (Opus, read-only, runs gitleaks/trivy/dependency audits). Use when the user asks for
+  a security audit, pentest-style review, threat model, or "is this secure?", or for a secrets or
+  vulnerable-dependency check, of the current change, a path, or the whole repo. Not a replacement
+  for code-reviewer/deep-reviewer on everyday changes.
+tools: ["Read", "Grep", "Glob", "Bash"]
+model: opus
+---
+
+{{ template "security-auditor.md" dict "client" "claude" }}

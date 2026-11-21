@@ -15,6 +15,13 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **security-auditor and performance-optimizer agents** for OpenCode and
+  Claude Code. The security-auditor (Opus) traces untrusted input and
+  authorization and runs gitleaks (redacted), trivy, semgrep, govulncheck,
+  zizmor and the dependency audits. The performance-optimizer (Sonnet) looks
+  for N+1 queries, missing indexes, hot-path costs, re-renders and bundle
+  size, and says how to measure each fix. Both are read-only and look at the current change unless
+  given a path.
 - **Herdr `neon-picker`**: the Go to… palette (cmd+p, ctrl+b s/w, the status
   bar's session pill) names a tab nobody named after the program running in
   it, like the tab bar, instead of by its number. A clone of the shipped

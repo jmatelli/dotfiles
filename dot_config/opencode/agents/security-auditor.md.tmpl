@@ -1,0 +1,164 @@
+---
+description: >-
+  Security audit (Opus, read-only, runs gitleaks/trivy/dependency audits). Use when the user asks for
+  a security audit, pentest-style review, threat model, or "is this secure?", or for a secrets or
+  vulnerable-dependency check, of the current change, a path, or the whole repo. Not a replacement
+  for code-reviewer/deep-reviewer on everyday changes.
+mode: subagent
+model: claude-agent/opus
+permissions:
+  # Deny everything (edits, web, MCP, subagents), then allow reading and the
+  # scanner list. It reads secrets and untrusted code: nowhere to send them.
+  - action: "*"
+    resource: "*"
+    effect: deny
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: read
+    resource: "*.env"
+    effect: deny
+  - action: read
+    resource: "*.env.*"
+    effect: deny
+  - action: read
+    resource: "*.env.example"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: shell
+    resource: "git diff*"
+    effect: allow
+  - action: shell
+    resource: "git log*"
+    effect: allow
+  - action: shell
+    resource: "git show*"
+    effect: allow
+  - action: shell
+    resource: "gitleaks dir --redact --no-banner *"
+    effect: allow
+  - action: shell
+    resource: "gitleaks git --redact --no-banner *"
+    effect: allow
+  - action: shell
+    resource: "trivy fs --scanners vuln,misconfig,secret --quiet *"
+    effect: allow
+  - action: shell
+    resource: "yarn audit *"
+    effect: allow
+  - action: shell
+    resource: "yarn npm audit *"
+    effect: allow
+  - action: shell
+    resource: "npm audit *"
+    effect: allow
+  - action: shell
+    resource: "govulncheck ./..."
+    effect: allow
+  # zizmor: offline only (no GitHub token, no remote repos).
+  - action: shell
+    resource: "zizmor --offline --no-progress *"
+    effect: allow
+  # Flags that write files, read templates/config, load code, or undo redaction.
+  # Shell checks every subcommand of a compound command, so chaining is covered.
+  - action: shell
+    resource: "*>*"
+    effect: deny
+  - action: shell
+    resource: "*--report*"
+    effect: deny
+  - action: shell
+    resource: "* -r*"
+    effect: deny
+  - action: shell
+    resource: "*--redact=*"
+    effect: deny
+  - action: shell
+    resource: "*--output*"
+    effect: deny
+  - action: shell
+    resource: "* -o*"
+    effect: deny
+  - action: shell
+    resource: "*--template*"
+    effect: deny
+  - action: shell
+    resource: "*--format*"
+    effect: deny
+  - action: shell
+    resource: "* -f*"
+    effect: deny
+  - action: shell
+    resource: "*--config*"
+    effect: deny
+  - action: shell
+    resource: "* -c*"
+    effect: deny
+  - action: shell
+    resource: "*--module*"
+    effect: deny
+  - action: shell
+    resource: "*plugin*"
+    effect: deny
+  - action: shell
+    resource: "*--cache-dir*"
+    effect: deny
+  - action: shell
+    resource: "*--ignore-policy*"
+    effect: deny
+  - action: shell
+    resource: "yarn *fix*"
+    effect: deny
+  - action: shell
+    resource: "npm *fix*"
+    effect: deny
+  - action: shell
+    resource: "*--fix*"
+    effect: deny
+  - action: shell
+    resource: "*--gh-*"
+    effect: deny
+  # semgrep needs --config, so it's allowed after the generic --config deny,
+  # with its own denies after it: output files, autofix, a second --config,
+  # Pro/login, tracing, experimental flags.
+  - action: shell
+    resource: "semgrep scan --metrics=off --config p/default --quiet *"
+    effect: allow
+  - action: shell
+    resource: "semgrep *--config*--config*"
+    effect: deny
+  - action: shell
+    resource: "semgrep *-output*"
+    effect: deny
+  - action: shell
+    resource: "semgrep * -o*"
+    effect: deny
+  - action: shell
+    resource: "semgrep *--autofix*"
+    effect: deny
+  - action: shell
+    resource: "semgrep * -a*"
+    effect: deny
+  - action: shell
+    resource: "semgrep *--pro*"
+    effect: deny
+  - action: shell
+    resource: "semgrep *--trace*"
+    effect: deny
+  - action: shell
+    resource: "semgrep *--x-*"
+    effect: deny
+  - action: shell
+    resource: "semgrep *--dump*"
+    effect: deny
+  - action: shell
+    resource: "semgrep *>*"
+    effect: deny
+---
+
+{{ template "security-auditor.md" dict "client" "opencode" }}
