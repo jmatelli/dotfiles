@@ -33,6 +33,9 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **actionlint, git-filter-repo and vhs** in the Homebrew formulas.
 - **govulncheck, semgrep and zizmor** in the Homebrew formulas, for the
   security-auditor.
+- **CI hardening**: `actions/checkout` pinned to a commit and without the saved
+  GitHub token (zizmor's findings), and a Dependabot config that bumps the
+  pins weekly, only to releases at least a week old.
 - **Agent skills tracked**: the skills CLI's lockfile
   (`~/.agents/.skill-lock.json`) is in the repo, and a `run_onchange` script
   reinstalls the skills it lists that are missing from `~/.agents/skills`,
