@@ -24,6 +24,8 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `theme.toml` matching the prompt, tmux and Herdr. `bookmarks.toml` stays
   ignored: it holds hosts, usernames and passwords.
 - **actionlint, git-filter-repo and vhs** in the Homebrew formulas.
+- **govulncheck, semgrep and zizmor** in the Homebrew formulas, for the
+  security-auditor.
 - **Agent skills tracked**: the skills CLI's lockfile
   (`~/.agents/.skill-lock.json`) is in the repo, and a `run_onchange` script
   reinstalls the skills it lists that are missing from `~/.agents/skills`,
