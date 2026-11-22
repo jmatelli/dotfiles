@@ -1,0 +1,21 @@
+# Neon Tokyo Night for atuin's search, matching the prompt, zsh syntax
+# highlighting (~/.zsh.d/theme.zsh), tmux and Herdr.
+[theme]
+name = "neon-tokyonight"
+
+[colors]
+Base = "#c0caf5"
+Title = "#2ee6ff"
+Important = "#ff007c"
+Guidance = "#7aa2ff"
+Annotation = "#565f89"
+Muted = "#828bb8"
+AlertInfo = "#9ff26a"
+AlertWarn = "#ffc66d"
+AlertError = "#ff4f8b"
+SyntaxCommand = "#2ee6ff"
+SyntaxFlag = "#7df9ff"
+SyntaxString = "#ffc66d"
+SyntaxVariable = "#c792ff"
+SyntaxOperator = "#ff007c"
+SyntaxComment = "#565f89"

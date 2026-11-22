@@ -81,6 +81,10 @@ source $HOME/.zsh.d/linear-account.zsh
 
 # Shell integrations
 eval "$(fzf --zsh)"
+# After fzf, so atuin's history search takes ctrl-r (fzf keeps ctrl-t and
+# alt-c). Up arrow stays zsh's (bind_up_arrow = false in its config). Not
+# installed on Debian/Ubuntu (no package on older releases): fzf keeps ctrl-r.
+command -v atuin >/dev/null && eval "$(atuin init zsh)"
 eval "$(zoxide init zsh)"
 eval "$(oh-my-posh init zsh --config $HOME/.config/oh-my-posh/tokyo-neon.omp.toml)"
 eval "$(mise activate zsh)"

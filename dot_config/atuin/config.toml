@@ -1,0 +1,53 @@
+# Atuin: shell history in a local SQLite database, with the directory, git
+# repo, exit code and duration of every command. Local only: no account,
+# no sync, no update checks, no daemon. Full list of settings:
+# `atuin default-config`.
+
+## Local only
+auto_sync = false
+update_check = false
+
+## Keys: ctrl-r only. Up/down and ctrl-p/ctrl-n stay zsh's own prefix search.
+bind_ctrl_r = true
+bind_up_arrow = false
+
+## Search
+search_mode = "fuzzy"
+style = "compact"
+inline_height = 20
+# Enter puts the command on the prompt to edit instead of running it.
+enter_accept = false
+
+## What's saved. secrets_filter (on by default) drops commands that contain
+## AWS, GitHub, Slack or Stripe keys; history_filter adds inline assignments
+## of anything that looks like a secret, bearer tokens and JWTs (curl -H),
+## and passwords on the command line. A leading space also skips history
+## (hist_ignore_space), as before.
+secrets_filter = true
+history_filter = [
+  "(?i)(TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|APIKEY)=",
+  "(?i)authorization: *(bearer|basic|token) ",
+  "(?i)bearer [a-z0-9._~+/=-]{20,}",
+  "eyJ[A-Za-z0-9_-]{8,}\\.eyJ[A-Za-z0-9_-]{8,}",
+  "sshpass +-p",
+]
+
+# The ctrl-r inside search cycles through these, in this order. "workspace"
+# is the current git repo (skipped outside one), so searching starts with
+# the commands run in the repo you're in.
+[search]
+filters = ["workspace", "directory", "session", "global"]
+
+[daemon]
+enabled = false
+
+# Threads capture Claude Code / OpenCode sessions (with tool output) into
+# the record store. Off: this is for shell history only.
+[threads]
+enabled = false
+
+[theme]
+name = "neon-tokyonight"
+
+[ui]
+columns = ["exit", "duration", "time", "command"]

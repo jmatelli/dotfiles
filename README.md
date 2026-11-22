@@ -36,7 +36,7 @@
 
 | Area | What you get | Where |
 | --- | --- | --- |
-| **Shell** | zsh with an [oh-my-posh](https://ohmyposh.dev) prompt that fits the pane width, fzf, zoxide, eza, bat | `dot_zshrc.tmpl`, `dot_zsh.d/`, `dot_config/oh-my-posh/` |
+| **Shell** | zsh with an [oh-my-posh](https://ohmyposh.dev) prompt that fits the pane width, fzf, zoxide, eza, bat, [atuin](https://atuin.sh) history (local only) | `dot_zshrc.tmpl`, `dot_zsh.d/`, `dot_config/oh-my-posh/`, `dot_config/atuin/` |
 | **Editor** | Neovim on the native `vim.pack` and native LSP, no distro | `dot_config/nvim/` |
 | **Terminal** | Herdr (macOS) with tmux-style keys, a tmux-style bar and rotating backgrounds; tmux on Linux | `dot_config/herdr-app/`, `dot_config/tmux/` |
 | **AI agents** | OpenCode with sidebar plugins and reviewer agents; Claude Code with hooks; a work account by folder | `dot_config/opencode/`, `dot_claude/` |
