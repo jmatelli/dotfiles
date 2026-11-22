@@ -20,7 +20,7 @@
     "command": "bash /Users/techlead/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "chrome-devtools-mcp@claude-plugins-official": true,
+    "chrome-devtools-mcp@claude-plugins-official": false,
     "code-review@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,

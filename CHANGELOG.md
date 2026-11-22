@@ -76,6 +76,10 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **chrome-devtools MCP** runs `--isolated` (a fresh profile each time) with a
+  1280x800 viewport in OpenCode. In Claude Code the chrome-devtools plugin is
+  off: it can't take flags, and it ran a second server next to the one added
+  with those flags.
 - **Herdr toasts**: a 1 px border, the width of the active pane's, instead of
   2 px.
 - **Claude Code git hook exceptions**: `block-dangerous-git.sh` blocks nothing
