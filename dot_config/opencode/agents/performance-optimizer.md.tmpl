@@ -22,6 +22,65 @@ permissions:
   - action: shell
     resource: "git show*"
     effect: allow
+  # Minus flags that write files or run programs, and anything zsh would
+  # expand into something else (as in security-auditor.md.tmpl).
+  - action: shell
+    resource: "*--output*"
+    effect: deny
+  - action: shell
+    resource: "*--ext-diff*"
+    effect: deny
+  - action: shell
+    resource: "*--textconv*"
+    effect: deny
+  - action: shell
+    resource: "git * -O*"
+    effect: deny
+  - action: shell
+    resource: "*--config-env*"
+    effect: deny
+  - action: shell
+    resource: "*--git-dir*"
+    effect: deny
+  - action: shell
+    resource: "*--work-tree*"
+    effect: deny
+  - action: shell
+    resource: "*--exec-path*"
+    effect: deny
+  - action: shell
+    resource: "*GIT_*"
+    effect: deny
+  - action: shell
+    resource: "*>*"
+    effect: deny
+  - action: shell
+    resource: "*<*"
+    effect: deny
+  - action: shell
+    resource: "*'*"
+    effect: deny
+  - action: shell
+    resource: "*\"*"
+    effect: deny
+  - action: shell
+    resource: "*$*"
+    effect: deny
+  - action: shell
+    resource: "*`*"
+    effect: deny
+  - action: shell
+    resource: "*{*"
+    effect: deny
+  - action: shell
+    resource: "*(*"
+    effect: deny
+  - action: shell
+    resource: "*\\*"
+    effect: deny
+  - action: shell
+    resource: "*\t*"
+    effect: deny
 ---
 
 {{ template "performance-optimizer.md" dict "client" "opencode" }}

@@ -6,6 +6,12 @@ description: >-
   vulnerable-dependency check, of the current change, a path, or the whole repo. Not a replacement
   for code-reviewer/deep-reviewer on everyday changes.
 tools: ["Read", "Grep", "Glob", "Bash"]
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "~/.claude/hooks/agent-shell-allowlist.sh security"
 model: opus
 ---
 

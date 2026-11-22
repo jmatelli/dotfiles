@@ -156,6 +156,14 @@
   colorMoved = default
 [init]
 	defaultBranch = main
+# Don't treat a directory laid out as a bare repo as one unless asked
+# (--git-dir). A checkout can commit such a directory with its own config
+# (gpg.program, diff.external…) that git would run when you, or a review
+# agent, run git inside it. No bare repos here; worktrees are unaffected.
+# A tool that runs git inside a bare cache without --git-dir (some mirror
+# tools, older Go fetching private modules over git) would now fail.
+[safe]
+	bareRepository = explicit
 # Non-GitHub hosts (e.g. Azure DevOps) use Git Credential Manager. Must stay
 # above the GitHub sections: helpers stack in file order and the empty
 # `helper =` resets the list, so placed below it would wipe out theirs.

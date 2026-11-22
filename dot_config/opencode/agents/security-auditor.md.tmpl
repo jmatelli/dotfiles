@@ -30,134 +30,185 @@ permissions:
   - action: grep
     resource: "*"
     effect: allow
+  # git diff / log / show, minus flags that write files or run programs, and
+  # minus git's global options (-c diff.external=…, --git-dir…). No git -C:
+  # a glob can't keep it to one word; cd dir && git log works instead.
   - action: shell
-    resource: "git diff*"
+    resource: "git diff *"
     effect: allow
   - action: shell
-    resource: "git log*"
+    resource: "git log *"
     effect: allow
   - action: shell
-    resource: "git show*"
+    resource: "git show *"
     effect: allow
-  - action: shell
-    resource: "gitleaks dir --redact --no-banner *"
-    effect: allow
-  - action: shell
-    resource: "gitleaks git --redact --no-banner *"
-    effect: allow
-  - action: shell
-    resource: "trivy fs --scanners vuln,misconfig,secret --quiet *"
-    effect: allow
-  - action: shell
-    resource: "yarn audit *"
-    effect: allow
-  - action: shell
-    resource: "yarn npm audit *"
-    effect: allow
-  - action: shell
-    resource: "npm audit *"
-    effect: allow
-  - action: shell
-    resource: "govulncheck ./..."
-    effect: allow
-  # zizmor: offline only (no GitHub token, no remote repos).
-  - action: shell
-    resource: "zizmor --offline --no-progress *"
-    effect: allow
-  # Flags that write files, read templates/config, load code, or undo redaction.
-  # Shell checks every subcommand of a compound command, so chaining is covered.
-  - action: shell
-    resource: "*>*"
-    effect: deny
-  - action: shell
-    resource: "*--report*"
-    effect: deny
-  - action: shell
-    resource: "* -r*"
-    effect: deny
-  - action: shell
-    resource: "*--redact=*"
-    effect: deny
   - action: shell
     resource: "*--output*"
     effect: deny
   - action: shell
-    resource: "* -o*"
+    resource: "*--ext-diff*"
     effect: deny
   - action: shell
-    resource: "*--template*"
+    resource: "*--textconv*"
     effect: deny
   - action: shell
-    resource: "*--format*"
+    resource: "git * -O*"
     effect: deny
   - action: shell
-    resource: "* -f*"
+    resource: "git * -c *"
     effect: deny
   - action: shell
-    resource: "*--config*"
+    resource: "*--config-env*"
     effect: deny
   - action: shell
-    resource: "* -c*"
+    resource: "*--git-dir*"
     effect: deny
   - action: shell
-    resource: "*--module*"
+    resource: "*--work-tree*"
     effect: deny
   - action: shell
-    resource: "*plugin*"
+    resource: "*--exec-path*"
     effect: deny
   - action: shell
-    resource: "*--cache-dir*"
+    resource: "*--namespace*"
     effect: deny
   - action: shell
-    resource: "*--ignore-policy*"
+    resource: "*GIT_*"
+    effect: deny
+  # Scanners: the fixed prefix, then only plain paths. Any later argument
+  # starting with - is denied, so no flag can write a report, load config,
+  # change the output or reach the network. trivy gets --config /dev/null
+  # so a trivy.yaml in the audited repo is ignored.
+  - action: shell
+    resource: "gitleaks dir --redact --no-banner *"
+    effect: allow
+  - action: shell
+    resource: "gitleaks dir --redact --no-banner -*"
     effect: deny
   - action: shell
-    resource: "yarn *fix*"
+    resource: "gitleaks dir --redact --no-banner * -*"
     effect: deny
   - action: shell
-    resource: "npm *fix*"
+    resource: "gitleaks git --redact --no-banner *"
+    effect: allow
+  - action: shell
+    resource: "gitleaks git --redact --no-banner -*"
     effect: deny
   - action: shell
-    resource: "*--fix*"
+    resource: "gitleaks git --redact --no-banner * -*"
     effect: deny
   - action: shell
-    resource: "*--gh-*"
+    resource: "trivy fs --config /dev/null --scanners vuln,misconfig,secret --quiet *"
+    effect: allow
+  - action: shell
+    resource: "trivy fs --config /dev/null --scanners vuln,misconfig,secret --quiet -*"
     effect: deny
-  # semgrep needs --config, so it's allowed after the generic --config deny,
-  # with its own denies after it: output files, autofix, a second --config,
-  # Pro/login, tracing, experimental flags.
+  - action: shell
+    resource: "trivy fs --config /dev/null --scanners vuln,misconfig,secret --quiet * -*"
+    effect: deny
   - action: shell
     resource: "semgrep scan --metrics=off --config p/default --quiet *"
     effect: allow
   - action: shell
-    resource: "semgrep *--config*--config*"
+    resource: "semgrep scan --metrics=off --config p/default --quiet -*"
     effect: deny
   - action: shell
-    resource: "semgrep *-output*"
+    resource: "semgrep scan --metrics=off --config p/default --quiet * -*"
     effect: deny
   - action: shell
-    resource: "semgrep * -o*"
+    resource: "zizmor --offline --no-progress *"
+    effect: allow
+  - action: shell
+    resource: "zizmor --offline --no-progress -*"
     effect: deny
   - action: shell
-    resource: "semgrep *--autofix*"
+    resource: "zizmor --offline --no-progress * -*"
     effect: deny
   - action: shell
-    resource: "semgrep * -a*"
+    resource: "govulncheck ./..."
+    effect: allow
+  # Dependency audits in fixed forms, like the Claude hook. They still run
+  # the repo's yarn (.yarnrc.yml yarnPath) and .npmrc: the prompt says when
+  # to skip them. govulncheck -C and npm audit --prefix reach a module or
+  # package below the repo root.
+  - action: shell
+    resource: "yarn audit"
+    effect: allow
+  - action: shell
+    resource: "yarn npm audit"
+    effect: allow
+  - action: shell
+    resource: "yarn npm audit --all"
+    effect: allow
+  - action: shell
+    resource: "yarn npm audit --recursive"
+    effect: allow
+  - action: shell
+    resource: "yarn npm audit --all --recursive"
+    effect: allow
+  - action: shell
+    resource: "npm audit"
+    effect: allow
+  - action: shell
+    resource: "npm audit --omit=dev"
+    effect: allow
+  - action: shell
+    resource: "npm audit --prefix *"
+    effect: allow
+  - action: shell
+    resource: "npm audit --prefix -*"
     effect: deny
   - action: shell
-    resource: "semgrep *--pro*"
+    resource: "npm audit --prefix * -*"
     effect: deny
   - action: shell
-    resource: "semgrep *--trace*"
+    resource: "npm audit --prefix * --omit=dev"
+    effect: allow
+  - action: shell
+    resource: "npm audit --prefix * * *"
     effect: deny
   - action: shell
-    resource: "semgrep *--x-*"
+    resource: "govulncheck -C * ./..."
+    effect: allow
+  - action: shell
+    resource: "govulncheck -C -*"
     effect: deny
   - action: shell
-    resource: "semgrep *--dump*"
+    resource: "govulncheck -C * * ./..."
+    effect: deny
+  # For every command: no redirects, and nothing zsh would expand into
+  # something else (quotes, $, braces, parentheses for =(…) and *(e:…:),
+  # backslashes, tabs). OpenCode checks each subcommand of a compound
+  # command separately, so chaining is covered.
+  - action: shell
+    resource: "*>*"
     effect: deny
   - action: shell
-    resource: "semgrep *>*"
+    resource: "*<*"
+    effect: deny
+  - action: shell
+    resource: "*'*"
+    effect: deny
+  - action: shell
+    resource: "*\"*"
+    effect: deny
+  - action: shell
+    resource: "*$*"
+    effect: deny
+  - action: shell
+    resource: "*`*"
+    effect: deny
+  - action: shell
+    resource: "*{*"
+    effect: deny
+  - action: shell
+    resource: "*(*"
+    effect: deny
+  - action: shell
+    resource: "*\\*"
+    effect: deny
+  - action: shell
+    resource: "*\t*"
     effect: deny
 ---
 

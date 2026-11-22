@@ -6,6 +6,12 @@ description: >-
   unless the change is high-risk — then use deep-reviewer INSTEAD (never both on the same change).
   If its report starts with "ESCALATE:", run deep-reviewer on the same change next.
 tools: ["Read", "Grep", "Glob", "Bash"]
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "~/.claude/hooks/agent-shell-allowlist.sh git"
 model: sonnet
 ---
 

@@ -15,6 +15,23 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Shell allowlist for the read-only agents in Claude Code**: a `PreToolUse`
+  hook in each agent's file (`agent-shell-allowlist.sh`) limits the reviewers
+  and the performance-optimizer to git diff/log/show, and the
+  security-auditor to those plus its scanners, with plain paths and no extra
+  flags after their fixed prefix. It accepts only plain characters, so zsh
+  can't expand a command into something else (quotes, `$'…'`, braces, tabs,
+  `=(…)`, `*(e:…:)`), and blocks on any error. Before, only the prompt said
+  so. OpenCode's rules for the four agents also deny git's global options,
+  `GIT_*` variables, quoting, `$` and redirects, and the auditor's get the
+  same no-extra-flags rule (checked live in OpenCode). `govulncheck -C` and
+  `npm audit --prefix` reach a module below the repo root.
+- **trivy ignores the audited repo's `trivy.yaml`** (`--config /dev/null` in
+  the auditor's fixed form): a planted one could write files or send results
+  elsewhere.
+- **git `safe.bareRepository = explicit`**: a bare repo committed inside a
+  checkout no longer runs its own config (`gpg.program`, `diff.external`)
+  when git runs in it.
 - **atuin** for shell history, local only (no account, sync, update checks or
   daemon): ctrl-r searches the current git repo first, then the folder, the
   session and everything, with each command's exit code and duration. The up

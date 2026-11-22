@@ -6,6 +6,12 @@ description: >-
   hot-path allocations, re-renders, bundle bloat, and mobile list/startup issues in the current
   change or a named path, and proposes patches with how to measure them. It does not edit code.
 tools: ["Read", "Grep", "Glob", "Bash"]
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "~/.claude/hooks/agent-shell-allowlist.sh git"
 model: sonnet
 ---
 
