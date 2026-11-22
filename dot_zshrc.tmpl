@@ -78,6 +78,8 @@ source $HOME/.zsh.d/claude-accounts.zsh
 [ -f "$HOME/.zsh.d/secrets.zsh" ] && source "$HOME/.zsh.d/secrets.zsh"
 # Linear key by folder (needs the secrets above)
 source $HOME/.zsh.d/linear-account.zsh
+# secret <pass entry>, for tokens inside commands without typing them
+source $HOME/.zsh.d/secret.zsh
 
 # Shell integrations
 eval "$(fzf --zsh)"

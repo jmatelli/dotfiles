@@ -32,6 +32,11 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **git `safe.bareRepository = explicit`**: a bare repo committed inside a
   checkout no longer runs its own config (`gpg.program`, `diff.external`)
   when git runs in it.
+- **`secret <entry>`**: the first line of a pass entry, for tokens inside
+  commands (`Bearer $(secret team/yaarz/api-token)`), so history keeps the
+  `$(secret …)` and not the value. Tab completes entry names. zsh's own
+  history now skips commands with a literal token, JWT or password, like
+  atuin's, and both keep values that come from `$…`.
 - **atuin** for shell history, local only (no account, sync, update checks or
   daemon): ctrl-r searches the current git repo first, then the folder, the
   session and everything, with each command's exit code and duration. The up

@@ -405,6 +405,22 @@ Not managed by chezmoi (see [step 2](#2-secrets-can-wait)). Run
 what's already set and only asks for what's missing. To add a new one to the
 prompts, add a line to `VARS` in the script.
 
+**Tokens inside commands**: keep them in [pass](https://www.passwordstore.org)
+and use `secret <entry>` (`~/.zsh.d/secret.zsh`, tab completes entry names)
+instead of pasting the value:
+
+```bash
+curl -H "Authorization: Bearer $(secret team/yaarz/api-token)" …
+STRIPE_API_KEY=$(secret team/yaarz/stripe-test) yarn dev
+```
+
+History keeps `$(secret …)`, not the value, so the token stays out of
+history, logs and agent transcripts. It doesn't keep agents out: while
+gpg-agent has your key unlocked, any process of yours can run `pass show`.
+As a safety net, both zsh's history and atuin's skip commands with a literal
+token, JWT or password (`secret.zsh` and atuin's `history_filter`, same
+patterns).
+
 This repo is public, so a pre-commit hook (`.githooks/pre-commit`) runs
 [gitleaks](https://github.com/gitleaks/gitleaks) on the staged changes and
 refuses a commit containing a key or token. chezmoi enables it on every clone

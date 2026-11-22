@@ -19,14 +19,17 @@ inline_height = 20
 enter_accept = false
 
 ## What's saved. secrets_filter (on by default) drops commands that contain
-## AWS, GitHub, Slack or Stripe keys; history_filter adds inline assignments
-## of anything that looks like a secret, bearer tokens and JWTs (curl -H),
-## and passwords on the command line. A leading space also skips history
-## (hist_ignore_space), as before.
+## common cloud and SaaS keys (AWS, GitHub, GitLab, Slack, Stripe, npm…);
+## history_filter adds inline assignments of anything that looks like a
+## secret, bearer tokens and JWTs (curl -H), and passwords on the command
+## line. Values taken from a variable or from `$(secret …)`
+## (~/.zsh.d/secret.zsh) start with "$" and are kept; $'…' literals aren't.
+## zsh's own history applies the same patterns (secret.zsh). A leading space
+## also skips history (hist_ignore_space), as before.
 secrets_filter = true
 history_filter = [
-  "(?i)(TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|APIKEY)=",
-  "(?i)authorization: *(bearer|basic|token) ",
+  "(?i)(TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|APIKEY)=[\"']?([^$\"'\\s]|\\$')",
+  "(?i)authorization: *(bearer|basic|token) +[^$\\s]",
   "(?i)bearer [a-z0-9._~+/=-]{20,}",
   "eyJ[A-Za-z0-9_-]{8,}\\.eyJ[A-Za-z0-9_-]{8,}",
   "sshpass +-p",
