@@ -23,6 +23,12 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **actionlint and zizmor in CI** (`checks` workflow), pinned versions,
   actionlint checksum-verified. The chezmoi job's script no longer trips
   shellcheck's word-splitting notes.
+- **`brew-drift`**: lists formulas and casks installed but not in the
+  package list, and listed but not installed (casks under an old name
+  count as the listed one). macOS only.
+- **gpg-agent cache times** tracked: a passphrase stays cached 5 min after
+  last use, 1 h at most (GnuPG's defaults: 10 min, 2 h). Takes effect after
+  `gpgconf --reload gpg-agent`.
 - **Shell allowlist for the read-only agents in Claude Code**: a `PreToolUse`
   hook in each agent's file (`agent-shell-allowlist.sh`) limits the reviewers
   and the performance-optimizer to git diff/log/show, and the

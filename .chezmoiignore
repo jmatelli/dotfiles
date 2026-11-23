@@ -35,8 +35,10 @@ docs/**
 
 # Herdr is macOS-only here: its helper only makes sense there (its launchd
 # agent is written by run_onchange_after_36-herdr-panes, also macOS-only).
+# brew-drift checks the macOS Homebrew lists.
 {{ if ne .chezmoi.os "darwin" -}}
 .local/bin/herdr-panes
+.local/bin/brew-drift
 {{ end -}}
 
 # termscp bookmarks keep hosts and usernames in plain text: never add them

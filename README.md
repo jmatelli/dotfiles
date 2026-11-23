@@ -366,6 +366,7 @@ per account, so `claude --continue` doesn't see the other account's sessions.
 | `chezmoi diff` | preview what would change |
 | `chezmoi apply` | sync `$HOME` to the source |
 | `chezmoi update` | `git pull` + `apply`, for changes made on another machine |
+| `brew-drift` | what Homebrew has installed that the package list doesn't, and the reverse (macOS) |
 
 | To change | Edit |
 | --- | --- |
@@ -419,7 +420,9 @@ history, logs and agent transcripts. It doesn't keep agents out: while
 gpg-agent has your key unlocked, any process of yours can run `pass show`.
 As a safety net, both zsh's history and atuin's skip commands with a literal
 token, JWT or password (`secret.zsh` and atuin's `history_filter`, same
-patterns).
+patterns). gpg-agent keeps the passphrase 5 minutes after last use, 1 hour at
+most (`~/.gnupg/gpg-agent.conf`), instead of GnuPG's 10 minutes and 2 hours.
+After changing it, `gpgconf --reload gpg-agent` (or log out) picks it up.
 
 This repo is public, so a pre-commit hook (`.githooks/pre-commit`) runs
 [gitleaks](https://github.com/gitleaks/gitleaks) on the staged changes and

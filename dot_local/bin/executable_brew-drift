@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+#
+# brew-drift: compare what Homebrew has installed with the BREW_PACKAGES and
+# BREW_CASKS lists in the dotfiles' install script, so that list stays what a
+# new machine gets.
+#
+#   installed here, not in the dotfiles   add it to the list, or uninstall it
+#   in the dotfiles, not installed here   install it, or take it off the list
+#
+# Formulas: compared with `brew leaves --installed-on-request`, so
+# dependencies don't show up, and without their tap prefix
+# (hashicorp/tap/terraform is terraform). A renamed formula shows up on both
+# sides; fix its name in the list. Casks: by what Homebrew says is
+# installed, so a cask installed under an old name (docker, now
+# docker-desktop) counts as the listed one. Exits 1 when anything differs.
+
+set -euo pipefail
+
+if [[ "$(uname)" != Darwin ]]; then
+  echo "brew-drift: the Homebrew lists are macOS-only" >&2
+  exit 2
+fi
+
+script="$(chezmoi source-path)/.chezmoiscripts/run_once_before_10-install-packages.sh.tmpl"
+[[ -f "$script" ]] || { echo "brew-drift: $script not found" >&2; exit 2; }
+
+# The words of a bash array in the install script, one per line.
+listed() {
+  sed -n "/^$1=(/,/^)/p" "$script" | sed '1d;$d' | sed 's/#.*//' | tr -s ' \t' '\n' | sed '/^$/d'
+}
+short() { sed 's#.*/##' | sort -u; }
+
+status=0
+report() { # <title> <lines>
+  [[ -n "$2" ]] || return 0
+  echo "$1:"
+  sed 's/^/  /' <<<"$2"
+  status=1
+}
+
+# Formulas. A listed formula that is now a dependency of another one isn't a
+# leaf, so "not installed" checks every installed formula.
+want=$(listed BREW_PACKAGES | short)
+[[ -n "$want" ]] || { echo "brew-drift: no BREW_PACKAGES list in $script" >&2; exit 2; }
+report "Formulas installed here, not in the dotfiles" \
+  "$(comm -13 <(echo "$want") <(brew leaves --installed-on-request | short))"
+report "Formulas in the dotfiles, not installed here" \
+  "$(comm -23 <(echo "$want") <(brew list --formula -1 | short))"
+
+# Casks: Homebrew's own view of each listed cask (its old names, whether it's
+# installed), one cask at a time if a tap is missing and the batch fails.
+casks=() # no mapfile: macOS's /bin/bash is 3.2
+while IFS= read -r c; do casks+=("$c"); done < <(listed BREW_CASKS)
+(( ${#casks[@]} )) || { echo "brew-drift: no BREW_CASKS list in $script" >&2; exit 2; }
+if ! info=$(brew info --json=v2 --cask "${casks[@]}" 2>/dev/null); then
+  info=$(for c in "${casks[@]}"; do
+    brew info --json=v2 --cask "$c" 2>/dev/null ||
+      echo "brew-drift: warning: brew info can't resolve cask $c (missing tap?)" >&2
+  done | jq -s '{casks: map(.casks[]?)}')
+fi
+known=$(jq -r '.casks[] | .token, (.old_tokens // [])[]' <<<"$info" | sort -u)
+installed=$(jq -r '.casks[] | select(.installed != null) | .token' <<<"$info" | sort -u)
+report "Casks installed here, not in the dotfiles" \
+  "$(comm -23 <(brew list --cask -1 | sort -u) <(echo "$known"))"
+report "Casks in the dotfiles, not installed here" \
+  "$(comm -23 <(printf '%s\n' "${casks[@]}" | short) <(echo "$installed"))"
+
+[[ $status = 1 ]] || echo "Homebrew matches the dotfiles."
+exit $status
