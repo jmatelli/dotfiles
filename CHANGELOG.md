@@ -15,6 +15,9 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Herdr `neon-inbox`** (cmd+shift+i): a Go to… palette with only the agents
+  waiting on you, the ones asking for input first, then the ones that finished
+  while you weren't looking. Type to filter, Enter goes to the agent.
 - **Agent allowlist tests in CI**: `tests/agent-allowlist/` runs every
   bypass found so far, per agent, against the Claude Code hook and each
   agent's OpenCode rules, plus malformed input (the hook must block on
