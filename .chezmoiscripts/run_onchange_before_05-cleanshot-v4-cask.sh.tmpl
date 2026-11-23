@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+{{ if eq .chezmoi.os "darwin" -}}
+# CleanShot X pinned to v4. The license only covers v4, and homebrew-cask's
+# `cleanshot` cask moved to 5.x with no @4 version, so this script writes a
+# cask into a local tap (jmatelli/local, no git remote) that the
+# BREW_CASKS list installs as jmatelli/local/cleanshot@4. 4.8.11 is the last
+# v4 release (cleanshot.com/changelog). It runs before
+# 10-install-packages, so the tap exists on a new machine, and again when
+# this file changes. On a machine that already has the 5.x `cleanshot` cask,
+# it swaps it for this one (settings stay; no --zap).
+set -euo pipefail
+
+command -v brew &>/dev/null || { echo "cleanshot@4: brew not found, skipping" >&2; exit 0; }
+
+tap_dir="$(brew --repository)/Library/Taps/jmatelli/homebrew-local"
+mkdir -p "$tap_dir/Casks"
+cat >"$tap_dir/Casks/cleanshot@4.rb" <<'EOF'
+cask "cleanshot@4" do
+  version "4.8.11"
+  sha256 "298afb3d085ee6343dae954ba2a7429bd613e6ad9e942c8f79008688ceb11a81"
+
+  url "https://updates.getcleanshot.com/v3/CleanShot-X-#{version}.dmg"
+  name "CleanShot X 4"
+  desc "Screen capturing tool (pinned to v4)"
+  homepage "https://cleanshot.com/"
+
+  livecheck do
+    skip "Pinned to the last v4 release"
+  end
+
+  conflicts_with cask: "cleanshot"
+  depends_on :macos
+
+  app "CleanShot X.app"
+
+  uninstall quit: "pl.maketheweb.cleanshotx"
+
+  zap trash: [
+    "~/Library/Application Scripts/pl.maketheweb.cleanshotx.*",
+    "~/Library/Application Support/CleanShot",
+    "~/Library/Caches/pl.maketheweb.cleanshotx",
+    "~/Library/Caches/SentryCrash/CleanShot X",
+    "~/Library/Containers/pl.maketheweb.cleanshotx.*",
+    "~/Library/HTTPStorages/pl.maketheweb.cleanshotx",
+    "~/Library/Preferences/com.getcleanshot.app.plist",
+    "~/Library/Preferences/pl.maketheweb.cleanshotx.plist",
+    "~/Library/WebKit/pl.maketheweb.cleanshotx",
+  ]
+end
+EOF
+
+# Our own file, so let Homebrew load it (Homebrew 7 asks before loading
+# casks from non-official taps).
+brew trust --tap jmatelli/local >/dev/null 2>&1 || true
+
+# The app's own updater (Sparkle) would offer 5.x too; keep its automatic
+# checks off. "Check for Updates" in the menu still works, so don't click it.
+defaults write pl.maketheweb.cleanshotx SUEnableAutomaticChecks -bool false
+defaults write pl.maketheweb.cleanshotx SUAutomaticallyUpdate -bool false
+
+# Swap the v5 cask for the pinned one where it's installed. On a new machine
+# neither is installed yet; 10-install-packages installs cleanshot@4.
+if brew list --cask cleanshot &>/dev/null; then
+  brew uninstall -q --cask cleanshot
+  brew install -q --cask jmatelli/local/cleanshot@4 ||
+    echo "Warning: cleanshot@4 failed to install" >&2
+fi
+{{ end -}}

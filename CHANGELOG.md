@@ -165,6 +165,12 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **CleanShot X pinned to v4** (the license doesn't cover v5): homebrew-cask's
+  `cleanshot` moved to 5.x with no `@4`, so a new
+  `run_onchange_before_05-cleanshot-v4-cask` script writes a `cleanshot@4`
+  cask (4.8.11, the last v4) into a local `jmatelli/local` tap. It also turns
+  off the app's own automatic update checks and replaces an installed 5.x
+  cask with this one. `BREW_CASKS` lists `jmatelli/local/cleanshot@4`.
 - **`gh` picks the folder's GitHub account in agent shells too**: `.zshenv`
   now puts `~/.local/bin` first, not only `.zshrc`. Agents and scripts run
   `zsh -c`, which never reads `.zshrc`, so they got Homebrew's `gh` (gh's
