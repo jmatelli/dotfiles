@@ -440,8 +440,12 @@ the latest also has a [release](https://github.com/jmatelli/dotfiles/releases/la
 
 | Workflow | When | What |
 | --- | --- | --- |
-| `checks` | every PR, every push to `main` | gitleaks over the whole history; every file rendered by chezmoi on Ubuntu and macOS; shellcheck on the scripts |
+| `checks` | every PR, every push to `main` | gitleaks over the whole history; every file rendered by chezmoi on Ubuntu and macOS; shellcheck on the scripts; the read-only agents' shell allowlists (`tests/agent-allowlist/`); actionlint and zizmor on the workflows |
+| Dependabot | weekly | bumps the commit-pinned actions, to releases at least a week old |
 | `smoke test` | PRs touching the install path, or by hand | `docker-smoke-test.sh`: the install in fresh Ubuntu and Arch containers |
+
+The agent allowlist tests run locally too: `python3 tests/agent-allowlist/run.py`.
+Add a line to `cases.tsv` for every bypass found.
 
 The smoke test also runs locally, against the current checkout (uncommitted
 changes included). GUI parts of the Arch install can't run in a container, so

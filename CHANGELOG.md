@@ -15,6 +15,14 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Agent allowlist tests in CI**: `tests/agent-allowlist/` runs every
+  bypass found so far, per agent, against the Claude Code hook and each
+  agent's OpenCode rules, plus malformed input (the hook must block on
+  purpose, not by crashing) and the hook's wiring in each agent file. In the
+  `checks` workflow, on Ubuntu and macOS (bash 3.2).
+- **actionlint and zizmor in CI** (`checks` workflow), pinned versions,
+  actionlint checksum-verified. The chezmoi job's script no longer trips
+  shellcheck's word-splitting notes.
 - **Shell allowlist for the read-only agents in Claude Code**: a `PreToolUse`
   hook in each agent's file (`agent-shell-allowlist.sh`) limits the reviewers
   and the performance-optimizer to git diff/log/show, and the

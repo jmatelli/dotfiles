@@ -3,7 +3,11 @@
 #   --no-verify, edits on github.com, and machines without gitleaks);
 # - chezmoi: every file rendered on Linux and macOS (a dry run, nothing
 #   written), so a template typo fails here and not on a new machine;
-# - shellcheck: the scripts, and the script templates as rendered per OS.
+# - shellcheck: the scripts, and the script templates as rendered per OS;
+# - agent allowlists: the read-only agents' shell rules (Claude Code hook
+#   and OpenCode permissions) against tests/agent-allowlist/cases.tsv;
+# - workflows: actionlint and zizmor over .github, so these files and
+#   Dependabot's bumps stay valid and safe.
 name: checks
 
 on:
@@ -35,6 +39,46 @@ jobs:
       - name: Scan the whole history
         run: gitleaks git --redact --no-banner --verbose
 
+  agent-allowlists:
+    # macOS too: there the hook runs under /bin/bash 3.2.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Shell allowlists of the read-only agents
+        run: python3 tests/agent-allowlist/run.py
+
+  workflows:
+    runs-on: ubuntu-latest
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      ZIZMOR_VERSION: 1.32.0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install actionlint (checksum verified) and zizmor
+        run: |
+          base="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}"
+          tarball="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLO "$base/$tarball"
+          curl -fsSL "$base/actionlint_${ACTIONLINT_VERSION}_checksums.txt" | grep " $tarball\$" | sha256sum -c -
+          tar -xzf "$tarball" actionlint
+          sudo install actionlint /usr/local/bin/actionlint
+          pipx install "zizmor==${ZIZMOR_VERSION}"
+      - name: actionlint
+        run: actionlint
+      # Offline: no token. That skips the audits that look the pinned SHAs up
+      # on GitHub (impostor-commit, ref-version-mismatch,
+      # known-vulnerable-actions); Dependabot picks the pins from releases.
+      - name: zizmor
+        run: zizmor --offline --no-progress --render-links never .github
+
   chezmoi:
     strategy:
       fail-fast: false
@@ -55,8 +99,8 @@ jobs:
           asked=$(grep -o 'promptStringOnce \. "[A-Za-z]*"' .chezmoi.toml.tmpl | cut -d'"' -f2 | sort)
           seeded=$(sed -n '/^SEED_CONFIG_CMD=/,/^EOF/p' docker-smoke-test.sh | grep -oE '^ +[A-Za-z]+ =' | tr -d ' =' | sort)
           if [ "$asked" != "$seeded" ]; then
-            echo "Install questions: $(echo $asked)"
-            echo "Smoke test answers: $(echo $seeded)"
+            echo "Install questions: ${asked//$'\n'/ }"
+            echo "Smoke test answers: ${seeded//$'\n'/ }"
             echo "::error file=docker-smoke-test.sh::SEED_CONFIG_CMD must answer every promptStringOnce in .chezmoi.toml.tmpl"
             exit 1
           fi
@@ -74,7 +118,7 @@ jobs:
           mkdir -p "$HOME/.config/chezmoi"
           {
             echo "[data]"
-            for key in $(grep -o 'promptStringOnce \. "[A-Za-z]*"' .chezmoi.toml.tmpl | cut -d'"' -f2); do
+            grep -o 'promptStringOnce \. "[A-Za-z]*"' .chezmoi.toml.tmpl | cut -d'"' -f2 | while read -r key; do
               if [ "$key" = projectsDir ]; then echo "    $key = \"~/Projects\""; else echo "    $key = \"ci-$key\""; fi
             done
           } > "$HOME/.config/chezmoi/chezmoi.toml"

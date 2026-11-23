@@ -3,6 +3,8 @@ install.sh
 setup-secrets.sh
 docker-smoke-test.sh
 docker-smoke-test/
+tests
+tests/**
 README.md
 CHANGELOG.md
 # OpenCode config for working on this repo (its GitHub MCP server), not ~/opencode.json.

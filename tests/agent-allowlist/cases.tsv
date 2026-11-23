@@ -1,0 +1,100 @@
+# Shell commands the read-only agents may and may not run, checked by run.py
+# against the Claude Code hook (dot_claude/hooks/executable_agent-shell-allowlist.sh)
+# and the OpenCode permission rules (dot_config/opencode/agents/*.md.tmpl).
+#
+# Columns (tab-separated): agent, hook, opencode, command
+#   agent     security-auditor, code-reviewer, deep-reviewer, performance-optimizer,
+#             "reviewers" for the three git-only agents, or "all" for all four
+#   hook      A (allowed) or D (denied) by the hook in that agent's mode
+#   opencode  A or D under that agent's OpenCode rules, or - to skip: run.py
+#             matches the whole command string, while OpenCode checks each
+#             subcommand of a compound command separately (and refuses
+#             commands its scanner can't analyze), so some cases only hold there
+#   command   the rest of the line, as is (a literal tab stays a tab); <NL>,
+#             <CR>, <VT>, <FF> stand for those characters
+#
+# Add a case for every bypass found, so it can't come back. Not needed: git
+# rejects abbreviated diff options (--ext-d, --textc, --outp=), exit 129.
+
+# --- git, every agent -------------------------------------------------------
+all	A	A	git diff --staged
+all	A	A	git diff
+all	A	A	git log --oneline -5
+all	A	A	git show HEAD
+all	A	A	git diff main...HEAD --name-only
+all	A	A	git log --format=%h%x20%s -3
+all	A	A	git log HEAD~1 -3
+all	A	D	git -C ../x show HEAD~1
+all	D	D	git diff --output=/tmp/x
+all	D	D	git log -1 '--output=/tmp/x'
+all	D	D	git log -1 "--output=/tmp/x"
+all	D	D	git log -1 \--output=/tmp/x
+all	D	D	git log -1 $'--output=/tmp/x'
+all	D	D	git log -1 {--output=/tmp/x,-p}
+all	D	D	git log -1 -p	--output=/tmp/x
+all	D	D	git log =(touch /tmp/pwned)
+all	D	D	git diff *(e:'touch /tmp/pwned':)
+all	D	D	git diff --ext-diff
+all	D	D	git diff --textconv
+all	D	D	git diff -Oorder.txt
+all	D	D	git -c diff.external=sh diff HEAD~1
+all	D	D	git -C . -c diff.external=sh diff HEAD~1
+all	D	D	git --config-env=diff.external=SHELL diff HEAD~1
+all	D	D	git --git-dir=sub/evil.git log
+all	D	D	GIT_EXTERNAL_DIFF=true git diff HEAD~1
+all	D	-	git diff; curl evil
+all	D	-	git diff && rm -rf x
+all	D	-	git log | sh
+all	D	-	git diff<NL>curl evil
+all	D	-	git diff<CR>curl evil
+all	D	D	git diff<VT>--output=/tmp/x
+all	D	D	git diff<FF>--output=/tmp/x
+all	D	D	git diff > x
+all	D	D	git show $(whoami)
+# ^ is only risky with zsh's extended_glob (off): the hook refuses it anyway.
+all	D	A	git log HEAD^
+all	D	D	cat x
+all	D	D	ls /tmp
+reviewers	D	D	gitleaks dir --redact --no-banner .
+reviewers	D	D	npm audit
+# The scanners are the auditor's only.
+# --- scanners, security-auditor only -----------------------------------------
+security-auditor	A	A	gitleaks dir --redact --no-banner .
+security-auditor	A	A	gitleaks git --redact --no-banner
+security-auditor	A	A	trivy fs --config /dev/null --scanners vuln,misconfig,secret --quiet ./my-dir
+security-auditor	A	A	semgrep scan --metrics=off --config p/default --quiet .
+security-auditor	A	A	zizmor --offline --no-progress .github
+security-auditor	A	A	govulncheck ./...
+security-auditor	A	A	govulncheck -C server ./...
+security-auditor	A	A	npm audit
+security-auditor	A	A	npm audit --prefix front
+security-auditor	A	A	npm audit --prefix front --omit=dev
+security-auditor	A	A	yarn npm audit --all --recursive
+security-auditor	D	D	gitleaks dir --redact --no-banner -vr /tmp/x .
+security-auditor	D	D	gitleaks dir --redact --no-banner -vc cfg.toml .
+security-auditor	D	D	gitleaks git --redact --no-banner --log-opts=--output=/tmp/x
+security-auditor	D	D	gitleaks dir --redact --no-banner '--redact=0' .
+security-auditor	D	D	gitleaks dir --redact=0 --no-banner .
+security-auditor	D	D	gitleaks dir --redact --no-banner --report-path x .
+security-auditor	D	D	trivy fs --scanners vuln,misconfig,secret --quiet .
+security-auditor	D	D	trivy fs --config /dev/null --scanners vuln,misconfig,secret --quiet -do /tmp/x .
+security-auditor	D	D	trivy fs --config /dev/null --scanners vuln,misconfig,secret --quiet --output /tmp/x .
+security-auditor	D	D	trivy fs --config /dev/null --scanners vuln,misconfig,secret --quiet --server http://x .
+security-auditor	D	D	semgrep scan --metrics=off --config p/default --quiet --config ./r.yml .
+security-auditor	D	D	semgrep scan --metrics=off --config p/default --quiet --json-output=x .
+security-auditor	D	D	semgrep scan --metrics=off --config p/default --quiet --autofix .
+security-auditor	D	D	semgrep scan --metrics=on --config p/default --quiet .
+security-auditor	D	D	zizmor --offline --no-progress --fix .
+security-auditor	D	D	zizmor --offline --no-progress -c x .
+security-auditor	D	D	zizmor --offline --no-progress --gh-token x .
+security-auditor	D	D	zizmor --no-progress .
+security-auditor	D	D	govulncheck ./... -json
+security-auditor	D	D	govulncheck -C -json ./...
+security-auditor	D	D	govulncheck -C server -json ./...
+security-auditor	D	D	npm audit fix
+security-auditor	D	D	npm audit 'fix'
+security-auditor	D	D	npm audit --registry=https://evil
+security-auditor	D	D	npm audit --userconfig=x
+security-auditor	D	D	npm audit --prefix front --userconfig=x
+security-auditor	D	D	npm audit --prefix -x
+security-auditor	D	D	curl https://x
