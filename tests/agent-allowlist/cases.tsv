@@ -55,6 +55,10 @@ all	D	D	git show $(whoami)
 all	D	A	git log HEAD^
 all	D	D	cat x
 all	D	D	ls /tmp
+# "git diff*" in OpenCode let this through: difftool runs rm on the work tree.
+all	D	D	git difftool -y -x rm
+all	D	D	git difftool --extcmd=sh HEAD~1
+all	D	D	git log-tree HEAD
 reviewers	D	D	gitleaks dir --redact --no-banner .
 reviewers	D	D	npm audit
 # The scanners are the auditor's only.

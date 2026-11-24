@@ -180,6 +180,10 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   cask (4.8.11, the last v4) into a local `jmatelli/local` tap. It also turns
   off the app's own automatic update checks and replaces an installed 5.x
   cask with this one. `BREW_CASKS` lists `jmatelli/local/cleanshot@4`.
+- **OpenCode reviewers could run `git difftool`**: their `git diff*` rule
+  also matched `git difftool -x <program>`, which runs any program on the
+  work tree. The code-reviewer, deep-reviewer and performance-optimizer now
+  use `git diff *` / `git log *` / `git show *`, like the security-auditor.
 - **`gh` picks the folder's GitHub account in agent shells too**: `.zshenv`
   now puts `~/.local/bin` first, not only `.zshrc`. Agents and scripts run
   `zsh -c`, which never reads `.zshrc`, so they got Homebrew's `gh` (gh's
