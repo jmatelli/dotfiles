@@ -68,6 +68,16 @@ BASE = json.loads(r"""
           ]
         },
         {
+          "id": "usage",
+          "type": "block",
+          "content": {
+            "mod": "neon-usage"
+          },
+          "size": {
+            "px": 152
+          }
+        },
+        {
           "id": "sidebar-footer",
           "type": "block",
           "content": {

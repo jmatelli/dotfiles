@@ -1,0 +1,150 @@
+#!/usr/bin/env -S python3 -I
+"""The subscription usage of every Claude account on this machine, as JSON.
+
+    claude-usage           {"accounts": [{"id", "label", "five_hour", "seven_day", "error"}]}
+
+For the Herdr sidebar (mods/neon-usage), which runs it every 2 minutes. It
+works like the OpenCode budget-sidebar plugin (dot_config/opencode/plugins/
+budget-sidebar/tui.tsx, fetchClaude) and shares its caches, so the two never
+hit the tightly rate-limited endpoint twice:
+
+- an account is the default ~/.claude.json plus each ~/.claude-<name> folder
+  that has a .claude.json (CLAUDE_CONFIG_DIR, see ~/.zsh.d/claude-accounts.zsh);
+- its OAuth token is Claude Code's, read (never refreshed) from the Keychain
+  entry "Claude Code-credentials[-<first 8 hex of sha256(folder)>]";
+- the usage is the endpoint Claude Code's /usage uses, cached per account in
+  ~/.cache/opencode-claude-usage[-<hash>].json for 2 minutes, with an
+  exponential backoff (5 to 30 min) on 429.
+
+Each window is {"utilization": percent, "resets_at": epoch ms or null}, or
+null when the account hasn't used it. Accounts never logged in are left out.
+"""
+import hashlib
+import json
+import os
+import subprocess
+import time
+import unicodedata
+import urllib.error
+import urllib.request
+from datetime import datetime
+
+USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
+CACHE_TTL = 2 * 60
+BACKOFF_MIN = 5 * 60
+BACKOFF_MAX = 30 * 60
+HOME = os.path.expanduser("~")
+
+
+def ref(config_dir=None):
+    suffix = "-" + hashlib.sha256(config_dir.encode()).hexdigest()[:8] if config_dir else ""
+    return {
+        "id": config_dir or "",
+        # ~/.claude-work -> "work"
+        "label": os.path.basename(config_dir).removeprefix(".claude-") if config_dir else "personal",
+        "keychain": f"Claude Code-credentials{suffix}",
+        "cache": os.path.join(HOME, ".cache", f"opencode-claude-usage{suffix}.json"),
+    }
+
+
+def accounts():
+    dirs = sorted(
+        unicodedata.normalize("NFC", os.path.join(HOME, e.name))
+        for e in os.scandir(HOME)
+        if e.is_dir() and e.name.startswith(".claude-") and os.path.exists(os.path.join(e.path, ".claude.json"))
+    )
+    return [ref()] + [ref(d) for d in dirs]
+
+
+def token(r):
+    try:
+        out = subprocess.run(
+            ["security", "find-generic-password", "-s", r["keychain"], "-w"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if out.returncode != 0:
+            return None
+        return json.loads(out.stdout).get("claudeAiOauth", {}).get("accessToken")
+    except (subprocess.SubprocessError, ValueError):
+        return None
+
+
+def read_cache(r):
+    try:
+        with open(r["cache"]) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def write_cache(r, cache):
+    try:
+        os.makedirs(os.path.dirname(r["cache"]), exist_ok=True)
+        tmp = f"{r['cache']}.{os.getpid()}.tmp"
+        with open(tmp, "w") as f:
+            json.dump(cache, f)
+        os.replace(tmp, r["cache"])  # atomic: concurrent readers never see a partial file
+    except OSError:
+        pass
+
+
+def usage(r):
+    """(usage, error): the cached or fetched usage, else why there is none."""
+    tok = token(r)
+    if not tok:
+        return None, "no login"
+    now_ms = int(time.time() * 1000)
+    cache = read_cache(r)
+    cached = cache.get("usage")
+    if cached and cache.get("fetchedAt") and now_ms - cache["fetchedAt"] < CACHE_TTL * 1000:
+        return cached, None
+    if cache.get("backoffUntil") and now_ms < cache["backoffUntil"]:
+        return (cached, None) if cached else (None, "rate limited")
+    req = urllib.request.Request(USAGE_URL, headers={"Authorization": f"Bearer {tok}", "anthropic-beta": "oauth-2025-04-20"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as res:
+            fresh = json.load(res)
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            backoff = min(BACKOFF_MAX * 1000, cache["backoffMs"] * 2 if cache.get("backoffMs") else BACKOFF_MIN * 1000)
+            write_cache(r, {**cache, "backoffMs": backoff, "backoffUntil": now_ms + backoff})
+            return (cached, None) if cached else (None, "rate limited")
+        if e.code == 401:
+            return None, "token expired"
+        return (cached, None) if cached else (None, f"http {e.code}")
+    except (OSError, ValueError):
+        return (cached, None) if cached else (None, "offline")
+    write_cache(r, {"fetchedAt": now_ms, "usage": fresh})
+    return fresh, None
+
+
+def window(w):
+    if not w or w.get("utilization") is None:
+        return None
+    resets = None
+    if w.get("resets_at"):
+        try:
+            resets = int(datetime.fromisoformat(w["resets_at"]).timestamp() * 1000)
+        except ValueError:
+            pass
+    return {"utilization": w["utilization"], "resets_at": resets}
+
+
+def main():
+    out = []
+    for r in accounts():
+        u, err = usage(r)
+        if err == "no login":
+            continue
+        out.append({
+            "id": r["id"],
+            "label": r["label"],
+            "five_hour": window((u or {}).get("five_hour")),
+            "seven_day": window((u or {}).get("seven_day")),
+            "error": err,
+        })
+    print(json.dumps({"accounts": out}))
+
+
+if __name__ == "__main__":
+    main()

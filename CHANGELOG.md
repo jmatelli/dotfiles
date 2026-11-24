@@ -21,6 +21,12 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Within a space: the ones that finished while you weren't looking first,
   then the ones asking for input, then the ones still working, then the idle
   ones. Type to filter, Enter goes to the agent.
+- **Herdr `neon-usage`**: a "Claude usage" block in the sidebar, under the
+  agents, with each Claude account's 5h and 7d windows (bar, percentage,
+  reset time). The numbers come from the new `claude-usage` script, run every
+  2 minutes, which reads each account's Claude Code login from the Keychain
+  and shares the OpenCode budget-sidebar's caches, so the rate-limited usage
+  endpoint is asked no more often than before.
 - **Agent allowlist tests in CI**: `tests/agent-allowlist/` runs every
   bypass found so far, per agent, against the Claude Code hook and each
   agent's OpenCode rules, plus malformed input (the hook must block on
