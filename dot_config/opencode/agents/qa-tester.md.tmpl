@@ -1,0 +1,398 @@
+---
+description: >-
+  QA testing (Sonnet). Use when the user asks to QA, test, or verify a change or feature, find
+  untested edge cases or regressions, add missing tests, or click through the running app: runs the
+  project's lint/type/test commands, writes tests (test files only, never production code), drives
+  the web app with Playwright/Chrome DevTools or the mobile app with Maestro, and reports
+  reproduced bugs with repro steps. Not a code reviewer: use code-reviewer for that.
+mode: subagent
+model: claude-agent/sonnet
+permissions:
+  # Deny everything (web, other MCP servers, subagents, Code Mode, paths
+  # outside the project), then allow reading, test files, the check/test
+  # commands and the browser/mobile MCP servers. Running a project's tests
+  # runs its code: this keeps the agent on task, it isn't a sandbox.
+  - action: "*"
+    resource: "*"
+    effect: deny
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: read
+    resource: "*.env"
+    effect: deny
+  - action: read
+    resource: "*.env.*"
+    effect: deny
+  - action: read
+    resource: "*.env.example"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  # Test files only (same list as ~/.claude/hooks/agent-edit-allowlist.sh).
+  - action: edit
+    resource: "*.test.*"
+    effect: allow
+  - action: edit
+    resource: "*.spec.*"
+    effect: allow
+  - action: edit
+    resource: "*_test.go"
+    effect: allow
+  - action: edit
+    resource: "*__tests__/*"
+    effect: allow
+  - action: edit
+    resource: "*__snapshots__/*"
+    effect: allow
+  - action: edit
+    resource: "testdata/*"
+    effect: allow
+  - action: edit
+    resource: "*/testdata/*"
+    effect: allow
+  - action: edit
+    resource: "test/*"
+    effect: allow
+  - action: edit
+    resource: "*/test/*"
+    effect: allow
+  - action: edit
+    resource: "tests/*"
+    effect: allow
+  - action: edit
+    resource: "*/tests/*"
+    effect: allow
+  - action: edit
+    resource: "e2e/*"
+    effect: allow
+  - action: edit
+    resource: "*/e2e/*"
+    effect: allow
+  - action: edit
+    resource: ".maestro/*"
+    effect: allow
+  - action: edit
+    resource: "*/.maestro/*"
+    effect: allow
+  # Minus what tools load as config or code whatever its name: dot
+  # directories and files (.git, .github, .claude, .opencode, .env.test…),
+  # chezmoi sources, node_modules, the allowlist tests. .maestro comes back
+  # only with no other dot component before or after it.
+  - action: edit
+    resource: ".*"
+    effect: deny
+  - action: edit
+    resource: "*/.*"
+    effect: deny
+  - action: edit
+    resource: ".maestro/*"
+    effect: allow
+  - action: edit
+    resource: "*/.maestro/*"
+    effect: allow
+  - action: edit
+    resource: ".*/.maestro/*"
+    effect: deny
+  - action: edit
+    resource: "*/.*/.maestro/*"
+    effect: deny
+  - action: edit
+    resource: "*.maestro/.*"
+    effect: deny
+  - action: edit
+    resource: "*.maestro/*/.*"
+    effect: deny
+  - action: edit
+    resource: "dot_*"
+    effect: deny
+  - action: edit
+    resource: "*/dot_*"
+    effect: deny
+  - action: edit
+    resource: "*_dot_*"
+    effect: deny
+  - action: edit
+    resource: "*node_modules/*"
+    effect: deny
+  - action: edit
+    resource: "tests/agent-allowlist/*"
+    effect: deny
+  # MCP actions are <server>_<tool> (OpenCode keeps - and _). The "*" deny
+  # above also turns Code Mode off, so these tools are listed directly.
+  - action: playwright_*
+    resource: "*"
+    effect: allow
+  - action: chrome-devtools_*
+    resource: "*"
+    effect: allow
+  - action: maestro_*
+    resource: "*"
+    effect: allow
+  # git, as for the read-only agents, plus git status. "git diff *", not
+  # "git diff*", which would also allow git difftool -x <program>.
+  - action: shell
+    resource: "git diff *"
+    effect: allow
+  - action: shell
+    resource: "git log *"
+    effect: allow
+  - action: shell
+    resource: "git show *"
+    effect: allow
+  - action: shell
+    resource: "git status *"
+    effect: allow
+  # The project's checks and tests (run from the subproject's directory).
+  - action: shell
+    resource: "yarn lint *"
+    effect: allow
+  - action: shell
+    resource: "yarn tsc *"
+    effect: allow
+  - action: shell
+    resource: "yarn typecheck *"
+    effect: allow
+  - action: shell
+    resource: "yarn test *"
+    effect: allow
+  - action: shell
+    resource: "yarn test:?*"
+    effect: allow
+  - action: shell
+    resource: "yarn e2e *"
+    effect: allow
+  - action: shell
+    resource: "yarn playwright test *"
+    effect: allow
+  - action: shell
+    resource: "npm test *"
+    effect: allow
+  - action: shell
+    resource: "npm run lint *"
+    effect: allow
+  - action: shell
+    resource: "npm run tsc *"
+    effect: allow
+  - action: shell
+    resource: "npm run typecheck *"
+    effect: allow
+  - action: shell
+    resource: "npm run test *"
+    effect: allow
+  - action: shell
+    resource: "npm run test:?*"
+    effect: allow
+  - action: shell
+    resource: "npm run e2e *"
+    effect: allow
+  # make: one target, nothing after it (flags and VAR=value change what runs).
+  - action: shell
+    resource: "make test"
+    effect: allow
+  - action: shell
+    resource: "make test-?*"
+    effect: allow
+  - action: shell
+    resource: "make lint"
+    effect: allow
+  - action: shell
+    resource: "make * *"
+    effect: deny
+  - action: shell
+    resource: "go test *"
+    effect: allow
+  - action: shell
+    resource: "go vet *"
+    effect: allow
+  - action: shell
+    resource: "maestro test *"
+    effect: allow
+  # Minus snapshot/golden updates (-u, -uall, --u, -iu…: for the JS runners
+  # only, git diff -u is fine), flags that run another program, and flags
+  # that rewrite sources or write files anywhere. Then the same denials as
+  # the read-only agents (performance-optimizer.md.tmpl).
+  - action: shell
+    resource: "yarn * -u*"
+    effect: deny
+  - action: shell
+    resource: "yarn * --u"
+    effect: deny
+  - action: shell
+    resource: "yarn * --u *"
+    effect: deny
+  - action: shell
+    resource: "yarn * --u=*"
+    effect: deny
+  - action: shell
+    resource: "yarn * -?u"
+    effect: deny
+  - action: shell
+    resource: "yarn * -?u *"
+    effect: deny
+  - action: shell
+    resource: "npm * -u*"
+    effect: deny
+  - action: shell
+    resource: "npm * --u"
+    effect: deny
+  - action: shell
+    resource: "npm * --u *"
+    effect: deny
+  - action: shell
+    resource: "npm * --u=*"
+    effect: deny
+  - action: shell
+    resource: "npm * -?u"
+    effect: deny
+  - action: shell
+    resource: "npm * -?u *"
+    effect: deny
+  - action: shell
+    resource: "maestro * -u*"
+    effect: deny
+  - action: shell
+    resource: "go * -u"
+    effect: deny
+  - action: shell
+    resource: "go * -u *"
+    effect: deny
+  - action: shell
+    resource: "*--update*"
+    effect: deny
+  - action: shell
+    resource: "* -update*"
+    effect: deny
+  - action: shell
+    resource: "*-exec*"
+    effect: deny
+  - action: shell
+    resource: "*-toolexec*"
+    effect: deny
+  - action: shell
+    resource: "*-vettool*"
+    effect: deny
+  - action: shell
+    resource: "*--script-shell*"
+    effect: deny
+  - action: shell
+    resource: "*--fix*"
+    effect: deny
+  - action: shell
+    resource: "* --write*"
+    effect: deny
+  - action: shell
+    resource: "*--outDir*"
+    effect: deny
+  - action: shell
+    resource: "*--outFile*"
+    effect: deny
+  - action: shell
+    resource: "*--declarationDir*"
+    effect: deny
+  - action: shell
+    resource: "yarn * -b"
+    effect: deny
+  - action: shell
+    resource: "yarn * -b *"
+    effect: deny
+  - action: shell
+    resource: "npm * -b"
+    effect: deny
+  - action: shell
+    resource: "npm * -b *"
+    effect: deny
+  - action: shell
+    resource: "*--build*"
+    effect: deny
+  - action: shell
+    resource: "*--init*"
+    effect: deny
+  - action: shell
+    resource: "go * -o*"
+    effect: deny
+  - action: shell
+    resource: "* -outputdir*"
+    effect: deny
+  - action: shell
+    resource: "* -coverprofile*"
+    effect: deny
+  - action: shell
+    resource: "* -cpuprofile*"
+    effect: deny
+  - action: shell
+    resource: "* -memprofile*"
+    effect: deny
+  - action: shell
+    resource: "* -blockprofile*"
+    effect: deny
+  - action: shell
+    resource: "* -mutexprofile*"
+    effect: deny
+  - action: shell
+    resource: "* -trace*"
+    effect: deny
+  - action: shell
+    resource: "*--output*"
+    effect: deny
+  - action: shell
+    resource: "*--ext-diff*"
+    effect: deny
+  - action: shell
+    resource: "*--textconv*"
+    effect: deny
+  - action: shell
+    resource: "git * -O*"
+    effect: deny
+  - action: shell
+    resource: "*--config-env*"
+    effect: deny
+  - action: shell
+    resource: "*--git-dir*"
+    effect: deny
+  - action: shell
+    resource: "*--work-tree*"
+    effect: deny
+  - action: shell
+    resource: "*--exec-path*"
+    effect: deny
+  - action: shell
+    resource: "*GIT_*"
+    effect: deny
+  - action: shell
+    resource: "*>*"
+    effect: deny
+  - action: shell
+    resource: "*<*"
+    effect: deny
+  - action: shell
+    resource: "*'*"
+    effect: deny
+  - action: shell
+    resource: "*\"*"
+    effect: deny
+  - action: shell
+    resource: "*$*"
+    effect: deny
+  - action: shell
+    resource: "*`*"
+    effect: deny
+  - action: shell
+    resource: "*{*"
+    effect: deny
+  - action: shell
+    resource: "*(*"
+    effect: deny
+  - action: shell
+    resource: "*\\*"
+    effect: deny
+  - action: shell
+    resource: "*\t*"
+    effect: deny
+---
+
+{{ template "qa-tester.md" dict "client" "opencode" }}

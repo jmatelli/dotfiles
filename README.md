@@ -304,6 +304,33 @@ optimizer check the current change by default, or a path or the whole repo
 when asked, and report fixes without applying them. Their prompts live in
 `.chezmoitemplates/`, shared by both clients.
 
+**QA agent**: a **qa-tester** (Sonnet) looks for what the current change (or
+a named feature) breaks or leaves untested. It runs the project's lint, type
+and test commands, writes the missing tests, and clicks through the running
+app with Playwright or Chrome DevTools (web) or Maestro (mobile). It reports
+bugs it reproduced with a failing test or repro steps. Unlike the read-only
+agents, it can edit, but only test files (`*.test.*`, `*.spec.*`,
+`*_test.go`, `__tests__/`, `tests/`, `e2e/`, `.maestro/`…), and never under
+a dot directory (`.github/`, `.claude/`, `.env.test`…, but `.maestro/`) or a
+chezmoi `dot_*` source, where a test-named file would still load as a
+workflow, agent or config. In Claude Code an `Edit|Write` hook enforces that
+(`~/.claude/hooks/agent-edit-allowlist.sh`: inside a git repo, no `..`, no
+symlinks, no control characters); in OpenCode, edit rules, which match the
+path text only, so a symlink committed in the repo under `tests/` could
+still lead outside it. Its shell is limited to git diff/log/show/status and
+the check and test commands (`yarn lint/tsc/test*`, `make test` with one
+target, `go test/vet`, `maestro test`), with no installs, git writes,
+snapshot updates, `--fix`/`--write`, or flags that write files elsewhere or
+run another program (`qa` mode of the shell allowlist hook). Running a
+project's tests runs that project's code, so these limits keep the agent on
+task; they aren't a sandbox for untrusted repos. The pages it browses are
+its riskiest input (text there could steer it into writing a test that runs
+something), and the Chrome DevTools tools can save screenshots and traces
+anywhere; Claude Code still asks before each shell command and edit, while
+OpenCode's rules allow them without asking. In Claude Code its MCP servers
+start with the agent. It doesn't start the app: give it a URL or a running
+simulator.
+
 **Two Claude accounts by folder**: under the projects folder,
 `~/.zsh.d/claude-accounts.zsh` points `CLAUDE_CONFIG_DIR` at `~/.claude-work`,
 with its own login and history; its settings, agents, hooks and plugins are

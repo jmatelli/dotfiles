@@ -4,7 +4,8 @@
 #
 # Columns (tab-separated): agent, hook, opencode, command
 #   agent     security-auditor, code-reviewer, deep-reviewer, performance-optimizer,
-#             "reviewers" for the three git-only agents, or "all" for all four
+#             qa-tester, "reviewers" for the three git-only agents, or "all"
+#             for all five
 #   hook      A (allowed) or D (denied) by the hook in that agent's mode
 #   opencode  A or D under that agent's OpenCode rules, or - to skip: run.py
 #             matches the whole command string, while OpenCode checks each
@@ -102,3 +103,111 @@ security-auditor	D	D	npm audit --userconfig=x
 security-auditor	D	D	npm audit --prefix front --userconfig=x
 security-auditor	D	D	npm audit --prefix -x
 security-auditor	D	D	curl https://x
+# --- checks and tests, qa-tester only -----------------------------------------
+reviewers	D	D	git status
+reviewers	D	D	yarn test
+security-auditor	D	D	yarn test
+security-auditor	D	D	git status
+qa-tester	A	A	git status
+qa-tester	A	A	git status --short
+qa-tester	A	A	git diff develop...HEAD --stat
+qa-tester	A	A	yarn lint --quiet
+qa-tester	A	A	yarn tsc
+qa-tester	A	A	yarn test
+qa-tester	A	A	yarn test:run
+qa-tester	A	A	yarn test:run src/cart/useCart.test.ts
+qa-tester	A	A	yarn playwright test e2e/checkout.spec.ts
+qa-tester	A	A	npm test
+qa-tester	A	A	npm run test:unit
+qa-tester	A	A	make test
+qa-tester	A	A	make test-integration
+qa-tester	A	A	go test ./... -run=TestTotal -count=1
+qa-tester	A	A	go vet ./...
+qa-tester	A	A	maestro test .maestro/login.yaml
+# Subprojects: --cwd / --prefix / -C in the hook, the working directory in OpenCode.
+qa-tester	A	D	yarn --cwd front test:run
+qa-tester	A	D	npm --prefix front run lint
+qa-tester	A	D	make -C server test
+qa-tester	A	D	go -C server test ./...
+qa-tester	D	D	yarn --cwd -x test
+qa-tester	D	D	yarn --cwd
+qa-tester	D	D	make -C
+qa-tester	D	D	yarn add left-pad
+qa-tester	D	D	yarn install
+qa-tester	D	D	yarn dlx evil
+qa-tester	D	D	yarn node x.js
+qa-tester	D	D	yarn exec rm x
+qa-tester	D	D	yarn dev
+qa-tester	D	D	yarn --cwd front add left-pad
+qa-tester	D	D	yarn test:
+qa-tester	D	D	npm install
+qa-tester	D	D	npm run build
+qa-tester	D	D	npm exec x
+qa-tester	D	D	npx playwright test
+qa-tester	D	D	make deploy
+qa-tester	D	D	make -C server migrate
+qa-tester	D	D	go run main.go
+qa-tester	D	D	go generate ./...
+qa-tester	D	D	go test -exec=/bin/sh ./...
+qa-tester	D	D	go test -toolexec /tmp/x ./...
+qa-tester	D	D	maestro cloud x
+# No snapshot or golden-file updates.
+qa-tester	D	D	yarn test -u
+qa-tester	D	D	yarn test:run -u src/x.test.ts
+qa-tester	D	D	yarn test --update
+qa-tester	D	D	yarn playwright test --update-snapshots
+qa-tester	D	D	yarn test --updateSnapshot
+qa-tester	D	D	go test ./... -update
+qa-tester	D	D	yarn test --u
+qa-tester	D	D	yarn test --u=true
+qa-tester	D	D	yarn test -iu
+qa-tester	D	D	yarn test -ui
+qa-tester	D	D	npm test -wu
+qa-tester	D	D	yarn playwright test -uall
+qa-tester	D	D	maestro test -u x
+qa-tester	A	A	go test ./... -run=TestUser
+qa-tester	A	A	git diff -u
+# Rewriting sources, writing files anywhere, running other programs.
+qa-tester	D	D	yarn lint --fix
+qa-tester	D	D	yarn lint --fix-type=problem
+qa-tester	D	D	npm run lint --fix
+qa-tester	D	D	yarn lint --write
+qa-tester	D	D	yarn tsc --outDir /tmp/x
+qa-tester	D	D	yarn tsc --outFile=/tmp/x.js
+qa-tester	D	D	yarn tsc -b
+qa-tester	D	D	yarn tsc --build
+qa-tester	D	D	yarn tsc --init
+qa-tester	D	D	yarn test --outputFile=/tmp/x
+qa-tester	D	D	yarn playwright test --output=/tmp/x
+qa-tester	D	D	npm test --script-shell=/tmp/x
+qa-tester	D	D	go vet -vettool=/tmp/x ./...
+qa-tester	D	D	go test -c -o /tmp/x ./...
+qa-tester	D	D	go test -coverprofile=/tmp/c ./...
+qa-tester	D	D	go test -cpuprofile=/tmp/c ./...
+qa-tester	D	D	go test -trace=/tmp/t ./...
+qa-tester	D	D	go test -outputdir=/tmp ./...
+# make: one target, nothing else (in OpenCode not even -k / -jN).
+qa-tester	D	D	make test deploy
+qa-tester	D	D	make lint clean
+qa-tester	D	D	make test -f tests/x.mk
+qa-tester	D	D	make test -e
+qa-tester	D	D	make test --eval=x
+qa-tester	D	D	make test GO=rm
+qa-tester	D	D	make -C server test migrate
+qa-tester	D	D	make test-a deploy
+qa-tester	A	D	make test -k
+qa-tester	A	D	make test -j4
+qa-tester	A	D	make -C server test -j4
+# Same expansion and chaining rules as the other agents.
+qa-tester	D	D	yarn test $(rm x)
+qa-tester	D	D	yarn test > out.txt
+qa-tester	D	D	yarn test 'x'
+qa-tester	D	-	yarn test && git push
+qa-tester	D	-	yarn test; curl evil
+qa-tester	D	-	cd front && yarn test
+qa-tester	D	D	git commit -m x
+qa-tester	D	D	git push
+qa-tester	D	D	git checkout .
+qa-tester	D	D	git stash
+qa-tester	D	D	rm -rf x
+qa-tester	D	D	curl https://x

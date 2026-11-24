@@ -4,8 +4,8 @@
 # - chezmoi: every file rendered on Linux and macOS (a dry run, nothing
 #   written), so a template typo fails here and not on a new machine;
 # - shellcheck: the scripts, and the script templates as rendered per OS;
-# - agent allowlists: the read-only agents' shell rules (Claude Code hook
-#   and OpenCode permissions) against tests/agent-allowlist/cases.tsv;
+# - agent allowlists: the agents' shell and edit rules (Claude Code hooks
+#   and OpenCode permissions) against tests/agent-allowlist/;
 # - workflows: actionlint and zizmor over .github, so these files and
 #   Dependabot's bumps stay valid and safe.
 name: checks
@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Shell allowlists of the read-only agents
+      - name: Shell and edit allowlists of the agents
         run: python3 tests/agent-allowlist/run.py
 
   workflows:

@@ -1,14 +1,16 @@
 #!/bin/bash
 #
-# PreToolUse hook for the read-only subagents (code-reviewer, deep-reviewer,
-# performance-optimizer, security-auditor), set in each agent's frontmatter
-# so it runs only inside that agent. Claude Code's agent files can't limit
-# Bash to some commands; this does what OpenCode's permission rules do for the
-# same agents (dot_config/opencode/agents/).
+# PreToolUse hook for the subagents (code-reviewer, deep-reviewer,
+# performance-optimizer, security-auditor, qa-tester), set in each agent's
+# frontmatter so it runs only inside that agent. Claude Code's agent files
+# can't limit Bash to some commands; this does what OpenCode's permission
+# rules do for the same agents (dot_config/opencode/agents/).
 #
-# Usage: agent-shell-allowlist.sh <git|security>
+# Usage: agent-shell-allowlist.sh <git|security|qa>
 #   git       git diff / log / show only
 #   security  those, plus the scanners in their fixed forms (see SCANNERS)
+#   qa        git diff / log / show / status, plus the project's lint, type
+#             and test commands (see the qa block)
 #
 # The command runs in zsh, which expands far more than it looks: quotes,
 # $'…', braces, globs with code in them (*(e:…:)), =(…) substitution, tabs.
@@ -58,6 +60,63 @@ if [[ "$COMMAND" =~ ^git(\ -C\ [^\ ]+)?\ (diff|log|show)(\ |$) ]]; then
     esac
   done
   exit 0
+fi
+
+if [ "$MODE" = qa ]; then
+  [[ "$COMMAND" =~ ^git(\ -C\ [^\ ]+)?\ status(\ |$) ]] && exit 0
+  # The project's checks and tests, optionally in a subproject (yarn --cwd,
+  # npm --prefix, make -C, go -C, since cd can't be chained). Running tests
+  # runs the project's code, so this keeps the agent on task (no installs,
+  # git writes, rm, curl…); it isn't a sandbox.
+  for w in "${WORDS[@]}"; do
+    case "$w" in
+      # also --updateSnapshot, --update-snapshots, -uall, --u (= -u to yargs/mri)
+      -u* | --u | --u=* | --update*)  # -u* covers go's -update
+        block "$w updates snapshots or golden files: report outdated ones instead" ;;
+      -exec | -exec=* | -toolexec* | -vettool* | --script-shell*)
+        block "$w runs another program" ;;
+      # Rewrite sources (eslint/prettier --fix, tsc emit) or write files anywhere.
+      --fix* | --write | --outDir* | --outFile* | --declarationDir* | -b | --build* | --init \
+        | --output* | -o | -o=* | -outputdir* | -coverprofile* | -cpuprofile* | -memprofile* \
+        | -blockprofile* | -mutexprofile* | -trace*)
+        block "$w writes or rewrites files outside the tests" ;;
+    esac
+    # Grouped short flags hiding -u (-iu, -wu) for the JS runners; not go,
+    # whose single-dash flags are words (-run, -count).
+    if [ "${WORDS[0]}" != go ] && [[ "$w" =~ ^-[A-Za-z]*u[A-Za-z]*$ ]]; then
+      block "$w may include -u (update snapshots)"
+    fi
+  done
+  is_script() {
+    case "${1:-}" in
+      lint | tsc | typecheck | test | test:?* | e2e) return 0 ;;
+    esac
+    return 1
+  }
+  qa_dir() {
+    [ -n "${1:-}" ] && [[ "$1" != -* ]] || block "the directory after ${2} must be a plain path"
+  }
+  set -- "${WORDS[@]}"
+  TOOL=$1
+  shift
+  case "$TOOL" in
+    yarn) [ "${1:-}" = --cwd ] && { qa_dir "${2:-}" --cwd; shift 2; } ;;
+    npm) [ "${1:-}" = --prefix ] && { qa_dir "${2:-}" --prefix; shift 2; } ;;
+    make | go) [ "${1:-}" = -C ] && { qa_dir "${2:-}" -C; shift 2; } ;;
+  esac
+  SUB=${1:-}
+  case "$TOOL" in
+    yarn) is_script "$SUB" || { [ "$SUB" = playwright ] && [ "${2:-}" = test ]; } ;;
+    npm) [ "$SUB" = test ] || { [ "$SUB" = run ] && is_script "${2:-}"; } ;;
+    # One target, then only -k / -jN: make's other flags and VAR=value
+    # overrides (-f, -e, --eval, SHELL=…) change what runs.
+    make) case "$SUB" in test | test-?* | lint) true ;; *) false ;; esac \
+      && shift && for a in "$@"; do [[ "$a" =~ ^(-k|-j[0-9]*)$ ]] || block "make takes one target, then only -k or -jN (got $a)"; done ;;
+    go) case "$SUB" in test | vet) true ;; *) false ;; esac ;;
+    maestro) [ "$SUB" = test ] ;;
+    *) false ;;
+  esac && exit 0
+  block "'$COMMAND' is not on the allowlist (git diff/log/show/status, and the lint/tsc/test scripts, make test/lint, go test/vet, maestro test)"
 fi
 
 [ "$MODE" = security ] || block "'$COMMAND' is not on the allowlist (git diff/log/show only)"

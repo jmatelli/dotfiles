@@ -1,0 +1,37 @@
+---
+name: qa-tester
+description: >-
+  QA testing (Sonnet). Use when the user asks to QA, test, or verify a change or feature, find
+  untested edge cases or regressions, add missing tests, or click through the running app: runs the
+  project's lint/type/test commands, writes tests (test files only, never production code), drives
+  the web app with Playwright/Chrome DevTools or the mobile app with Maestro, and reports
+  reproduced bugs with repro steps. Not a code reviewer: use code-reviewer for that.
+tools: ["Read", "Grep", "Glob", "Bash", "Edit", "Write", "mcp__playwright__*", "mcp__chrome-devtools__*", "mcp__maestro__*"]
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "~/.claude/hooks/agent-shell-allowlist.sh qa"
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: "~/.claude/hooks/agent-edit-allowlist.sh"
+# Scoped to this agent: started when it runs, stopped when it ends.
+mcpServers:
+  - playwright:
+      type: stdio
+      command: npx
+      args: ["@playwright/mcp@latest"]
+  - chrome-devtools:
+      type: stdio
+      command: npx
+      args: ["-y", "chrome-devtools-mcp@latest", "--isolated", "--viewport", "1280x800"]
+  - maestro:
+      type: stdio
+      command: maestro
+      args: ["mcp"]
+model: sonnet
+---
+
+{{ template "qa-tester.md" dict "client" "claude" }}

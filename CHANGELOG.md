@@ -27,6 +27,17 @@ Format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   2 minutes, which reads each account's Claude Code login from the Keychain
   and shares the OpenCode budget-sidebar's caches, so the rate-limited usage
   endpoint is asked no more often than before.
+- **qa-tester agent** (Sonnet) for OpenCode and Claude Code: runs the
+  project's lint/type/test commands, finds untested behavior in the current
+  change, writes the missing tests (test files only, enforced by a new
+  `agent-edit-allowlist.sh` hook in Claude Code and edit rules in OpenCode),
+  and drives the running app with Playwright, Chrome DevTools or Maestro.
+  Not under dot directories (but `.maestro/`), `.env*` or chezmoi `dot_*`
+  sources. Its shell is the new `qa` mode of `agent-shell-allowlist.sh`: git
+  diff/log/show/status plus the check and test commands, no installs, git
+  writes, snapshot updates, `--fix`, or flags that write elsewhere or run a
+  program. Covered by `tests/agent-allowlist/`, which now also checks edit
+  paths and the OpenCode MCP action names.
 - **Agent allowlist tests in CI**: `tests/agent-allowlist/` runs every
   bypass found so far, per agent, against the Claude Code hook and each
   agent's OpenCode rules, plus malformed input (the hook must block on
