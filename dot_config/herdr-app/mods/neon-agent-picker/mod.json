@@ -1,5 +1,5 @@
 {
   "place": "none",
-  "title": "Inbox",
+  "title": "Agents",
   "overlay": { "kind": "popup", "at": "top", "offset": 40, "width": 640, "height": 0.8 }
 }

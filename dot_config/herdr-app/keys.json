@@ -66,7 +66,7 @@
     "cmd-shift-l": "layout.switch",
     "cmd-n": "space.new",
     "cmd-p": "mod.open:neon-picker",
-    "cmd-shift-i": "mod.open:neon-inbox",
+    "cmd-shift-i": "mod.open:neon-agent-picker",
     "cmd-shift-p": "app.palette",
     "cmd-,": "app.settings",
     "cmd-d": "pane.split:right",
