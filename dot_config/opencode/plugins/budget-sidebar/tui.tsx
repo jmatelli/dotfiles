@@ -790,13 +790,60 @@ export default Plugin.define({
       return null
     }
 
+    // One line naming the account the usage belongs to, for the home footer:
+    //   work jane@acme.com Team      (Claude; the folder label only when there
+    //                                 are several logged-in accounts)
+    //   Default Go                   (OpenCode: workspace + plan)
+    const CompactAccount = (props: { sessionID?: string }) => {
+      const loggedIn = () =>
+        claudeRefs().filter((ref) => {
+          const state = claudeStates()[ref.id]
+          return state && state.error !== "no login"
+        }).length
+      return (
+        <Show
+          when={mode() === "claude"}
+          fallback={
+            <Show when={goState().limits?.workspace}>
+              {(workspace) => (
+                <text flexShrink={0} wrapMode="none" fg={theme.text.base}>
+                  {workspace().name ?? "OpenCode"}
+                  <Show when={goState().limits?.go}>
+                    <span style={{ fg: GREEN_HEX }}> Go</span>
+                  </Show>
+                </text>
+              )}
+            </Show>
+          }
+        >
+          <Show when={claudeState(props.sessionID).account}>
+            {(a) => (
+              <text flexShrink={0} wrapMode="none" fg={theme.text.base}>
+                <Show when={loggedIn() > 1}>
+                  <span style={{ fg: DIM }}>{active(props.sessionID).label} </span>
+                </Show>
+                {a().email ?? a().name ?? active(props.sessionID).label}
+                <Show when={a().plan}>
+                  <span style={{ fg: GREEN_HEX }}> {a().plan}</span>
+                </Show>
+              </text>
+            )}
+          </Show>
+        </Show>
+      )
+    }
+
     // One-line fallback for the prompt status bar: context, then the two fast
     // windows. The monthly window moves too slowly to be worth the columns there.
-    const CompactStatus = (props: { sessionID?: string }) => {
+    // account: lead with the account (the home footer, where no sidebar says it).
+    const CompactStatus = (props: { sessionID?: string; account?: boolean }) => {
       createEffect(() => show(props.sessionID))
       return (
         <Show when={sidebarMounted() === 0}>
           <box flexDirection="row" gap={2} flexShrink={0}>
+            <Show when={props.account}>
+              <CompactAccount sessionID={props.sessionID} />
+            </Show>
             <Context sessionID={props.sessionID} compact />
             <Show
               when={windows(props.sessionID)}
@@ -896,7 +943,7 @@ export default Plugin.define({
     })
     const unHome = context.ui.slot({
       append: "home.footer.status",
-      render: () => <CompactStatus />,
+      render: () => <CompactStatus account />
     })
 
     return () => {
